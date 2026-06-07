@@ -1,0 +1,16 @@
+{
+  "name": "card-games-platform",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "dev": "pnpm --parallel --recursive dev",
+    "test": "pnpm --recursive test",
+    "build": "pnpm --recursive build",
+    "lint": "pnpm --recursive lint",
+    "prisma:generate": "pnpm --filter @card-games/api prisma:generate"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
