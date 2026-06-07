@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
 import { Lobby } from "../components/Lobby";
 
 describe("Lobby", () => {
@@ -13,13 +14,23 @@ describe("Lobby", () => {
           phase: "ready-check",
           createdAt: new Date().toISOString(),
           players: [
-            { playerId: "p1", displayName: "Alice", connected: true, ready: false },
-            { playerId: "p2", displayName: "Bob", connected: true, ready: true }
-          ]
+            {
+              playerId: "p1",
+              displayName: "Alice",
+              connected: true,
+              ready: false,
+            },
+            {
+              playerId: "p2",
+              displayName: "Bob",
+              connected: true,
+              ready: true,
+            },
+          ],
         }}
         currentPlayerId="p1"
         onReady={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText("Alice")).toBeInTheDocument();

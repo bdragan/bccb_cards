@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Req, UseGuards } from "@nestjs/common";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+
 import type { RequestUser } from "../auth/auth.types";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { MatchesService } from "./matches.service";
 
 type AuthenticatedRequest = { user: RequestUser };

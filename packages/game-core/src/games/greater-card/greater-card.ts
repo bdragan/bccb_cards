@@ -1,8 +1,17 @@
-import type { Card, GreaterCardPublicState, PlayerRef } from "@card-games/shared";
+import type {
+  Card,
+  GreaterCardPublicState,
+  PlayerRef,
+} from "@card-games/shared";
+
 import { createDeck, shuffleDeck } from "../../cards/deck";
 import { rankValue } from "../../cards/ranks";
 import type { GameDefinition } from "../../engine/types";
-import type { GreaterCardAction, GreaterCardPlayerState, GreaterCardState } from "./types";
+import type {
+  GreaterCardAction,
+  GreaterCardPlayerState,
+  GreaterCardState,
+} from "./types";
 
 const minPlayers = 2;
 const maxPlayers = 8;
@@ -15,23 +24,30 @@ function normalizePlayers(players: PlayerRef[]): GreaterCardPlayerState[] {
   return players.map((player) => ({
     playerId: player.playerId,
     displayName: player.displayName,
-    ready: false
+    ready: false,
   }));
 }
 
-export function createGreaterCardInitialState(players: PlayerRef[]): GreaterCardState {
+export function createGreaterCardInitialState(
+  players: PlayerRef[],
+): GreaterCardState {
   return {
     gameId: "greater-card",
     phase: phaseForPlayerCount(players.length),
     deck: [],
     players: normalizePlayers(players),
     winnerPlayerIds: [],
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   };
 }
 
-function ensurePlayer(state: GreaterCardState, playerId: string): GreaterCardPlayerState {
-  const player = state.players.find((candidate) => candidate.playerId === playerId);
+function ensurePlayer(
+  state: GreaterCardState,
+  playerId: string,
+): GreaterCardPlayerState {
+  const player = state.players.find(
+    (candidate) => candidate.playerId === playerId,
+  );
 
   if (!player) {
     throw new Error("Player is not in this game");
@@ -53,37 +69,55 @@ function maybeStartDrawing(state: GreaterCardState): GreaterCardState {
   return {
     ...state,
     phase: "drawing",
-    deck: shuffleDeck(createDeck())
+    deck: shuffleDeck(createDeck()),
   };
 }
 
 function calculateWinners(players: GreaterCardPlayerState[]): string[] {
-  const drawnPlayers = players.filter((player): player is GreaterCardPlayerState & { drawnCard: Card } =>
-    Boolean(player.drawnCard)
+  const drawnPlayers = players.filter(
+    (player): player is GreaterCardPlayerState & { drawnCard: Card } =>
+      Boolean(player.drawnCard),
   );
-  const highestRankValue = Math.max(...drawnPlayers.map((player) => rankValue(player.drawnCard.rank)));
+  const highestRankValue = Math.max(
+    ...drawnPlayers.map((player) => rankValue(player.drawnCard.rank)),
+  );
 
   return drawnPlayers
     .filter((player) => rankValue(player.drawnCard.rank) === highestRankValue)
     .map((player) => player.playerId);
 }
 
-function applySyncPlayers(state: GreaterCardState, players: PlayerRef[]): GreaterCardState {
-  const existing = new Map(state.players.map((player) => [player.playerId, player]));
+function applySyncPlayers(
+  state: GreaterCardState,
+  players: PlayerRef[],
+): GreaterCardState {
+  const existing = new Map(
+    state.players.map((player) => [player.playerId, player]),
+  );
   const syncedPlayers = players.map((player) => {
     const current = existing.get(player.playerId);
-    return current ? { ...current, displayName: player.displayName } : { ...player, ready: false };
+    return current
+      ? { ...current, displayName: player.displayName }
+      : { ...player, ready: false };
   });
 
   return maybeStartDrawing({
     ...state,
     players: syncedPlayers,
-    phase: phaseForPlayerCount(syncedPlayers.length)
+    phase: phaseForPlayerCount(syncedPlayers.length),
   });
 }
 
-function applyReady(state: GreaterCardState, playerId: string, ready: boolean): GreaterCardState {
-  if (state.phase === "drawing" || state.phase === "revealed" || state.phase === "finished") {
+function applyReady(
+  state: GreaterCardState,
+  playerId: string,
+  ready: boolean,
+): GreaterCardState {
+  if (
+    state.phase === "drawing" ||
+    state.phase === "revealed" ||
+    state.phase === "finished"
+  ) {
     throw new Error("Ready status cannot be changed after the game starts");
   }
 
@@ -91,11 +125,16 @@ function applyReady(state: GreaterCardState, playerId: string, ready: boolean): 
 
   return maybeStartDrawing({
     ...state,
-    players: state.players.map((player) => (player.playerId === playerId ? { ...player, ready } : player))
+    players: state.players.map((player) =>
+      player.playerId === playerId ? { ...player, ready } : player,
+    ),
   });
 }
 
-function applyDrawCard(state: GreaterCardState, playerId: string): GreaterCardState {
+function applyDrawCard(
+  state: GreaterCardState,
+  playerId: string,
+): GreaterCardState {
   if (state.phase !== "drawing") {
     throw new Error("Cards can only be drawn during the drawing phase");
   }
@@ -113,7 +152,7 @@ function applyDrawCard(state: GreaterCardState, playerId: string): GreaterCardSt
   }
 
   const players = state.players.map((candidate) =>
-    candidate.playerId === playerId ? { ...candidate, drawnCard } : candidate
+    candidate.playerId === playerId ? { ...candidate, drawnCard } : candidate,
   );
   const allDrawn = players.every((candidate) => candidate.drawnCard);
 
@@ -127,7 +166,7 @@ function applyDrawCard(state: GreaterCardState, playerId: string): GreaterCardSt
     deck: remainingDeck,
     players,
     winnerPlayerIds: calculateWinners(players),
-    finishedAt: new Date().toISOString()
+    finishedAt: new Date().toISOString(),
   };
 }
 
@@ -135,12 +174,15 @@ function restart(state: GreaterCardState): GreaterCardState {
   return createGreaterCardInitialState(
     state.players.map((player) => ({
       playerId: player.playerId,
-      displayName: player.displayName
-    }))
+      displayName: player.displayName,
+    })),
   );
 }
 
-export function applyGreaterCardAction(state: GreaterCardState, action: GreaterCardAction): GreaterCardState {
+export function applyGreaterCardAction(
+  state: GreaterCardState,
+  action: GreaterCardAction,
+): GreaterCardState {
   switch (action.type) {
     case "sync-players":
       return applySyncPlayers(state, action.players);
@@ -157,7 +199,7 @@ export function applyGreaterCardAction(state: GreaterCardState, action: GreaterC
 
 export function getGreaterCardPublicState(
   state: GreaterCardState,
-  viewerPlayerId: string
+  viewerPlayerId: string,
 ): GreaterCardPublicState {
   const revealed = state.phase === "revealed" || state.phase === "finished";
 
@@ -169,11 +211,14 @@ export function getGreaterCardPublicState(
       displayName: player.displayName,
       ready: player.ready,
       hasDrawn: Boolean(player.drawnCard),
-      drawnCard: revealed || player.playerId === viewerPlayerId ? player.drawnCard : undefined
+      drawnCard:
+        revealed || player.playerId === viewerPlayerId
+          ? player.drawnCard
+          : undefined,
     })),
     winnerPlayerIds: revealed ? state.winnerPlayerIds : [],
     createdAt: state.createdAt,
-    finishedAt: state.finishedAt
+    finishedAt: state.finishedAt,
   };
 }
 
@@ -190,14 +235,22 @@ export function greaterCardResult(state: GreaterCardState) {
         playerId: player.playerId,
         displayName: player.displayName,
         card: player.drawnCard,
-        outcome: tied && isWinner ? ("tie" as const) : isWinner ? ("win" as const) : ("loss" as const),
-        score: player.drawnCard ? rankValue(player.drawnCard.rank) : undefined
+        outcome:
+          tied && isWinner
+            ? ("tie" as const)
+            : isWinner
+              ? ("win" as const)
+              : ("loss" as const),
+        score: player.drawnCard ? rankValue(player.drawnCard.rank) : undefined,
       };
-    })
+    }),
   };
 }
 
-export const greaterCardDefinition: GameDefinition<GreaterCardState, GreaterCardAction> = {
+export const greaterCardDefinition: GameDefinition<
+  GreaterCardState,
+  GreaterCardAction
+> = {
   id: "greater-card",
   displayName: "GreaterCard",
   description: "Each player draws one card. Highest rank wins.",
@@ -206,5 +259,6 @@ export const greaterCardDefinition: GameDefinition<GreaterCardState, GreaterCard
   createInitialState: createGreaterCardInitialState,
   applyAction: applyGreaterCardAction,
   getPublicState: getGreaterCardPublicState,
-  isFinished: (state) => state.phase === "revealed" || state.phase === "finished"
+  isFinished: (state) =>
+    state.phase === "revealed" || state.phase === "finished",
 };

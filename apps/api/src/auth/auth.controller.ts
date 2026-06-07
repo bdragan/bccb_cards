@@ -1,8 +1,14 @@
+import {
+  type LoginDto,
+  loginSchema,
+  type RegisterDto,
+  registerSchema,
+} from "@card-games/shared";
 import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
-import { loginSchema, registerSchema, type LoginDto, type RegisterDto } from "@card-games/shared";
+
 import { AuthService } from "./auth.service";
-import { JwtAuthGuard } from "./jwt-auth.guard";
 import type { RequestUser } from "./auth.types";
+import { JwtAuthGuard } from "./jwt-auth.guard";
 
 type AuthenticatedRequest = { user: RequestUser };
 

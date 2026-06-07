@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -28,17 +29,17 @@ export class MatchesService {
         roomCode: input.roomCode,
         startedAt: input.startedAt,
         finishedAt: input.finishedAt,
-        resultJson: input.result as Prisma.InputJsonValue,
+        resultJson: input.result,
         players: {
           create: input.result.players.map((player) => ({
             userId: player.playerId,
             outcome: player.outcome,
             cardJson: player.card,
-            score: player.score
-          }))
-        }
+            score: player.score,
+          })),
+        },
       },
-      include: { players: true }
+      include: { players: true },
     });
   }
 
@@ -46,14 +47,14 @@ export class MatchesService {
     return this.prisma.match.findMany({
       where: { players: { some: { userId } } },
       include: { players: true },
-      orderBy: { finishedAt: "desc" }
+      orderBy: { finishedAt: "desc" },
     });
   }
 
   async findById(id: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },
-      include: { players: true }
+      include: { players: true },
     });
 
     if (!match) {

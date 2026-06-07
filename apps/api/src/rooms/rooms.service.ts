@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
+
 import {
   applyGreaterCardAction,
   createGreaterCardInitialState,
@@ -7,9 +7,20 @@ import {
   greaterCardDefinition,
   greaterCardResult,
   listGames,
-  rankValue
+  rankValue,
 } from "@card-games/game-core";
-import type { GameId, GreaterCardPublicState, GreaterCardResult, RoomPublicState } from "@card-games/shared";
+import type {
+  GameId,
+  GreaterCardPublicState,
+  GreaterCardResult,
+  RoomPublicState,
+} from "@card-games/shared";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+
 import { MatchesService } from "../matches/matches.service";
 import type { Room, RoomPlayer } from "./rooms.types";
 
@@ -27,7 +38,12 @@ export class RoomsService {
 
   constructor(private readonly matchesService: MatchesService) {}
 
-  createRoom(input: { gameId: GameId; playerId: string; displayName: string; socketId: string }) {
+  createRoom(input: {
+    gameId: GameId;
+    playerId: string;
+    displayName: string;
+    socketId: string;
+  }) {
     if (input.gameId !== "greater-card") {
       throw new BadRequestException("Unsupported game");
     }
@@ -35,7 +51,7 @@ export class RoomsService {
     const player: RoomPlayer = {
       playerId: input.playerId,
       displayName: input.displayName,
-      socketIds: new Set([input.socketId])
+      socketIds: new Set([input.socketId]),
     };
     let code = randomCode();
 
@@ -48,8 +64,10 @@ export class RoomsService {
       code,
       gameId: input.gameId,
       players: [player],
-      state: createGreaterCardInitialState([{ playerId: player.playerId, displayName: player.displayName }]),
-      createdAt: new Date()
+      state: createGreaterCardInitialState([
+        { playerId: player.playerId, displayName: player.displayName },
+      ]),
+      createdAt: new Date(),
     };
 
     this.rooms.set(room.id, room);
@@ -57,8 +75,15 @@ export class RoomsService {
     return room;
   }
 
-  joinRoom(input: { roomCode: string; playerId: string; displayName: string; socketId: string }) {
-    const room = [...this.rooms.values()].find((candidate) => candidate.code === input.roomCode.toUpperCase());
+  joinRoom(input: {
+    roomCode: string;
+    playerId: string;
+    displayName: string;
+    socketId: string;
+  }) {
+    const room = [...this.rooms.values()].find(
+      (candidate) => candidate.code === input.roomCode.toUpperCase(),
+    );
 
     if (!room) {
       throw new NotFoundException("Room not found");
@@ -68,7 +93,9 @@ export class RoomsService {
       throw new BadRequestException("Room is full");
     }
 
-    const existing = room.players.find((player) => player.playerId === input.playerId);
+    const existing = room.players.find(
+      (player) => player.playerId === input.playerId,
+    );
 
     if (existing) {
       existing.socketIds.add(input.socketId);
@@ -76,13 +103,16 @@ export class RoomsService {
       room.players.push({
         playerId: input.playerId,
         displayName: input.displayName,
-        socketIds: new Set([input.socketId])
+        socketIds: new Set([input.socketId]),
       });
     }
 
     room.state = applyGreaterCardAction(room.state, {
       type: "sync-players",
-      players: room.players.map((player) => ({ playerId: player.playerId, displayName: player.displayName }))
+      players: room.players.map((player) => ({
+        playerId: player.playerId,
+        displayName: player.displayName,
+      })),
     });
 
     return room;
@@ -90,7 +120,9 @@ export class RoomsService {
 
   leaveRoom(roomId: string, playerId: string, socketId: string) {
     const room = this.getRoom(roomId);
-    const player = room.players.find((candidate) => candidate.playerId === playerId);
+    const player = room.players.find(
+      (candidate) => candidate.playerId === playerId,
+    );
 
     if (player) {
       player.socketIds.delete(socketId);
@@ -109,14 +141,21 @@ export class RoomsService {
 
   setReady(roomId: string, playerId: string, ready: boolean) {
     const room = this.getRoom(roomId);
-    room.state = applyGreaterCardAction(room.state, { type: "set-ready", playerId, ready });
+    room.state = applyGreaterCardAction(room.state, {
+      type: "set-ready",
+      playerId,
+      ready,
+    });
     return room;
   }
 
   async drawCard(roomId: string, playerId: string) {
     const room = this.getRoom(roomId);
     const wasFinished = greaterCardDefinition.isFinished(room.state);
-    room.state = applyGreaterCardAction(room.state, { type: "draw-card", playerId });
+    room.state = applyGreaterCardAction(room.state, {
+      type: "draw-card",
+      playerId,
+    });
 
     if (!wasFinished && greaterCardDefinition.isFinished(room.state)) {
       await this.persistFinishedMatch(room);
@@ -148,17 +187,19 @@ export class RoomsService {
       code: room.code,
       gameId: room.gameId,
       players: room.players.map((player) => {
-        const statePlayer = room.state.players.find((candidate) => candidate.playerId === player.playerId);
+        const statePlayer = room.state.players.find(
+          (candidate) => candidate.playerId === player.playerId,
+        );
 
         return {
           playerId: player.playerId,
           displayName: player.displayName,
           connected: player.socketIds.size > 0,
-          ready: Boolean(statePlayer?.ready)
+          ready: Boolean(statePlayer?.ready),
         };
       }),
       phase: room.state.phase,
-      createdAt: room.createdAt.toISOString()
+      createdAt: room.createdAt.toISOString(),
     };
   }
 
@@ -169,7 +210,7 @@ export class RoomsService {
   result(room: Room): GreaterCardResult {
     return {
       roomId: room.id,
-      ...greaterCardResult(room.state)
+      ...greaterCardResult(room.state),
     };
   }
 
@@ -187,7 +228,9 @@ export class RoomsService {
       gameId: room.gameId,
       roomCode: room.code,
       startedAt: new Date(room.state.createdAt),
-      finishedAt: room.state.finishedAt ? new Date(room.state.finishedAt) : new Date(),
+      finishedAt: room.state.finishedAt
+        ? new Date(room.state.finishedAt)
+        : new Date(),
       result: {
         winnerPlayerIds: result.winnerPlayerIds,
         tied: result.tied,
@@ -195,9 +238,9 @@ export class RoomsService {
           playerId: player.playerId,
           outcome: player.outcome,
           card: player.card,
-          score: player.card ? rankValue(player.card.rank) : undefined
-        }))
-      }
+          score: player.card ? rankValue(player.card.rank) : undefined,
+        })),
+      },
     });
     room.persistedMatchId = match.id;
   }

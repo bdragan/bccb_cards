@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+
 import { api } from "../api/client";
 import { AuthScreen } from "../components/AuthScreen";
 import { Dashboard } from "../pages/Dashboard";
@@ -12,7 +13,8 @@ export function App() {
       return;
     }
 
-    void api.me(token)
+    void api
+      .me(token)
       .then((nextUser) => useAuthStore.setState({ user: nextUser }))
       .catch(() => useAuthStore.getState().logout());
   }, [token, user]);

@@ -7,9 +7,9 @@ export default {
       colors: {
         felt: "#1f7a4d",
         ink: "#18212f",
-        rail: "#d8b46a"
-      }
-    }
+        rail: "#d8b46a",
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 } satisfies Config;

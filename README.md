@@ -54,6 +54,9 @@ pnpm dev
 pnpm test
 pnpm build
 pnpm lint
+pnpm typecheck
+pnpm format
+pnpm format:check
 ```
 
 ## MVP Flow

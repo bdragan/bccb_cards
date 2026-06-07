@@ -1,18 +1,25 @@
+import type {
+  GameMetadata,
+  GreaterCardPublicState,
+  GreaterCardResult,
+  RoomPublicState,
+} from "@card-games/shared";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { GameMetadata, GreaterCardPublicState, GreaterCardResult, RoomPublicState } from "@card-games/shared";
+
 import { api } from "../api/client";
-import { createGameSocket, type GameSocket } from "../socket/game-socket";
-import { useAuthStore } from "../stores/auth-store";
 import { Button } from "../components/Button";
 import { GameList } from "../components/GameList";
 import { GreaterCardTable } from "../components/GreaterCardTable";
 import { Lobby } from "../components/Lobby";
+import { createGameSocket, type GameSocket } from "../socket/game-socket";
+import { useAuthStore } from "../stores/auth-store";
 
 export function Dashboard() {
   const { token, user, logout } = useAuthStore();
   const [games, setGames] = useState<GameMetadata[]>([]);
   const [matches, setMatches] = useState<unknown[]>([]);
-  const [selectedGameId, setSelectedGameId] = useState<"greater-card">("greater-card");
+  const [selectedGameId, setSelectedGameId] =
+    useState<"greater-card">("greater-card");
   const [roomCode, setRoomCode] = useState("");
   const [room, setRoom] = useState<RoomPublicState>();
   const [gameState, setGameState] = useState<GreaterCardPublicState>();
@@ -25,8 +32,14 @@ export function Dashboard() {
       return;
     }
 
-    void api.games(token).then(setGames).catch((err: Error) => setError(err.message));
-    void api.matches(token).then(setMatches).catch(() => undefined);
+    void api
+      .games(token)
+      .then(setGames)
+      .catch((err: Error) => setError(err.message));
+    void api
+      .matches(token)
+      .then(setMatches)
+      .catch(() => undefined);
   }, [token]);
 
   useEffect(() => {
@@ -39,7 +52,10 @@ export function Dashboard() {
     nextSocket.on("game:state", setGameState);
     nextSocket.on("game:result", (payload) => {
       setResult(payload);
-      void api.matches(token).then(setMatches).catch(() => undefined);
+      void api
+        .matches(token)
+        .then(setMatches)
+        .catch(() => undefined);
     });
     nextSocket.on("room:error", (payload) => setError(payload.message));
     setSocket(nextSocket);
@@ -49,10 +65,12 @@ export function Dashboard() {
     };
   }, [token]);
 
-  const inLobby = room && (room.phase === "waiting-for-players" || room.phase === "ready-check");
+  const inLobby =
+    room &&
+    (room.phase === "waiting-for-players" || room.phase === "ready-check");
   const matchCount = useMemo(() => matches.length, [matches]);
 
-  async function createRoom() {
+  function createRoom() {
     setResult(undefined);
     socket?.emit("room:create", { gameId: selectedGameId }, (ack) => {
       if (!ack.ok) {
@@ -77,20 +95,30 @@ export function Dashboard() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
             <h1 className="text-xl font-bold">Card Games Platform</h1>
-            <p className="text-sm text-slate-600">{user?.displayName ?? "Signed in"}</p>
+            <p className="text-sm text-slate-600">
+              {user?.displayName ?? "Signed in"}
+            </p>
           </div>
-          <Button type="button" onClick={logout}>Logout</Button>
+          <Button type="button" onClick={logout}>
+            Logout
+          </Button>
         </div>
       </header>
 
       <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-5">
-          <GameList games={games} selectedGameId={selectedGameId} onSelect={setSelectedGameId} />
+          <GameList
+            games={games}
+            selectedGameId={selectedGameId}
+            onSelect={setSelectedGameId}
+          />
 
           <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="text-lg font-bold">Room</h2>
             <div className="mt-3 flex flex-wrap gap-3">
-              <Button type="button" onClick={createRoom} disabled={!socket}>Create room</Button>
+              <Button type="button" onClick={createRoom} disabled={!socket}>
+                Create room
+              </Button>
               <form onSubmit={joinRoom} className="flex min-w-0 flex-1 gap-2">
                 <input
                   className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase"
@@ -98,17 +126,29 @@ export function Dashboard() {
                   value={roomCode}
                   onChange={(event) => setRoomCode(event.target.value)}
                 />
-                <Button type="submit" disabled={!socket || roomCode.length < 4}>Join</Button>
+                <Button type="submit" disabled={!socket || roomCode.length < 4}>
+                  Join
+                </Button>
               </form>
             </div>
-            {error ? <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+            {error ? (
+              <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </p>
+            ) : null}
           </section>
 
           {room && inLobby ? (
             <Lobby
               room={room}
               currentPlayerId={user?.id}
-              onReady={(ready) => socket?.emit("player:ready", { roomId: room.id, ready }, () => undefined)}
+              onReady={(ready) =>
+                socket?.emit(
+                  "player:ready",
+                  { roomId: room.id, ready },
+                  () => undefined,
+                )
+              }
             />
           ) : null}
 
@@ -117,11 +157,22 @@ export function Dashboard() {
               state={gameState}
               result={result}
               currentPlayerId={user?.id}
-              onDraw={() => room && socket?.emit("game:draw-card", { roomId: room.id }, () => undefined)}
+              onDraw={() =>
+                room &&
+                socket?.emit(
+                  "game:draw-card",
+                  { roomId: room.id },
+                  () => undefined,
+                )
+              }
               onRestart={() => {
                 if (room) {
                   setResult(undefined);
-                  socket?.emit("game:restart", { roomId: room.id }, () => undefined);
+                  socket?.emit(
+                    "game:restart",
+                    { roomId: room.id },
+                    () => undefined,
+                  );
                 }
               }}
             />
@@ -130,7 +181,9 @@ export function Dashboard() {
 
         <aside className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-bold">Match history</h2>
-          <p className="mt-2 text-sm text-slate-600">{matchCount} completed matches</p>
+          <p className="mt-2 text-sm text-slate-600">
+            {matchCount} completed matches
+          </p>
         </aside>
       </div>
     </main>

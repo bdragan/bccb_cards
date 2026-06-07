@@ -1,3 +1,10 @@
+import {
+  type Ack,
+  createRoomPayloadSchema,
+  joinRoomPayloadSchema,
+  readyPayloadSchema,
+  roomIdPayloadSchema,
+} from "@card-games/shared";
 import { Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import {
@@ -7,16 +14,10 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer
+  WebSocketServer,
 } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
-import {
-  createRoomPayloadSchema,
-  joinRoomPayloadSchema,
-  readyPayloadSchema,
-  roomIdPayloadSchema,
-  type Ack
-} from "@card-games/shared";
+
 import type { JwtPayload, RequestUser } from "../auth/auth.types";
 import { RoomsService } from "../rooms/rooms.service";
 
@@ -26,8 +27,8 @@ type AuthenticatedSocket = Socket & { user?: RequestUser };
   namespace: "/game",
   cors: {
     origin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
-    credentials: true
-  }
+    credentials: true,
+  },
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -37,7 +38,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly roomsService: RoomsService
+    private readonly roomsService: RoomsService,
   ) {}
 
   handleConnection(client: AuthenticatedSocket) {
@@ -54,7 +55,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.user = {
         id: payload.sub,
         email: payload.email,
-        displayName: payload.displayName
+        displayName: payload.displayName,
       };
     } catch {
       client.emit("room:error", { message: "Authentication required" });
@@ -69,7 +70,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("room:create")
   handleCreate(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: unknown
+    @MessageBody() payload: unknown,
   ): Promise<Ack<{ roomId: string; roomCode: string }>> {
     return this.safe(client, async () => {
       const body = createRoomPayloadSchema.parse(payload);
@@ -78,7 +79,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameId: body.gameId,
         playerId: user.id,
         displayName: user.displayName,
-        socketId: client.id
+        socketId: client.id,
       });
 
       await client.join(room.id);
@@ -91,7 +92,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("room:join")
   handleJoin(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: unknown
+    @MessageBody() payload: unknown,
   ): Promise<Ack<{ roomId: string }>> {
     return this.safe(client, async () => {
       const body = joinRoomPayloadSchema.parse(payload);
@@ -100,7 +101,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         roomCode: body.roomCode,
         playerId: user.id,
         displayName: user.displayName,
-        socketId: client.id
+        socketId: client.id,
       });
 
       await client.join(room.id);
@@ -113,7 +114,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("room:leave")
   handleLeave(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: unknown
+    @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, () => {
       const body = roomIdPayloadSchema.parse(payload);
@@ -128,7 +129,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("player:ready")
   handleReady(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: unknown
+    @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, () => {
       const body = readyPayloadSchema.parse(payload);
@@ -142,7 +143,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("game:draw-card")
   async handleDraw(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: unknown
+    @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, async () => {
       const body = roomIdPayloadSchema.parse(payload);
@@ -156,7 +157,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("game:restart")
   handleRestart(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: unknown
+    @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, () => {
       const body = roomIdPayloadSchema.parse(payload);
@@ -175,12 +176,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     for (const player of room.players) {
       for (const socketId of player.socketIds) {
-        this.server.to(socketId).emit("game:state", this.roomsService.publicGameState(room, player.playerId));
+        this.server
+          .to(socketId)
+          .emit(
+            "game:state",
+            this.roomsService.publicGameState(room, player.playerId),
+          );
       }
     }
 
     if (room.state.phase === "revealed" || room.state.phase === "finished") {
-      this.server.to(roomId).emit("game:result", this.roomsService.result(room));
+      this.server
+        .to(roomId)
+        .emit("game:result", this.roomsService.result(room));
     }
   }
 
@@ -207,7 +215,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return client.user;
   }
 
-  private async safe<T>(client: AuthenticatedSocket, callback: () => T | Promise<T>): Promise<Ack<T>> {
+  private async safe<T>(
+    client: AuthenticatedSocket,
+    callback: () => T | Promise<T>,
+  ): Promise<Ack<T>> {
     try {
       return { ok: true, data: await callback() };
     } catch (error) {

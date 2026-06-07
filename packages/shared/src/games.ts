@@ -24,5 +24,5 @@ export const gameMetadataSchema = z.object({
   displayName: z.string().min(1),
   description: z.string().min(1),
   minPlayers: z.number().int().positive(),
-  maxPlayers: z.number().int().positive()
+  maxPlayers: z.number().int().positive(),
 });

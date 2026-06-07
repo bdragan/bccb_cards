@@ -2,7 +2,7 @@ import { RoomsService } from "./rooms.service";
 
 describe("RoomsService", () => {
   const matchesService = {
-    createCompletedMatch: jest.fn().mockResolvedValue({ id: "m1" })
+    createCompletedMatch: jest.fn().mockResolvedValue({ id: "m1" }),
   };
 
   it("creates and joins a room", () => {
@@ -11,14 +11,14 @@ describe("RoomsService", () => {
       gameId: "greater-card",
       playerId: "p1",
       displayName: "Player One",
-      socketId: "s1"
+      socketId: "s1",
     });
 
     service.joinRoom({
       roomCode: room.code,
       playerId: "p2",
       displayName: "Player Two",
-      socketId: "s2"
+      socketId: "s2",
     });
 
     expect(service.getRoom(room.id).players).toHaveLength(2);
@@ -30,9 +30,14 @@ describe("RoomsService", () => {
       gameId: "greater-card",
       playerId: "p1",
       displayName: "Player One",
-      socketId: "s1"
+      socketId: "s1",
     });
-    service.joinRoom({ roomCode: room.code, playerId: "p2", displayName: "Player Two", socketId: "s2" });
+    service.joinRoom({
+      roomCode: room.code,
+      playerId: "p2",
+      displayName: "Player Two",
+      socketId: "s2",
+    });
     service.setReady(room.id, "p1", true);
     service.setReady(room.id, "p2", true);
     await service.drawCard(room.id, "p1");

@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+
 import { useAuthStore } from "../stores/auth-store";
 import { Button } from "./Button";
 
@@ -21,7 +22,10 @@ export function AuthScreen() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-felt px-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-md bg-white p-6 shadow-xl">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-sm rounded-md bg-white p-6 shadow-xl"
+      >
         <h1 className="text-2xl font-bold text-ink">Card Games</h1>
         <div className="mt-5 grid grid-cols-2 rounded-md bg-slate-100 p-1">
           <button
@@ -75,7 +79,11 @@ export function AuthScreen() {
           />
         </label>
 
-        {error ? <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
 
         <Button className="mt-5 w-full" disabled={loading}>
           {mode === "login" ? "Login" : "Create account"}

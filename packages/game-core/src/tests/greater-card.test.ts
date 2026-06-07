@@ -1,23 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { applyGreaterCardAction, createGreaterCardInitialState, getGreaterCardPublicState } from "../index";
+
 import type { GreaterCardState } from "../games/greater-card";
+import {
+  applyGreaterCardAction,
+  createGreaterCardInitialState,
+  getGreaterCardPublicState,
+} from "../index";
 
 const players = [
   { playerId: "p1", displayName: "Player One" },
-  { playerId: "p2", displayName: "Player Two" }
+  { playerId: "p2", displayName: "Player Two" },
 ];
 
-function drawingState(overrides: Partial<GreaterCardState> = {}): GreaterCardState {
+function drawingState(
+  overrides: Partial<GreaterCardState> = {},
+): GreaterCardState {
   return {
     ...createGreaterCardInitialState(players),
     phase: "drawing",
     deck: [
       { id: "A-spades", rank: "A", suit: "spades" },
       { id: "K-hearts", rank: "K", suit: "hearts" },
-      { id: "2-clubs", rank: "2", suit: "clubs" }
+      { id: "2-clubs", rank: "2", suit: "clubs" },
     ],
     players: players.map((player) => ({ ...player, ready: true })),
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -27,31 +34,52 @@ describe("GreaterCard", () => {
   });
 
   it("starts in waiting-for-players without enough players", () => {
-    expect(createGreaterCardInitialState([players[0]]).phase).toBe("waiting-for-players");
-  });
-
-  it("does not let a player draw twice", () => {
-    const state = applyGreaterCardAction(drawingState(), { type: "draw-card", playerId: "p1" });
-    expect(() => applyGreaterCardAction(state, { type: "draw-card", playerId: "p1" })).toThrow(
-      "already drawn"
+    expect(createGreaterCardInitialState([players[0]]).phase).toBe(
+      "waiting-for-players",
     );
   });
 
+  it("does not let a player draw twice", () => {
+    const state = applyGreaterCardAction(drawingState(), {
+      type: "draw-card",
+      playerId: "p1",
+    });
+    expect(() =>
+      applyGreaterCardAction(state, { type: "draw-card", playerId: "p1" }),
+    ).toThrow("already drawn");
+  });
+
   it("reveals only after all players draw", () => {
-    const state = applyGreaterCardAction(drawingState(), { type: "draw-card", playerId: "p1" });
+    const state = applyGreaterCardAction(drawingState(), {
+      type: "draw-card",
+      playerId: "p1",
+    });
     const publicForP2 = getGreaterCardPublicState(state, "p2");
 
     expect(state.phase).toBe("drawing");
-    expect(publicForP2.players.find((player) => player.playerId === "p1")?.drawnCard).toBeUndefined();
+    expect(
+      publicForP2.players.find((player) => player.playerId === "p1")?.drawnCard,
+    ).toBeUndefined();
 
-    const revealed = applyGreaterCardAction(state, { type: "draw-card", playerId: "p2" });
+    const revealed = applyGreaterCardAction(state, {
+      type: "draw-card",
+      playerId: "p2",
+    });
     expect(revealed.phase).toBe("revealed");
-    expect(getGreaterCardPublicState(revealed, "p2").players[0].drawnCard?.rank).toBe("A");
+    expect(
+      getGreaterCardPublicState(revealed, "p2").players[0].drawnCard?.rank,
+    ).toBe("A");
   });
 
   it("sets a single highest-card winner", () => {
-    const first = applyGreaterCardAction(drawingState(), { type: "draw-card", playerId: "p1" });
-    const finished = applyGreaterCardAction(first, { type: "draw-card", playerId: "p2" });
+    const first = applyGreaterCardAction(drawingState(), {
+      type: "draw-card",
+      playerId: "p1",
+    });
+    const finished = applyGreaterCardAction(first, {
+      type: "draw-card",
+      playerId: "p2",
+    });
 
     expect(finished.winnerPlayerIds).toEqual(["p1"]);
   });
@@ -61,12 +89,15 @@ describe("GreaterCard", () => {
       drawingState({
         deck: [
           { id: "A-spades", rank: "A", suit: "spades" },
-          { id: "A-hearts", rank: "A", suit: "hearts" }
-        ]
+          { id: "A-hearts", rank: "A", suit: "hearts" },
+        ],
       }),
-      { type: "draw-card", playerId: "p1" }
+      { type: "draw-card", playerId: "p1" },
     );
-    const finished = applyGreaterCardAction(first, { type: "draw-card", playerId: "p2" });
+    const finished = applyGreaterCardAction(first, {
+      type: "draw-card",
+      playerId: "p2",
+    });
 
     expect(finished.winnerPlayerIds).toEqual(["p1", "p2"]);
   });

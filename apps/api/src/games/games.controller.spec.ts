@@ -6,9 +6,9 @@ describe("GamesController", () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: "greater-card",
-          displayName: "GreaterCard"
-        })
-      ])
+          displayName: "GreaterCard",
+        }),
+      ]),
     );
   });
 });

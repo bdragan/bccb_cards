@@ -1,7 +1,9 @@
 import "reflect-metadata";
-import { NestFactory } from "@nestjs/core";
+
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
+
+import { NestFactory } from "@nestjs/core";
 
 if (existsSync(".env")) {
   loadEnvFile(".env");
@@ -12,7 +14,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
-    credentials: true
+    credentials: true,
   });
   await app.listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 }

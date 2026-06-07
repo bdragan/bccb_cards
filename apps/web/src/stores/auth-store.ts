@@ -1,5 +1,6 @@
-import { create } from "zustand";
 import type { AuthUser } from "@card-games/shared";
+import { create } from "zustand";
+
 import { api } from "../api/client";
 
 type AuthState = {
@@ -24,7 +25,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem("card-games-token", response.accessToken);
       set({ token: response.accessToken, user: response.user, loading: false });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Registration failed", loading: false });
+      set({
+        error: error instanceof Error ? error.message : "Registration failed",
+        loading: false,
+      });
     }
   },
   async login(email, password) {
@@ -34,11 +38,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem("card-games-token", response.accessToken);
       set({ token: response.accessToken, user: response.user, loading: false });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Login failed", loading: false });
+      set({
+        error: error instanceof Error ? error.message : "Login failed",
+        loading: false,
+      });
     }
   },
   logout() {
     localStorage.removeItem("card-games-token");
     set({ token: undefined, user: undefined });
-  }
+  },
 }));

@@ -1,5 +1,5 @@
-import type { GameId } from "@card-games/shared";
 import type { GreaterCardState } from "@card-games/game-core";
+import type { GameId } from "@card-games/shared";
 
 export type RoomPlayer = {
   playerId: string;

@@ -1,7 +1,12 @@
+import {
+  type AuthResponse,
+  type LoginDto,
+  type RegisterDto,
+} from "@card-games/shared";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { compare, hash } from "bcrypt";
-import { type AuthResponse, type LoginDto, type RegisterDto } from "@card-games/shared";
+
 import { UsersService } from "../users/users.service";
 import type { JwtPayload, RequestUser } from "./auth.types";
 
@@ -9,7 +14,7 @@ import type { JwtPayload, RequestUser } from "./auth.types";
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResponse> {
@@ -17,10 +22,14 @@ export class AuthService {
     const user = await this.usersService.createUser({
       email: dto.email,
       displayName: dto.displayName,
-      passwordHash
+      passwordHash,
     });
 
-    return this.issueToken({ id: user.id, email: user.email, displayName: user.displayName });
+    return this.issueToken({
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+    });
   }
 
   async login(dto: LoginDto): Promise<AuthResponse> {
@@ -30,15 +39,23 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password");
     }
 
-    return this.issueToken({ id: user.id, email: user.email, displayName: user.displayName });
+    return this.issueToken({
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+    });
   }
 
   issueToken(user: RequestUser): AuthResponse {
-    const payload: JwtPayload = { sub: user.id, email: user.email, displayName: user.displayName };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      displayName: user.displayName,
+    };
 
     return {
       accessToken: this.jwtService.sign(payload),
-      user
+      user,
     };
   }
 }

@@ -1,16 +1,17 @@
 import { z } from "zod";
+
 import { cardSchema } from "./cards";
 import { gameIdSchema } from "./games";
 
 export const registerSchema = z.object({
   email: z.string().email(),
   displayName: z.string().min(2).max(40),
-  password: z.string().min(8)
+  password: z.string().min(8),
 });
 
 export const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1)
+  password: z.string().min(1),
 });
 
 export type RegisterDto = z.infer<typeof registerSchema>;
@@ -32,20 +33,20 @@ export type AckFailure = { ok: false; error: string };
 export type Ack<T> = AckSuccess<T> | AckFailure;
 
 export const createRoomPayloadSchema = z.object({
-  gameId: gameIdSchema
+  gameId: gameIdSchema,
 });
 
 export const joinRoomPayloadSchema = z.object({
-  roomCode: z.string().min(4).max(12)
+  roomCode: z.string().min(4).max(12),
 });
 
 export const roomIdPayloadSchema = z.object({
-  roomId: z.string().min(1)
+  roomId: z.string().min(1),
 });
 
 export const readyPayloadSchema = z.object({
   roomId: z.string().min(1),
-  ready: z.boolean()
+  ready: z.boolean(),
 });
 
 export type RoomPublicPlayer = {
@@ -74,7 +75,12 @@ export type GreaterCardPublicPlayer = {
 
 export type GreaterCardPublicState = {
   gameId: "greater-card";
-  phase: "waiting-for-players" | "ready-check" | "drawing" | "revealed" | "finished";
+  phase:
+    | "waiting-for-players"
+    | "ready-check"
+    | "drawing"
+    | "revealed"
+    | "finished";
   players: GreaterCardPublicPlayer[];
   winnerPlayerIds: string[];
   createdAt: string;

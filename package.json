@@ -4,13 +4,26 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
-    "dev": "pnpm --parallel --recursive dev",
-    "test": "pnpm --recursive test",
-    "build": "pnpm --recursive build",
-    "lint": "pnpm --recursive lint",
-    "prisma:generate": "pnpm --filter @card-games/api prisma:generate"
+    "dev": "corepack pnpm --parallel --recursive dev",
+    "test": "corepack pnpm --recursive test",
+    "build": "corepack pnpm --recursive build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "corepack pnpm typecheck && eslint .",
+    "typecheck": "corepack pnpm --recursive typecheck",
+    "prisma:generate": "corepack pnpm --filter @card-games/api prisma:generate"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-promise": "^7.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.60.1"
   }
 }
