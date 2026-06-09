@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import {
   applyGreaterCardAction,
+  cardValue,
   createGreaterCardInitialState,
   getGreaterCardPublicState,
   greaterCardDefinition,
   greaterCardResult,
   listGames,
-  rankValue,
 } from "@card-games/game-core";
 import type {
   GameId,
@@ -238,7 +238,7 @@ export class RoomsService {
           playerId: player.playerId,
           outcome: player.outcome,
           card: player.card,
-          score: player.card ? rankValue(player.card.rank) : undefined,
+          score: player.card ? cardValue(player.card) : undefined,
         })),
       },
     });

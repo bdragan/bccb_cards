@@ -5,7 +5,7 @@ import type {
 } from "@card-games/shared";
 
 import { createDeck, shuffleDeck } from "../../cards/deck";
-import { rankValue } from "../../cards/ranks";
+import { cardValue, compareCards } from "../../cards/ranks";
 import type { GameDefinition } from "../../engine/types";
 import type {
   GreaterCardAction,
@@ -78,12 +78,13 @@ function calculateWinners(players: GreaterCardPlayerState[]): string[] {
     (player): player is GreaterCardPlayerState & { drawnCard: Card } =>
       Boolean(player.drawnCard),
   );
-  const highestRankValue = Math.max(
-    ...drawnPlayers.map((player) => rankValue(player.drawnCard.rank)),
+  const highestCard = drawnPlayers.reduce((highest, player) =>
+    compareCards(player.drawnCard, highest.drawnCard) > 0 ? player : highest,
   );
+  const highestCardValue = cardValue(highestCard.drawnCard);
 
   return drawnPlayers
-    .filter((player) => rankValue(player.drawnCard.rank) === highestRankValue)
+    .filter((player) => cardValue(player.drawnCard) === highestCardValue)
     .map((player) => player.playerId);
 }
 
@@ -241,7 +242,7 @@ export function greaterCardResult(state: GreaterCardState) {
             : isWinner
               ? ("win" as const)
               : ("loss" as const),
-        score: player.drawnCard ? rankValue(player.drawnCard.rank) : undefined,
+        score: player.drawnCard ? cardValue(player.drawnCard) : undefined,
       };
     }),
   };
@@ -253,7 +254,8 @@ export const greaterCardDefinition: GameDefinition<
 > = {
   id: "greater-card",
   displayName: "GreaterCard",
-  description: "Each player draws one card. Highest rank wins.",
+  description:
+    "Each player draws one Hungarian card. Highest rank and suit wins.",
   minPlayers,
   maxPlayers,
   createInitialState: createGreaterCardInitialState,

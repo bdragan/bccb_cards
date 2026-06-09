@@ -1,6 +1,6 @@
 # Multiplayer Card Games Platform
 
-A full-stack TypeScript multiplayer card-game platform. The first supported game is GreaterCard: every player draws one card, and the highest poker-style rank wins.
+A full-stack TypeScript multiplayer card-game platform. The first supported game is GreaterCard: every player draws one Hungarian card, and the highest poker-style rank and suit wins.
 
 ## Stack
 

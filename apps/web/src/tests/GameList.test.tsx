@@ -11,7 +11,8 @@ describe("GameList", () => {
           {
             id: "greater-card",
             displayName: "GreaterCard",
-            description: "Each player draws one card. Highest rank wins.",
+            description:
+              "Each player draws one Hungarian card. Highest rank and suit wins.",
             minPlayers: 2,
             maxPlayers: 8,
           },

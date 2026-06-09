@@ -1,10 +1,10 @@
 import type { Card } from "@card-games/shared";
 
-const suitSymbols = {
-  clubs: "C",
-  diamonds: "D",
-  hearts: "H",
-  spades: "S",
+const suitLabels = {
+  acorns: "Acorns",
+  bells: "Bells",
+  hearts: "Hearts",
+  leaves: "Leaves",
 } as const;
 
 export function PlayingCard({
@@ -22,23 +22,15 @@ export function PlayingCard({
     );
   }
 
-  const red = card.suit === "diamonds" || card.suit === "hearts";
+  const imageUrl = `/cards/hungarian/${card.id}.jpg`;
+  const label = `${card.rank} of ${suitLabels[card.suit]}`;
 
   return (
-    <div className="card-face flex h-36 w-24 flex-col justify-between rounded-md border border-ink/10 bg-white p-3">
-      <div className={`text-xl font-bold ${red ? "text-red-600" : "text-ink"}`}>
-        {card.rank}
-      </div>
-      <div
-        className={`text-center text-3xl font-bold ${red ? "text-red-600" : "text-ink"}`}
-      >
-        {suitSymbols[card.suit]}
-      </div>
-      <div
-        className={`self-end text-xl font-bold ${red ? "text-red-600" : "text-ink"}`}
-      >
-        {card.rank}
-      </div>
-    </div>
+    <img
+      src={imageUrl}
+      alt={label}
+      className="card-face h-36 w-24 rounded-md border border-ink/10 bg-white object-cover"
+      loading="lazy"
+    />
   );
 }

@@ -19,9 +19,9 @@ function drawingState(
     ...createGreaterCardInitialState(players),
     phase: "drawing",
     deck: [
-      { id: "A-spades", rank: "A", suit: "spades" },
+      { id: "A-leaves", rank: "A", suit: "leaves" },
       { id: "K-hearts", rank: "K", suit: "hearts" },
-      { id: "2-clubs", rank: "2", suit: "clubs" },
+      { id: "VII-acorns", rank: "VII", suit: "acorns" },
     ],
     players: players.map((player) => ({ ...player, ready: true })),
     ...overrides,
@@ -84,11 +84,11 @@ describe("GreaterCard", () => {
     expect(finished.winnerPlayerIds).toEqual(["p1"]);
   });
 
-  it("creates a tie for the same highest rank without using suit as a tiebreaker", () => {
+  it("uses suit as a tiebreaker for matching ranks", () => {
     const first = applyGreaterCardAction(
       drawingState({
         deck: [
-          { id: "A-spades", rank: "A", suit: "spades" },
+          { id: "A-leaves", rank: "A", suit: "leaves" },
           { id: "A-hearts", rank: "A", suit: "hearts" },
         ],
       }),
@@ -99,6 +99,6 @@ describe("GreaterCard", () => {
       playerId: "p2",
     });
 
-    expect(finished.winnerPlayerIds).toEqual(["p1", "p2"]);
+    expect(finished.winnerPlayerIds).toEqual(["p1"]);
   });
 });
