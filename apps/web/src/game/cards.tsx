@@ -29,7 +29,7 @@ export function PlayingCard({
     <img
       src={imageUrl}
       alt={label}
-      className="card-face h-36 w-24 rounded-md border border-ink/10 bg-white object-cover"
+      className="card-face h-36 w-24 rounded-md border border-ink/10 bg-white object-contain"
       loading="lazy"
     />
   );
