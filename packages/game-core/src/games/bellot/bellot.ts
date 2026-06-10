@@ -1233,12 +1233,7 @@ export function getBellotPublicState(
     trumpSuit: state.trumpSuit,
     callerPlayerId: state.callerPlayerId,
     isMus: state.isMus,
-    upcard:
-      state.phase === "trump-round-one" ||
-      state.phase === "trump-round-two" ||
-      state.phase === "mus"
-        ? state.upcard
-        : undefined,
+    upcard: state.upcard,
     trumpTurnPlayerId: state.trumpTurnPlayerId,
     currentTurnPlayerId: state.currentTurnPlayerId,
     currentTrick: state.currentTrick,

@@ -1,6 +1,5 @@
-import { describe, expect, it } from "vitest";
-
 import type { Card, Rank, Suit } from "@card-games/shared";
+import { describe, expect, it } from "vitest";
 
 import type { BellotState } from "../games/bellot";
 import {
@@ -348,6 +347,7 @@ describe("Bellot", () => {
     const publicForP2 = getBellotPublicState(state, "p2");
 
     expect(state.phase).toBe("trick-play");
+    expect(publicForP2.upcard).toEqual(state.upcard);
     expect(
       publicForP2.players.find((player) => player.playerId === "p1")?.hand,
     ).toBeUndefined();

@@ -1,14 +1,18 @@
 import {
   autoSelectBellotDeclarations,
   bellotCardPoints,
+  compareBellotCards,
   legalBellotCards,
 } from "@card-games/game-core";
 import type {
   BellotDeclaration,
   BellotPublicState,
+  BellotTrickPlay,
+  Card,
+  Rank,
   Suit,
 } from "@card-games/shared";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PlayingCard } from "../game/cards";
 import { Button } from "./Button";
@@ -19,6 +23,83 @@ const suitLabels: Record<Suit, string> = {
   hearts: "Hearts",
   leaves: "Leaves",
 };
+
+const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
+const rankOrder: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
+const completedTrickLingerMs = 2_000;
+
+function sortCards(cards: Card[]) {
+  return [...cards].sort((left, right) => {
+    const suitComparison =
+      suitOrder.indexOf(left.suit) - suitOrder.indexOf(right.suit);
+
+    return suitComparison === 0
+      ? rankOrder.indexOf(left.rank) - rankOrder.indexOf(right.rank)
+      : suitComparison;
+  });
+}
+
+function sortDeclarationCards(cards: Card[]) {
+  return [...cards].sort((left, right) => {
+    const rankComparison =
+      rankOrder.indexOf(left.rank) - rankOrder.indexOf(right.rank);
+
+    return rankComparison === 0
+      ? suitOrder.indexOf(left.suit) - suitOrder.indexOf(right.suit)
+      : rankComparison;
+  });
+}
+
+function sortDeclarations(declarations: BellotDeclaration[]) {
+  return [...declarations].sort((left, right) => {
+    const leftCards = sortDeclarationCards(left.cards);
+    const rightCards = sortDeclarationCards(right.cards);
+    const leftFirst = leftCards[0];
+    const rightFirst = rightCards[0];
+
+    if (!leftFirst || !rightFirst) {
+      return left.cards.length - right.cards.length;
+    }
+
+    const rankComparison =
+      rankOrder.indexOf(leftFirst.rank) - rankOrder.indexOf(rightFirst.rank);
+    const suitComparison =
+      suitOrder.indexOf(leftFirst.suit) - suitOrder.indexOf(rightFirst.suit);
+
+    return (
+      rankComparison || suitComparison || left.type.localeCompare(right.type)
+    );
+  });
+}
+
+function declarationGroupLabel(type: BellotDeclaration["type"]) {
+  return type
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function trickStrengthMap(trick: BellotTrickPlay[], trumpSuit?: Suit) {
+  if (!trick.length || !trumpSuit) {
+    return new Map<string, boolean>();
+  }
+
+  const trumpPlays = trick.filter((play) => play.card.suit === trumpSuit);
+  const relevantPlays = trumpPlays.length
+    ? trumpPlays
+    : trick.filter((play) => play.card.suit === trick[0]?.card.suit);
+  const strongest = relevantPlays.reduce((winner, play) => {
+    if (play.card.suit !== winner.card.suit) {
+      return winner;
+    }
+
+    return compareBellotCards(play.card, winner.card, trumpSuit) > 0
+      ? play
+      : winner;
+  });
+
+  return new Map(trick.map((play) => [play.card.id, play === strongest]));
+}
 
 export function BellotTable({
   state,
@@ -45,8 +126,22 @@ export function BellotTable({
   const currentPlayer = state.players.find(
     (player) => player.playerId === currentPlayerId,
   );
-  const currentHand = currentPlayer?.hand ?? [];
+  const currentHand = useMemo(
+    () => currentPlayer?.hand ?? [],
+    [currentPlayer?.hand],
+  );
+  const sortedCurrentHand = useMemo(
+    () => sortCards(currentHand),
+    [currentHand],
+  );
   const declarationSubmissionKeys = useRef(new Set<string>());
+  const [lingeringTrick, setLingeringTrick] = useState<{
+    trickNumber: number;
+    winnerPlayerId: string;
+    cards: BellotTrickPlay[];
+  }>();
+  const [showPlayedHands, setShowPlayedHands] = useState(false);
+
   const legalCardIds = useMemo(() => {
     if (
       state.phase !== "trick-play" ||
@@ -69,6 +164,76 @@ export function BellotTable({
     state.phase,
     state.trumpSuit,
   ]);
+
+  const playedCardIds = useMemo(
+    () =>
+      new Set([
+        ...state.currentTrick.map((play) => play.card.id),
+        ...state.completedTricks.flatMap((trick) =>
+          trick.cards.map((play) => play.card.id),
+        ),
+      ]),
+    [state.completedTricks, state.currentTrick],
+  );
+  const declarationsByPlayer = useMemo(
+    () =>
+      Object.fromEntries(
+        state.players.map((player) => [
+          player.playerId,
+          sortDeclarations(state.declarationsByPlayer[player.playerId] ?? []),
+        ]),
+      ) as Record<string, BellotDeclaration[]>,
+    [state.declarationsByPlayer, state.players],
+  );
+  const visibleTrick = state.currentTrick.length
+    ? {
+        label: "Current trick",
+        cards: state.currentTrick,
+        strengthByCardId: trickStrengthMap(state.currentTrick, state.trumpSuit),
+      }
+    : lingeringTrick
+      ? {
+          label: `Completed trick ${lingeringTrick.trickNumber}`,
+          cards: lingeringTrick.cards,
+          strengthByCardId: new Map(
+            lingeringTrick.cards.map((play) => [
+              play.card.id,
+              play.playerId === lingeringTrick.winnerPlayerId,
+            ]),
+          ),
+        }
+      : undefined;
+
+  useEffect(() => {
+    if (state.currentTrick.length || !state.completedTricks.length) {
+      if (state.currentTrick.length) {
+        setLingeringTrick(undefined);
+      }
+
+      return;
+    }
+
+    const trickNumber = state.completedTricks.length;
+    const lastTrick = state.completedTricks.at(-1);
+
+    if (!lastTrick) {
+      return;
+    }
+
+    setLingeringTrick({
+      trickNumber,
+      winnerPlayerId: lastTrick.winnerPlayerId,
+      cards: lastTrick.cards,
+    });
+
+    const timeout = window.setTimeout(() => {
+      setLingeringTrick((current) =>
+        current?.trickNumber === trickNumber ? undefined : current,
+      );
+    }, completedTrickLingerMs);
+
+    return () => window.clearTimeout(timeout);
+  }, [state.completedTricks, state.currentTrick]);
 
   useEffect(() => {
     if (
@@ -134,11 +299,32 @@ export function BellotTable({
               {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
               {state.callerPlayerId === player.playerId ? " · Caller" : ""}
             </p>
-            {player.publicCards.length ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {player.publicCards.map((card) => (
-                  <PlayingCard key={card.id} card={card} compact />
-                ))}
+            {declarationsByPlayer[player.playerId]?.length ? (
+              <div className="mt-3 flex flex-wrap gap-3">
+                {declarationsByPlayer[player.playerId].map(
+                  (declaration, index) => (
+                    <div
+                      key={`${declaration.type}-${index}`}
+                      className="min-w-0"
+                    >
+                      <p className="mb-1 text-xs font-semibold text-white/70">
+                        {declarationGroupLabel(declaration.type)}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {sortDeclarationCards(declaration.cards).map((card) => (
+                          <div
+                            key={card.id}
+                            className={
+                              playedCardIds.has(card.id) ? "opacity-45" : ""
+                            }
+                          >
+                            <PlayingCard card={card} compact />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ),
+                )}
               </div>
             ) : (
               <p className="mt-3 text-sm text-white/60">
@@ -188,16 +374,65 @@ export function BellotTable({
         </div>
       ) : null}
 
-      {state.currentTrick.length ? (
+      {visibleTrick ? (
         <div className="mt-4 rounded-md bg-white/10 p-3">
-          <p className="mb-2 text-sm font-semibold">Current trick</p>
+          <p className="mb-2 text-sm font-semibold">{visibleTrick.label}</p>
           <div className="flex flex-wrap gap-3">
-            {state.currentTrick.map((play) => (
-              <div key={`${play.playerId}-${play.card.id}`}>
+            {visibleTrick.cards.map((play) => (
+              <div
+                key={`${play.playerId}-${play.card.id}`}
+                className={
+                  visibleTrick.strengthByCardId.size &&
+                  !visibleTrick.strengthByCardId.get(play.card.id)
+                    ? "opacity-45"
+                    : ""
+                }
+              >
                 <PlayingCard card={play.card} />
               </div>
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {state.completedTricks.length ? (
+        <div className="mt-4">
+          <Button
+            type="button"
+            onClick={() => setShowPlayedHands((visible) => !visible)}
+          >
+            {showPlayedHands ? "Hide played hands" : "Show played hands"}
+          </Button>
+          {showPlayedHands ? (
+            <div className="mt-3 space-y-3 rounded-md bg-white/10 p-3">
+              {state.completedTricks.map((trick, index) => (
+                <div key={index}>
+                  <p className="mb-2 text-sm font-semibold">
+                    Hand {index + 1} ·{" "}
+                    {
+                      state.players.find(
+                        (player) => player.playerId === trick.winnerPlayerId,
+                      )?.displayName
+                    }
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {trick.cards.map((play) => (
+                      <div
+                        key={`${index}-${play.playerId}-${play.card.id}`}
+                        className={
+                          play.playerId === trick.winnerPlayerId
+                            ? ""
+                            : "opacity-45"
+                        }
+                      >
+                        <PlayingCard card={play.card} compact />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -210,14 +445,14 @@ export function BellotTable({
               : ""}
           </p>
           <div className="flex flex-wrap gap-2">
-            {currentHand.map((card) => {
+            {sortedCurrentHand.map((card) => {
               const playable = legalCardIds.has(card.id);
 
               return (
                 <button
                   key={card.id}
                   type="button"
-                  className="rounded-md disabled:opacity-45"
+                  className="rounded-md disabled:opacity-70"
                   data-testid="bellot-hand-card"
                   disabled={
                     state.phase !== "trick-play" ||

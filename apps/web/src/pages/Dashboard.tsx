@@ -70,6 +70,7 @@ export function Dashboard() {
     room &&
     (room.phase === "waiting-for-players" || room.phase === "ready-check");
   const matchCount = useMemo(() => matches.length, [matches]);
+  const activeBellotGame = gameState?.gameId === "bellot" && !inLobby;
 
   function createRoom() {
     setResult(undefined);
@@ -106,38 +107,52 @@ export function Dashboard() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[1fr_340px]">
+      <div
+        className={`mx-auto grid max-w-6xl gap-5 px-4 py-6 ${
+          activeBellotGame ? "" : "lg:grid-cols-[1fr_340px]"
+        }`}
+      >
         <div className="space-y-5">
-          <GameList
-            games={games}
-            selectedGameId={selectedGameId}
-            onSelect={setSelectedGameId}
-          />
+          {activeBellotGame ? null : (
+            <>
+              <GameList
+                games={games}
+                selectedGameId={selectedGameId}
+                onSelect={setSelectedGameId}
+              />
 
-          <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-lg font-bold">Room</h2>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <Button type="button" onClick={createRoom} disabled={!socket}>
-                Create room
-              </Button>
-              <form onSubmit={joinRoom} className="flex min-w-0 flex-1 gap-2">
-                <input
-                  className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase"
-                  placeholder="Room code"
-                  value={roomCode}
-                  onChange={(event) => setRoomCode(event.target.value)}
-                />
-                <Button type="submit" disabled={!socket || roomCode.length < 4}>
-                  Join
-                </Button>
-              </form>
-            </div>
-            {error ? (
-              <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </p>
-            ) : null}
-          </section>
+              <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="text-lg font-bold">Room</h2>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <Button type="button" onClick={createRoom} disabled={!socket}>
+                    Create room
+                  </Button>
+                  <form
+                    onSubmit={joinRoom}
+                    className="flex min-w-0 flex-1 gap-2"
+                  >
+                    <input
+                      className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase"
+                      placeholder="Room code"
+                      value={roomCode}
+                      onChange={(event) => setRoomCode(event.target.value)}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={!socket || roomCode.length < 4}
+                    >
+                      Join
+                    </Button>
+                  </form>
+                </div>
+                {error ? (
+                  <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+                    {error}
+                  </p>
+                ) : null}
+              </section>
+            </>
+          )}
 
           {room && inLobby ? (
             <Lobby
@@ -229,12 +244,14 @@ export function Dashboard() {
           ) : null}
         </div>
 
-        <aside className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-bold">Match history</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            {matchCount} completed matches
-          </p>
-        </aside>
+        {activeBellotGame ? null : (
+          <aside className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-bold">Match history</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              {matchCount} completed matches
+            </p>
+          </aside>
+        )}
       </div>
     </main>
   );
