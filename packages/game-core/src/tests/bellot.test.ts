@@ -7,6 +7,7 @@ import {
   autoSelectBellotDeclarations,
   bellotCardPoints,
   calculateBellotHandResult,
+  chooseBellotCpuAction,
   compareBellotCards,
   createBellotInitialState,
   getBellotPublicState,
@@ -557,6 +558,116 @@ describe("Bellot", () => {
 
     expect(finishedTrick.completedTricks[0].winnerPlayerId).toBe("p2");
     expect(finishedTrick.currentTurnPlayerId).toBe("p2");
+  });
+
+  it("chooses CPU trump, declarations, and searched trick cards as normal Bellot actions", () => {
+    const trumpState: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trump-round-one",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("U", "hearts"),
+            card("IX", "hearts"),
+            card("A", "hearts"),
+            card("A", "acorns"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("K", "hearts"),
+      trumpTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+    };
+
+    expect(chooseBellotCpuAction(trumpState, "p1")).toEqual({
+      type: "trump-accept-upcard",
+      playerId: "p1",
+    });
+
+    const declarationState: BellotState = {
+      ...trumpState,
+      phase: "declarations",
+      trumpSuit: "hearts",
+      trumpTurnPlayerId: undefined,
+      players: trumpState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("O", "hearts"),
+                card("K", "hearts"),
+                card("A", "acorns"),
+              ],
+            }
+          : player,
+      ),
+    };
+    const declarationAction = chooseBellotCpuAction(declarationState, "p1");
+
+    expect(declarationAction?.type).toBe("declare");
+    expect(
+      declarationAction?.type === "declare"
+        ? declarationAction.declarations.map((declaration) => declaration.type)
+        : [],
+    ).toContain("BELOTE");
+
+    const trickState: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns"), card("VII", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("U", "hearts"), card("A", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("X", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      chooseBellotCpuAction(trickState, "p1", {
+        monteCarloSamples: 1,
+        maxSearchPlies: 2,
+        rng: () => 0.5,
+      }),
+    ).toEqual({
+      type: "play-card",
+      playerId: "p1",
+      cardId: "A-acorns",
+    });
   });
 
   it("passes the caller when caller total is strictly greater", () => {

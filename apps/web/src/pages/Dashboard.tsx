@@ -1,9 +1,20 @@
+import {
+  applyBellotAction,
+  type BellotAction,
+  type BellotState,
+  chooseBellotCpuAction,
+  createBellotInitialState,
+  getBellotPublicState,
+} from "@card-games/game-core";
 import type {
+  BellotDeclaration,
+  BellotPublicState,
   GameId,
   GameMetadata,
   GamePublicState,
   GameResult,
   RoomPublicState,
+  Suit,
 } from "@card-games/shared";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
@@ -16,6 +27,8 @@ import { Lobby } from "../components/Lobby";
 import { createGameSocket, type GameSocket } from "../socket/game-socket";
 import { useAuthStore } from "../stores/auth-store";
 
+const offlineCpuPlayerId = "offline-cpu";
+
 export function Dashboard() {
   const { token, user, logout } = useAuthStore();
   const [games, setGames] = useState<GameMetadata[]>([]);
@@ -24,6 +37,7 @@ export function Dashboard() {
   const [roomCode, setRoomCode] = useState("");
   const [room, setRoom] = useState<RoomPublicState>();
   const [gameState, setGameState] = useState<GamePublicState>();
+  const [offlineBellotState, setOfflineBellotState] = useState<BellotState>();
   const [result, setResult] = useState<GameResult>();
   const [error, setError] = useState<string>();
   const [socket, setSocket] = useState<GameSocket>();
@@ -70,9 +84,85 @@ export function Dashboard() {
     room &&
     (room.phase === "waiting-for-players" || room.phase === "ready-check");
   const matchCount = useMemo(() => matches.length, [matches]);
-  const activeBellotGame = gameState?.gameId === "bellot" && !inLobby;
+  const activeBellotGame =
+    Boolean(offlineBellotState) || (gameState?.gameId === "bellot" && !inLobby);
+  const offlineHumanPlayerId =
+    offlineBellotState?.players.find(
+      (player) => player.playerId !== offlineCpuPlayerId,
+    )?.playerId ?? user?.id;
+  const offlineBellotPublicState = useMemo<BellotPublicState | undefined>(
+    () =>
+      offlineBellotState && offlineHumanPlayerId
+        ? getBellotPublicState(offlineBellotState, offlineHumanPlayerId)
+        : undefined,
+    [offlineBellotState, offlineHumanPlayerId],
+  );
+
+  useEffect(() => {
+    if (!offlineBellotState) {
+      return;
+    }
+
+    const cpuOptions = {
+      maxSearchPlies: 6,
+      monteCarloSamples: 8,
+    };
+    let action: BellotAction | undefined;
+
+    try {
+      action = chooseBellotCpuAction(
+        offlineBellotState,
+        offlineCpuPlayerId,
+        cpuOptions,
+      );
+    } catch (err) {
+      setOfflineBellotState({
+        ...offlineBellotState,
+        phase: "error",
+        error: err instanceof Error ? err.message : "CPU action failed",
+      });
+
+      return;
+    }
+
+    if (!action) {
+      return;
+    }
+
+    const timeout = window.setTimeout(
+      () => {
+        setOfflineBellotState((current) => {
+          if (!current) {
+            return current;
+          }
+
+          try {
+            const nextAction = chooseBellotCpuAction(
+              current,
+              offlineCpuPlayerId,
+              cpuOptions,
+            );
+
+            return nextAction
+              ? applyBellotAction(current, nextAction)
+              : current;
+          } catch (err) {
+            return {
+              ...current,
+              phase: "error",
+              error: err instanceof Error ? err.message : "CPU action failed",
+            };
+          }
+        });
+      },
+      action.type === "play-card" ? 450 : 250,
+    );
+
+    return () => window.clearTimeout(timeout);
+  }, [offlineBellotState]);
 
   function createRoom() {
+    setOfflineBellotState(undefined);
     setResult(undefined);
     socket?.emit("room:create", { gameId: selectedGameId }, (ack) => {
       if (!ack.ok) {
@@ -83,11 +173,91 @@ export function Dashboard() {
 
   function joinRoom(event: FormEvent) {
     event.preventDefault();
+    setOfflineBellotState(undefined);
     setResult(undefined);
     socket?.emit("room:join", { roomCode }, (ack) => {
       if (!ack.ok) {
         setError(ack.error);
       }
+    });
+  }
+
+  function createOfflineBellotState() {
+    const humanPlayerId = user?.id ?? "offline-human";
+    let nextState = createBellotInitialState([
+      {
+        playerId: humanPlayerId,
+        displayName: user?.displayName ?? "You",
+      },
+      { playerId: offlineCpuPlayerId, displayName: "CPU" },
+    ]);
+
+    nextState = applyBellotAction(nextState, {
+      type: "set-ready",
+      playerId: humanPlayerId,
+      ready: true,
+    });
+    nextState = applyBellotAction(nextState, {
+      type: "set-ready",
+      playerId: offlineCpuPlayerId,
+      ready: true,
+    });
+
+    return nextState;
+  }
+
+  function startOfflineBellot() {
+    setRoom(undefined);
+    setGameState(undefined);
+    setResult(undefined);
+    setError(undefined);
+    setOfflineBellotState(createOfflineBellotState());
+  }
+
+  function applyOfflineBellotAction(action: BellotAction) {
+    setOfflineBellotState((current) =>
+      current ? applyBellotAction(current, action) : current,
+    );
+  }
+
+  function applyOfflineTrumpDecision(
+    decision:
+      | { kind: "pass" }
+      | { kind: "accept-upcard" }
+      | { kind: "choose-suit"; suit: Suit },
+  ) {
+    if (!offlineHumanPlayerId) {
+      return;
+    }
+
+    if (decision.kind === "pass") {
+      applyOfflineBellotAction({
+        type: "trump-pass",
+        playerId: offlineHumanPlayerId,
+      });
+    } else if (decision.kind === "accept-upcard") {
+      applyOfflineBellotAction({
+        type: "trump-accept-upcard",
+        playerId: offlineHumanPlayerId,
+      });
+    } else {
+      applyOfflineBellotAction({
+        type: "trump-choose-suit",
+        playerId: offlineHumanPlayerId,
+        suit: decision.suit,
+      });
+    }
+  }
+
+  function submitOfflineDeclarations(declarations: BellotDeclaration[]) {
+    if (!offlineHumanPlayerId) {
+      return;
+    }
+
+    applyOfflineBellotAction({
+      type: "declare",
+      playerId: offlineHumanPlayerId,
+      declarations,
     });
   }
 
@@ -126,6 +296,9 @@ export function Dashboard() {
                 <div className="mt-3 flex flex-wrap gap-3">
                   <Button type="button" onClick={createRoom} disabled={!socket}>
                     Create room
+                  </Button>
+                  <Button type="button" onClick={startOfflineBellot}>
+                    Play Bellot vs CPU
                   </Button>
                   <form
                     onSubmit={joinRoom}
@@ -168,7 +341,46 @@ export function Dashboard() {
             />
           ) : null}
 
-          {gameState && !inLobby ? (
+          {offlineBellotPublicState ? (
+            <>
+              <section className="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-bold">Offline match</h2>
+                    <p className="text-sm text-slate-600">
+                      Bellot vs CPU runs entirely in this browser.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setOfflineBellotState(undefined)}
+                  >
+                    Leave match
+                  </Button>
+                </div>
+              </section>
+              <BellotTable
+                state={offlineBellotPublicState}
+                currentPlayerId={offlineHumanPlayerId}
+                onTrumpDecision={applyOfflineTrumpDecision}
+                onDeclare={submitOfflineDeclarations}
+                onPlayCard={(cardId) =>
+                  offlineHumanPlayerId &&
+                  applyOfflineBellotAction({
+                    type: "play-card",
+                    playerId: offlineHumanPlayerId,
+                    cardId,
+                  })
+                }
+                onNextHand={() =>
+                  applyOfflineBellotAction({ type: "next-hand" })
+                }
+                onRestart={() =>
+                  setOfflineBellotState(createOfflineBellotState())
+                }
+              />
+            </>
+          ) : gameState && !inLobby ? (
             gameState.gameId === "greater-card" ? (
               <GreaterCardTable
                 state={gameState}
