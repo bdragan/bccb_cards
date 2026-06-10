@@ -90,7 +90,9 @@ function chooseTrumpAction(
   options: BellotCpuOptions,
 ): BellotAction | undefined {
   if (state.phase === "trump-round-one" && state.upcard) {
-    const score = scoreTrumpSuit(player.hand, state.upcard.suit);
+    const score = scoreTrumpSuit(player.hand, state.upcard.suit, [
+      state.upcard,
+    ]);
     const threshold = options.trumpAcceptThreshold ?? 58;
 
     return score >= threshold
@@ -134,7 +136,11 @@ function bestTrumpSuit(hand: Card[], excludedSuit: Suit): [Suit, number] {
   return best;
 }
 
-function scoreTrumpSuit(hand: Card[], trumpSuit: Suit) {
+function scoreTrumpSuit(
+  hand: Card[],
+  trumpSuit: Suit,
+  knownDeadCards: Card[] = [],
+) {
   const trumpCards = hand.filter((card) => card.suit === trumpSuit);
   const offSuitAces = hand.filter(
     (card) => card.suit !== trumpSuit && card.rank === "A",
@@ -157,7 +163,43 @@ function scoreTrumpSuit(hand: Card[], trumpSuit: Suit) {
     (trumpCards.some((card) => card.rank === "IX") ? 14 : 0) +
     offSuitAces * 9 +
     offSuitTens * 4 +
+    trumpControlBonus(trumpCards, trumpSuit, knownDeadCards) -
+    deadTrumpPointPenalty(knownDeadCards, trumpSuit) +
     declarationPoints * 0.35
+  );
+}
+
+function trumpControlBonus(
+  trumpCards: Card[],
+  trumpSuit: Suit,
+  knownDeadCards: Card[],
+) {
+  const knownCardIds = new Set([
+    ...trumpCards.map((card) => card.id),
+    ...knownDeadCards.map((card) => card.id),
+  ]);
+  const strongestCards = trumpCards
+    .slice()
+    .sort((left, right) => compareBellotCards(right, left, trumpSuit))
+    .slice(0, 3);
+
+  return strongestCards.reduce((sum, card, index) => {
+    const strongerUnknownCount = createDeck().filter(
+      (candidate) =>
+        candidate.suit === trumpSuit &&
+        compareBellotCards(candidate, card, trumpSuit) > 0 &&
+        !knownCardIds.has(candidate.id),
+    ).length;
+    const baseBonus = [18, 8, 3][index] ?? 0;
+
+    return sum + Math.max(0, baseBonus - strongerUnknownCount * 6);
+  }, 0);
+}
+
+function deadTrumpPointPenalty(knownDeadCards: Card[], trumpSuit: Suit) {
+  return knownDeadCards.reduce(
+    (sum, card) => sum + bellotCardPoints(card, trumpSuit) * 0.45,
+    0,
   );
 }
 

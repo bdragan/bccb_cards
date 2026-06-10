@@ -706,6 +706,86 @@ describe("Bellot", () => {
     });
   });
 
+  it("uses the upcard rank as a known dead trump card during round-one trump selection", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trump-round-one",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("IX", "hearts"), card("A", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("U", "hearts"),
+      trumpTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+    };
+
+    expect(
+      chooseBellotCpuAction(state, "p1", { trumpAcceptThreshold: 73 }),
+    ).toEqual({
+      type: "trump-accept-upcard",
+      playerId: "p1",
+    });
+    expect(
+      chooseBellotCpuAction({ ...state, upcard: card("VII", "hearts") }, "p1", {
+        trumpAcceptThreshold: 73,
+      }),
+    ).toEqual({
+      type: "trump-pass",
+      playerId: "p1",
+    });
+  });
+
+  it("does not use hidden pickup cards during CPU trump selection", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trump-round-one",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "hearts")],
+          hiddenCards: [card("U", "hearts"), card("IX", "hearts")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("VII", "hearts"),
+      trumpTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+    };
+
+    expect(chooseBellotCpuAction(state, "p1")).toEqual({
+      type: "trump-pass",
+      playerId: "p1",
+    });
+  });
+
   it("does not use hidden opponent cards or the unused deck for CPU trick decisions", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
@@ -821,6 +901,28 @@ describe("Bellot", () => {
       expect(voidImpossibleCards.has(`${rank}-acorns`)).toBe(true);
       expect(voidImpossibleCards.has(`${rank}-hearts`)).toBe(true);
     }
+
+    const trumpedState: BellotState = {
+      ...voidState,
+      completedTricks: [
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p1", card: card("A", "acorns") },
+            { playerId: "p2", card: card("VII", "hearts") },
+          ],
+        },
+      ],
+    };
+    const trumpedImpossibleCards = new Set(
+      inferBellotCpuImpossibleOpponentCardIds(trumpedState, "p2"),
+    );
+
+    for (const rank of ["VII", "VIII", "IX", "X", "U", "O", "K", "A"]) {
+      expect(trumpedImpossibleCards.has(`${rank}-acorns`)).toBe(true);
+    }
+    expect(trumpedImpossibleCards.has("U-hearts")).toBe(false);
+    expect(trumpedImpossibleCards.has("A-hearts")).toBe(false);
 
     const trumpResponseState: BellotState = {
       ...voidState,
