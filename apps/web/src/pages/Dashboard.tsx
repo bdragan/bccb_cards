@@ -28,6 +28,22 @@ import { createGameSocket, type GameSocket } from "../socket/game-socket";
 import { useAuthStore } from "../stores/auth-store";
 
 const offlineCpuPlayerId = "offline-cpu";
+const offlineCpuDecisionDelayMs = 250;
+const offlineCpuPlayDelayMs = 450;
+const offlineCpuCompletedTrickLeadDelayMs = 2_000;
+
+function offlineCpuActionDelay(state: BellotState, action: BellotAction) {
+  if (action.type !== "play-card") {
+    return offlineCpuDecisionDelayMs;
+  }
+
+  const isLeadingAfterCompletedTrick =
+    state.currentTrick.length === 0 && state.completedTricks.length > 0;
+
+  return isLeadingAfterCompletedTrick
+    ? offlineCpuCompletedTrickLeadDelayMs
+    : offlineCpuPlayDelayMs;
+}
 
 export function Dashboard() {
   const { token, user, logout } = useAuthStore();
@@ -129,34 +145,29 @@ export function Dashboard() {
       return;
     }
 
-    const timeout = window.setTimeout(
-      () => {
-        setOfflineBellotState((current) => {
-          if (!current) {
-            return current;
-          }
+    const timeout = window.setTimeout(() => {
+      setOfflineBellotState((current) => {
+        if (!current) {
+          return current;
+        }
 
-          try {
-            const nextAction = chooseBellotCpuAction(
-              current,
-              offlineCpuPlayerId,
-              cpuOptions,
-            );
+        try {
+          const nextAction = chooseBellotCpuAction(
+            current,
+            offlineCpuPlayerId,
+            cpuOptions,
+          );
 
-            return nextAction
-              ? applyBellotAction(current, nextAction)
-              : current;
-          } catch (err) {
-            return {
-              ...current,
-              phase: "error",
-              error: err instanceof Error ? err.message : "CPU action failed",
-            };
-          }
-        });
-      },
-      action.type === "play-card" ? 450 : 250,
-    );
+          return nextAction ? applyBellotAction(current, nextAction) : current;
+        } catch (err) {
+          return {
+            ...current,
+            phase: "error",
+            error: err instanceof Error ? err.message : "CPU action failed",
+          };
+        }
+      });
+    }, offlineCpuActionDelay(offlineBellotState, action));
 
     return () => window.clearTimeout(timeout);
   }, [offlineBellotState]);
