@@ -75,6 +75,15 @@ export function chooseBellotCpuAction(
   return undefined;
 }
 
+export function inferBellotCpuImpossibleOpponentCardIds(
+  state: BellotState,
+  opponentPlayerId: string,
+) {
+  return [
+    ...impossibleOpponentCardIdsFromPlayHistory(state, opponentPlayerId),
+  ].sort((left, right) => left.localeCompare(right));
+}
+
 function chooseTrumpAction(
   state: BellotState,
   player: BellotPlayerState,
@@ -306,11 +315,15 @@ function createDeterminizedStates(
     0,
     opponent.hand.length - opponentKnownCards.length,
   );
+  const impossibleOpponentCardIds = impossibleOpponentCardIdsFromPlayHistory(
+    state,
+    opponent.playerId,
+  );
   const unknownPool = unknownCardsForCpu(
     state,
     cpuPlayerId,
     opponentKnownCards,
-  );
+  ).filter((card) => !impossibleOpponentCardIds.has(card.id));
   const count = unknownNeeded > 0 ? Math.max(1, sampleCount) : 1;
 
   return Array.from({ length: count }, () => {
@@ -334,6 +347,97 @@ function createDeterminizedStates(
       })),
     };
   });
+}
+
+function impossibleOpponentCardIdsFromPlayHistory(
+  state: BellotState,
+  opponentPlayerId: string,
+) {
+  const impossibleCardIds = new Set<string>();
+
+  if (!state.trumpSuit) {
+    return impossibleCardIds;
+  }
+
+  for (const trick of state.completedTricks) {
+    addImpossibleCardsFromResponse(
+      impossibleCardIds,
+      trick.cards,
+      opponentPlayerId,
+      state.trumpSuit,
+    );
+  }
+
+  addImpossibleCardsFromResponse(
+    impossibleCardIds,
+    state.currentTrick,
+    opponentPlayerId,
+    state.trumpSuit,
+  );
+
+  return impossibleCardIds;
+}
+
+function addImpossibleCardsFromResponse(
+  impossibleCardIds: Set<string>,
+  plays: BellotTrickPlay[],
+  opponentPlayerId: string,
+  trumpSuit: Suit,
+) {
+  const responseIndex = plays.findIndex(
+    (play) => play.playerId === opponentPlayerId,
+  );
+
+  if (responseIndex <= 0) {
+    return;
+  }
+
+  const lead = plays[0];
+  const response = plays[responseIndex];
+  const previousTrickTrump = plays
+    .slice(0, responseIndex)
+    .find((play) => play.card.suit === trumpSuit);
+
+  if (!lead || !response) {
+    return;
+  }
+
+  if (response.card.suit !== lead.card.suit) {
+    addSuitToImpossibleCards(impossibleCardIds, lead.card.suit);
+
+    if (response.card.suit !== trumpSuit) {
+      addSuitToImpossibleCards(impossibleCardIds, trumpSuit);
+    }
+
+    return;
+  }
+
+  if (response.card.suit !== trumpSuit || !previousTrickTrump) {
+    return;
+  }
+
+  if (
+    compareBellotCards(response.card, previousTrickTrump.card, trumpSuit) > 0
+  ) {
+    return;
+  }
+
+  for (const card of createDeck()) {
+    if (
+      card.suit === trumpSuit &&
+      compareBellotCards(card, previousTrickTrump.card, trumpSuit) > 0
+    ) {
+      impossibleCardIds.add(card.id);
+    }
+  }
+}
+
+function addSuitToImpossibleCards(impossibleCardIds: Set<string>, suit: Suit) {
+  for (const card of createDeck()) {
+    if (card.suit === suit) {
+      impossibleCardIds.add(card.id);
+    }
+  }
 }
 
 function unknownCardsForCpu(

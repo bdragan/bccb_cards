@@ -11,6 +11,7 @@ import {
   compareBellotCards,
   createBellotInitialState,
   getBellotPublicState,
+  inferBellotCpuImpossibleOpponentCardIds,
   legalBellotCards,
   validateBellotDeclarations,
 } from "../index";
@@ -771,6 +772,74 @@ describe("Bellot", () => {
     expect(chooseBellotCpuAction(changedHiddenState, "p1", options)).toEqual(
       chooseBellotCpuAction(state, "p1", options),
     );
+  });
+
+  it("infers opponent void suits and missing trumps from public trick history", () => {
+    const voidState: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 1,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("VII", "leaves")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "acorns") },
+            { playerId: "p2", card: card("K", "bells") },
+          ],
+        },
+      ],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const voidImpossibleCards = new Set(
+      inferBellotCpuImpossibleOpponentCardIds(voidState, "p2"),
+    );
+
+    for (const rank of ["VII", "VIII", "IX", "X", "U", "O", "K", "A"]) {
+      expect(voidImpossibleCards.has(`${rank}-acorns`)).toBe(true);
+      expect(voidImpossibleCards.has(`${rank}-hearts`)).toBe(true);
+    }
+
+    const overtrumpState: BellotState = {
+      ...voidState,
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("IX", "hearts") },
+            { playerId: "p2", card: card("VII", "hearts") },
+          ],
+        },
+      ],
+    };
+    const overtrumpImpossibleCards = new Set(
+      inferBellotCpuImpossibleOpponentCardIds(overtrumpState, "p2"),
+    );
+
+    expect(overtrumpImpossibleCards.has("U-hearts")).toBe(true);
+    expect(overtrumpImpossibleCards.has("A-hearts")).toBe(false);
   });
 
   it("passes the caller when caller total is strictly greater", () => {
