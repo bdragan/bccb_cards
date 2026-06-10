@@ -135,6 +135,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@card-games/game-core':
+        specifier: workspace:*
+        version: link:../../packages/game-core
       '@card-games/shared':
         specifier: workspace:*
         version: link:../../packages/shared

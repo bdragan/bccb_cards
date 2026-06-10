@@ -1,4 +1,4 @@
-import type { GameMetadata } from "@card-games/shared";
+import type { GameId, GameMetadata } from "@card-games/shared";
 
 import { Button } from "./Button";
 
@@ -9,7 +9,7 @@ export function GameList({
 }: {
   games: GameMetadata[];
   selectedGameId?: string;
-  onSelect: (gameId: "greater-card") => void;
+  onSelect: (gameId: GameId) => void;
 }) {
   return (
     <section aria-label="Available games">

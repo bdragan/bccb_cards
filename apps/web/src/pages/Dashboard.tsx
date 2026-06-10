@@ -1,12 +1,14 @@
 import type {
+  GameId,
   GameMetadata,
-  GreaterCardPublicState,
-  GreaterCardResult,
+  GamePublicState,
+  GameResult,
   RoomPublicState,
 } from "@card-games/shared";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
+import { BellotTable } from "../components/BellotTable";
 import { Button } from "../components/Button";
 import { GameList } from "../components/GameList";
 import { GreaterCardTable } from "../components/GreaterCardTable";
@@ -18,12 +20,11 @@ export function Dashboard() {
   const { token, user, logout } = useAuthStore();
   const [games, setGames] = useState<GameMetadata[]>([]);
   const [matches, setMatches] = useState<unknown[]>([]);
-  const [selectedGameId, setSelectedGameId] =
-    useState<"greater-card">("greater-card");
+  const [selectedGameId, setSelectedGameId] = useState<GameId>("greater-card");
   const [roomCode, setRoomCode] = useState("");
   const [room, setRoom] = useState<RoomPublicState>();
-  const [gameState, setGameState] = useState<GreaterCardPublicState>();
-  const [result, setResult] = useState<GreaterCardResult>();
+  const [gameState, setGameState] = useState<GamePublicState>();
+  const [result, setResult] = useState<GameResult>();
   const [error, setError] = useState<string>();
   const [socket, setSocket] = useState<GameSocket>();
 
@@ -153,29 +154,78 @@ export function Dashboard() {
           ) : null}
 
           {gameState && !inLobby ? (
-            <GreaterCardTable
-              state={gameState}
-              result={result}
-              currentPlayerId={user?.id}
-              onDraw={() =>
-                room &&
-                socket?.emit(
-                  "game:draw-card",
-                  { roomId: room.id },
-                  () => undefined,
-                )
-              }
-              onRestart={() => {
-                if (room) {
-                  setResult(undefined);
+            gameState.gameId === "greater-card" ? (
+              <GreaterCardTable
+                state={gameState}
+                result={result?.gameId === "greater-card" ? result : undefined}
+                currentPlayerId={user?.id}
+                onDraw={() =>
+                  room &&
                   socket?.emit(
-                    "game:restart",
+                    "game:draw-card",
                     { roomId: room.id },
                     () => undefined,
-                  );
+                  )
                 }
-              }}
-            />
+                onRestart={() => {
+                  if (room) {
+                    setResult(undefined);
+                    socket?.emit(
+                      "game:restart",
+                      { roomId: room.id },
+                      () => undefined,
+                    );
+                  }
+                }}
+              />
+            ) : (
+              <BellotTable
+                state={gameState}
+                currentPlayerId={user?.id}
+                onTrumpDecision={(decision) =>
+                  room &&
+                  socket?.emit(
+                    "bellot:trump-decision",
+                    { roomId: room.id, ...decision },
+                    () => undefined,
+                  )
+                }
+                onDeclare={(declarations) =>
+                  room &&
+                  socket?.emit(
+                    "bellot:declare",
+                    { roomId: room.id, declarations },
+                    () => undefined,
+                  )
+                }
+                onPlayCard={(cardId) =>
+                  room &&
+                  socket?.emit(
+                    "bellot:play-card",
+                    { roomId: room.id, cardId },
+                    () => undefined,
+                  )
+                }
+                onNextHand={() =>
+                  room &&
+                  socket?.emit(
+                    "bellot:next-hand",
+                    { roomId: room.id },
+                    () => undefined,
+                  )
+                }
+                onRestart={() => {
+                  if (room) {
+                    setResult(undefined);
+                    socket?.emit(
+                      "game:restart",
+                      { roomId: room.id },
+                      () => undefined,
+                    );
+                  }
+                }}
+              />
+            )
           ) : null}
         </div>
 

@@ -10,13 +10,19 @@ const suitLabels = {
 export function PlayingCard({
   card,
   hidden = false,
+  compact = false,
 }: {
   card?: Card;
   hidden?: boolean;
+  compact?: boolean;
 }) {
+  const sizeClass = compact ? "h-24 w-16" : "h-36 w-24";
+
   if (hidden || !card) {
     return (
-      <div className="card-face grid h-36 w-24 place-items-center rounded-md border border-ink/10 bg-ink text-sm font-semibold text-white">
+      <div
+        className={`card-face grid ${sizeClass} place-items-center rounded-md border border-ink/10 bg-ink text-sm font-semibold text-white`}
+      >
         Drawn
       </div>
     );
@@ -29,7 +35,7 @@ export function PlayingCard({
     <img
       src={imageUrl}
       alt={label}
-      className="card-face h-36 w-24 rounded-md border border-ink/10 bg-white object-contain"
+      className={`card-face ${sizeClass} rounded-md border border-ink/10 bg-white object-contain`}
       loading="lazy"
     />
   );
