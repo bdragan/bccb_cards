@@ -146,7 +146,7 @@ export function Dashboard() {
 
     const cpuOptions = {
       maxSearchPlies: 10,
-      monteCarloSamples: 32,
+      monteCarloSamples: 64,
     };
 
     if (!isOfflineCpuTurn(offlineBellotState)) {

@@ -27,9 +27,9 @@ export type BellotCpuOptions = {
 };
 
 const defaultMaxSearchPlies = 10;
-const defaultMonteCarloSamples = 32;
-const defaultTrumpSearchPlies = 6;
-const defaultTrumpMonteCarloSamples = 16;
+const defaultMonteCarloSamples = 64;
+const defaultTrumpSearchPlies = 10;
+const defaultTrumpMonteCarloSamples = 64;
 const maxUtility = 1_000_000;
 
 export function chooseBellotCpuAction(
