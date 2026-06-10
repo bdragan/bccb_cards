@@ -447,7 +447,7 @@ describe("Bellot", () => {
     expect(state.error).toContain("belote");
   });
 
-  it("enforces follow-suit, trumping, and overtrumping obligations", () => {
+  it("enforces follow-suit and trumping obligations without card-strength restrictions", () => {
     const hand = [
       card("VII", "acorns"),
       card("A", "bells"),
@@ -474,10 +474,10 @@ describe("Bellot", () => {
     expect(
       legalBellotCards(
         hand,
-        [{ playerId: "p1", card: card("IX", "hearts") }],
+        [{ playerId: "p1", card: card("A", "hearts") }],
         "hearts",
       ).map((legalCard) => legalCard.id),
-    ).toEqual(["U-hearts"]);
+    ).toEqual(["IX-hearts", "U-hearts"]);
   });
 
   it("publishes in-hand game points after won tricks", () => {
@@ -822,7 +822,7 @@ describe("Bellot", () => {
       expect(voidImpossibleCards.has(`${rank}-hearts`)).toBe(true);
     }
 
-    const overtrumpState: BellotState = {
+    const trumpResponseState: BellotState = {
       ...voidState,
       completedTricks: [
         {
@@ -834,12 +834,12 @@ describe("Bellot", () => {
         },
       ],
     };
-    const overtrumpImpossibleCards = new Set(
-      inferBellotCpuImpossibleOpponentCardIds(overtrumpState, "p2"),
+    const trumpResponseImpossibleCards = new Set(
+      inferBellotCpuImpossibleOpponentCardIds(trumpResponseState, "p2"),
     );
 
-    expect(overtrumpImpossibleCards.has("U-hearts")).toBe(true);
-    expect(overtrumpImpossibleCards.has("A-hearts")).toBe(false);
+    expect(trumpResponseImpossibleCards.has("U-hearts")).toBe(false);
+    expect(trumpResponseImpossibleCards.has("A-hearts")).toBe(false);
   });
 
   it("passes the caller when caller total is strictly greater", () => {

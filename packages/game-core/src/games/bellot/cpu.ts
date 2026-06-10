@@ -394,10 +394,6 @@ function addImpossibleCardsFromResponse(
 
   const lead = plays[0];
   const response = plays[responseIndex];
-  const previousTrickTrump = plays
-    .slice(0, responseIndex)
-    .find((play) => play.card.suit === trumpSuit);
-
   if (!lead || !response) {
     return;
   }
@@ -410,25 +406,6 @@ function addImpossibleCardsFromResponse(
     }
 
     return;
-  }
-
-  if (response.card.suit !== trumpSuit || !previousTrickTrump) {
-    return;
-  }
-
-  if (
-    compareBellotCards(response.card, previousTrickTrump.card, trumpSuit) > 0
-  ) {
-    return;
-  }
-
-  for (const card of createDeck()) {
-    if (
-      card.suit === trumpSuit &&
-      compareBellotCards(card, previousTrickTrump.card, trumpSuit) > 0
-    ) {
-      impossibleCardIds.add(card.id);
-    }
   }
 }
 

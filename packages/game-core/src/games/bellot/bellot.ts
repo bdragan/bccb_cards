@@ -920,37 +920,14 @@ export function legalBellotCards(
 
   const leadSuit = currentTrick[0].card.suit;
   const followSuit = hand.filter((card) => card.suit === leadSuit);
-  const trickTrump = currentTrick.find((play) => play.card.suit === trumpSuit);
 
   if (followSuit.length > 0) {
-    if (!trickTrump) {
-      return followSuit;
-    }
-
-    const strongerTrump = followSuit.filter(
-      (card) =>
-        card.suit === trumpSuit &&
-        compareBellotCards(card, trickTrump.card, trumpSuit) > 0,
-    );
-
-    return strongerTrump.length ? strongerTrump : followSuit;
+    return followSuit;
   }
 
   const trumps = hand.filter((card) => card.suit === trumpSuit);
 
-  if (trumps.length === 0) {
-    return hand;
-  }
-
-  if (!trickTrump) {
-    return trumps;
-  }
-
-  const strongerTrump = trumps.filter(
-    (card) => compareBellotCards(card, trickTrump.card, trumpSuit) > 0,
-  );
-
-  return strongerTrump.length ? strongerTrump : trumps;
+  return trumps.length ? trumps : hand;
 }
 
 function applyPlayCard(

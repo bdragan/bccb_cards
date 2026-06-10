@@ -58,14 +58,14 @@ Non-trump ranking from strongest to weakest:
 
 Non-trump point values:
 
-| Rank          | Points |
-| ------------- | -----: |
-| A             |     11 |
-| X             |     10 |
-| K             |      4 |
+| Rank             | Points |
+| ---------------- | -----: |
+| A                |     11 |
+| X                |     10 |
+| K                |      4 |
 | O/Q (lady/queen) |      3 |
 | U/J (boy/jack)   |      2 |
-| IX, VIII, VII |      0 |
+| IX, VIII, VII    |      0 |
 
 Trump ranking from strongest to weakest:
 
@@ -80,15 +80,15 @@ Trump ranking from strongest to weakest:
 
 Trump point values:
 
-| Rank      | Points |
-| --------- | -----: |
-| U/J (boy/jack)     |     20 |
-| IX                 |     14 |
-| A                  |     11 |
-| X                  |     10 |
-| K                  |      4 |
-| O/Q (lady/queen)   |      3 |
-| VIII, VII          |      0 |
+| Rank             | Points |
+| ---------------- | -----: |
+| U/J (boy/jack)   |     20 |
+| IX               |     14 |
+| A                |     11 |
+| X                |     10 |
+| K                |      4 |
+| O/Q (lady/queen) |      3 |
+| VIII, VII        |      0 |
 
 ## Declarations
 
@@ -139,10 +139,9 @@ Each hand has 10 tricks. The first player leads the first trick. After that, the
 
 Rules for playing a card:
 
-- A player who can follow the lead suit must follow.
-- A player who cannot follow suit but has trump must play trump.
+- A player who can follow the lead suit must follow with any card of that suit.
+- A player who cannot follow suit but has trump must play any trump.
 - A player who cannot follow suit and has no trump may play any card.
-- If trump has already been played in the trick and the player also plays trump, the player must overtrump when holding a stronger trump.
 
 If any trump was played, the strongest trump wins the trick. Otherwise, the strongest card in the lead suit wins.
 
