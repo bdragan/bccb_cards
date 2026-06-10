@@ -24,8 +24,8 @@ export type BellotCpuOptions = {
   trumpChooseThreshold?: number;
 };
 
-const defaultMaxSearchPlies = 6;
-const defaultMonteCarloSamples = 10;
+const defaultMaxSearchPlies = 8;
+const defaultMonteCarloSamples = 16;
 const maxUtility = 1_000_000;
 
 export function chooseBellotCpuAction(
@@ -278,7 +278,7 @@ function alphaBeta(
   beta: number,
 ): number {
   if (
-    depth <= 0 ||
+    (depth <= 0 && state.currentTrick.length === 0) ||
     state.phase === "hand-complete" ||
     state.phase === "finished"
   ) {
@@ -317,7 +317,9 @@ function alphaBeta(
       playerId: currentPlayer.playerId,
       cardId: card.id,
     });
-    const value = alphaBeta(next, cpuPlayerId, depth - 1, alpha, beta);
+    const nextDepth =
+      depth <= 0 && state.currentTrick.length > 0 ? depth : depth - 1;
+    const value = alphaBeta(next, cpuPlayerId, nextDepth, alpha, beta);
 
     if (maximizing) {
       best = Math.max(best, value);

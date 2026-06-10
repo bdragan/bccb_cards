@@ -120,8 +120,8 @@ export function Dashboard() {
     }
 
     const cpuOptions = {
-      maxSearchPlies: 6,
-      monteCarloSamples: 8,
+      maxSearchPlies: 8,
+      monteCarloSamples: 16,
     };
     let action: BellotAction | undefined;
 

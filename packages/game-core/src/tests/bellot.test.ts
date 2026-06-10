@@ -854,6 +854,54 @@ describe("Bellot", () => {
     );
   });
 
+  it("extends shallow CPU searches to finish the current trick before evaluation", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns"), card("VII", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("VII", "acorns"), card("VIII", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: {
+        p1: [],
+        p2: [card("VII", "acorns"), card("VIII", "bells")],
+      },
+    };
+
+    expect(
+      chooseBellotCpuAction(state, "p1", {
+        maxSearchPlies: 1,
+        monteCarloSamples: 1,
+        rng: () => 0.5,
+      }),
+    ).toEqual({
+      type: "play-card",
+      playerId: "p1",
+      cardId: "A-acorns",
+    });
+  });
+
   it("infers opponent void suits and missing trumps from public trick history", () => {
     const voidState: BellotState = {
       ...createBellotInitialState(players),
