@@ -36,4 +36,35 @@ describe("Lobby", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });
+
+  it("renders the selected room game", () => {
+    render(
+      <Lobby
+        room={{
+          id: "room1",
+          code: "ABCD12",
+          gameId: "bellot",
+          phase: "ready-check",
+          createdAt: new Date().toISOString(),
+          players: [
+            {
+              playerId: "p1",
+              displayName: "Alice",
+              connected: true,
+              ready: false,
+            },
+          ],
+        }}
+        currentPlayerId="p1"
+        onReady={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Game")).toBeInTheDocument();
+    expect(screen.getByText("Bellot")).toBeInTheDocument();
+    expect(screen.getByText(/starts Bellot automatically/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/starts GreaterCard automatically/),
+    ).not.toBeInTheDocument();
+  });
 });

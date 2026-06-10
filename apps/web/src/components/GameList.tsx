@@ -31,11 +31,12 @@ export function GameList({
                 </p>
               </div>
               <Button
+                aria-pressed={selectedGameId === game.id}
                 className={selectedGameId === game.id ? "bg-felt" : ""}
                 onClick={() => onSelect(game.id)}
                 type="button"
               >
-                Select
+                {selectedGameId === game.id ? "Selected" : "Select"}
               </Button>
             </div>
           </article>

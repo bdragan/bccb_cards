@@ -2,6 +2,11 @@ import type { RoomPublicState } from "@card-games/shared";
 
 import { Button } from "./Button";
 
+const gameNames: Record<RoomPublicState["gameId"], string> = {
+  "greater-card": "GreaterCard",
+  bellot: "Bellot",
+};
+
 export function Lobby({
   room,
   currentPlayerId,
@@ -23,6 +28,12 @@ export function Lobby({
           <p className="text-sm text-slate-600">
             Room code{" "}
             <span className="font-mono font-bold text-ink">{room.code}</span>
+          </p>
+          <p className="text-sm text-slate-600">
+            Game{" "}
+            <span className="font-semibold text-ink">
+              {gameNames[room.gameId]}
+            </span>
           </p>
         </div>
         <Button
@@ -50,8 +61,8 @@ export function Lobby({
       </ul>
 
       <p className="mt-4 text-sm text-slate-600">
-        The server starts GreaterCard automatically when at least two players
-        have joined and everyone is ready.
+        The server starts {gameNames[room.gameId]} automatically when at least
+        two players have joined and everyone is ready.
       </p>
     </section>
   );
