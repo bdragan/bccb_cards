@@ -6,6 +6,7 @@ import {
   applyBellotAction,
   autoSelectBellotDeclarations,
   bellotCardPoints,
+  bellotCpuMonteCarloSampleLimit,
   bellotCpuSearchCards,
   calculateBellotHandResult,
   chooseBellotCpuAction,
@@ -672,6 +673,12 @@ describe("Bellot", () => {
     });
   });
 
+  it("increases CPU Monte Carlo samples by 20 percent per missing trick card", () => {
+    expect(bellotCpuMonteCarloSampleLimit(64, 10)).toBe(64);
+    expect(bellotCpuMonteCarloSampleLimit(64, 9)).toBe(77);
+    expect(bellotCpuMonteCarloSampleLimit(64, 6)).toBe(116);
+  });
+
   it("searches only the endpoints of strength-connected non-trump card ranges", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
@@ -716,11 +723,7 @@ describe("Bellot", () => {
       bellotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
-    ).toEqual([
-      "VII-hearts",
-      "X-hearts",
-      "O-hearts",
-    ]);
+    ).toEqual(["VII-hearts", "X-hearts", "O-hearts"]);
   });
 
   it("searches only the endpoints of a full non-trump suit range", () => {
@@ -1499,9 +1502,7 @@ describe("Bellot", () => {
               points: 20,
             },
           ],
-          p2: [
-            { type: "FOUR_OF_KIND_IX", cards: [], points: 150 },
-          ],
+          p2: [{ type: "FOUR_OF_KIND_IX", cards: [], points: 150 }],
         },
         lastTrickWinnerPlayerId: "p2",
       }),

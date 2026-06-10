@@ -30,6 +30,8 @@ const defaultMaxSearchPlies = 10;
 const defaultMonteCarloSamples = 64;
 const defaultTrumpSearchPlies = 10;
 const defaultTrumpMonteCarloSamples = 64;
+const initialTrickHandCards = 10;
+const sampleIncreasePerMissingCard = 0.2;
 const maxUtility = 1_000_000;
 const bellotDeck = createDeck();
 const trumpSearchRankGroups: Rank[][] = [
@@ -38,6 +40,22 @@ const trumpSearchRankGroups: Rank[][] = [
 const nonTrumpSearchRankGroups: Rank[][] = [
   ["VII", "VIII", "IX", "U", "O", "K", "X", "A"],
 ];
+
+export function bellotCpuMonteCarloSampleLimit(
+  baseSampleCount: number,
+  remainingHandCards: number,
+) {
+  const normalizedBaseSampleCount = Math.max(1, Math.floor(baseSampleCount));
+  const missingCards = Math.max(0, initialTrickHandCards - remainingHandCards);
+
+  return Math.max(
+    1,
+    Math.ceil(
+      normalizedBaseSampleCount *
+        (1 + missingCards * sampleIncreasePerMissingCard),
+    ),
+  );
+}
 
 export function chooseBellotCpuAction(
   state: BellotState,
@@ -229,13 +247,7 @@ function averageTrumpRolloutValue(
     samples.reduce(
       (sum, sample) =>
         sum +
-        alphaBeta(
-          sample,
-          cpuPlayerId,
-          searchPlies,
-          -maxUtility,
-          maxUtility,
-        ),
+        alphaBeta(sample, cpuPlayerId, searchPlies, -maxUtility, maxUtility),
       0,
     ) / samples.length
   );
@@ -267,14 +279,17 @@ function createTrumpRolloutStates(
   const unknownPool = createDeck().filter((card) => !knownCardIds.has(card.id));
   const cpuHiddenCount = cpu.hiddenCards.length;
   const opponentCardCount = opponent.hand.length + opponent.hiddenCards.length;
+  const samples = sampleUniqueTrumpRollouts(
+    unknownPool,
+    cpuHiddenCount,
+    opponentCardCount,
+    sampleCount,
+    rng,
+  );
 
-  return Array.from({ length: sampleCount }, () => {
-    const sampledCards = shuffleDeck(unknownPool, rng);
-    const sampledCpuHiddenCards = sampledCards.slice(0, cpuHiddenCount);
-    const sampledOpponentHand = sampledCards.slice(
-      cpuHiddenCount,
-      cpuHiddenCount + opponentCardCount,
-    );
+  return samples.map((sample) => {
+    const sampledCpuHiddenCards = sample.cpuHiddenCards;
+    const sampledOpponentHand = sample.opponentHand;
     const sampledCpuHand = [...cpu.hand, ...sampledCpuHiddenCards];
     const declarationsByPlayer = {
       [cpuPlayerId]: autoSelectBellotDeclarations(sampledCpuHand, trumpSuit),
@@ -405,7 +420,10 @@ function chooseCardForTrick(
   const samples = createDeterminizedStates(
     state,
     cpuPlayerId,
-    options.monteCarloSamples ?? defaultMonteCarloSamples,
+    bellotCpuMonteCarloSampleLimit(
+      options.monteCarloSamples ?? defaultMonteCarloSamples,
+      cpu.hand.length,
+    ),
     rng,
   );
   const searchCards = bellotCpuSearchCards(legalCards, state);
@@ -633,13 +651,17 @@ function createDeterminizedStates(
     cpuPlayerId,
     opponentKnownCards,
   ).filter((card) => !impossibleOpponentCardIds.has(card.id));
-  const count = unknownNeeded > 0 ? Math.max(1, sampleCount) : 1;
+  const samples =
+    unknownNeeded > 0
+      ? sampleUniqueCardCombinations(
+          unknownPool,
+          unknownNeeded,
+          sampleCount,
+          rng,
+        )
+      : [[]];
 
-  return Array.from({ length: count }, () => {
-    const sampledUnknownCards = shuffleDeck(unknownPool, rng).slice(
-      0,
-      unknownNeeded,
-    );
+  return samples.map((sampledUnknownCards) => {
     const sampledOpponentHand = [...opponentKnownCards, ...sampledUnknownCards];
 
     return {
@@ -656,6 +678,313 @@ function createDeterminizedStates(
       })),
     };
   });
+}
+
+function sampleUniqueTrumpRollouts(
+  unknownPool: Card[],
+  requestedCpuHiddenCount: number,
+  requestedOpponentCardCount: number,
+  sampleCount: number,
+  rng: () => number,
+) {
+  const cpuHiddenCount = Math.min(requestedCpuHiddenCount, unknownPool.length);
+  const opponentCardCount = Math.min(
+    requestedOpponentCardCount,
+    unknownPool.length - cpuHiddenCount,
+  );
+  const requestedSampleCount = Math.max(1, Math.floor(sampleCount));
+  const possibleSampleCount = cappedTrumpRolloutCount(
+    unknownPool.length,
+    cpuHiddenCount,
+    opponentCardCount,
+    requestedSampleCount + 1,
+  );
+  const targetSampleCount = Math.min(requestedSampleCount, possibleSampleCount);
+
+  if (possibleSampleCount <= requestedSampleCount) {
+    return enumerateTrumpRollouts(
+      unknownPool,
+      cpuHiddenCount,
+      opponentCardCount,
+      targetSampleCount,
+    );
+  }
+
+  const samples: Array<{ cpuHiddenCards: Card[]; opponentHand: Card[] }> = [];
+  const seenSampleKeys = new Set<string>();
+  const maxRandomAttempts = targetSampleCount * 10;
+
+  for (
+    let attempts = 0;
+    samples.length < targetSampleCount && attempts < maxRandomAttempts;
+    attempts += 1
+  ) {
+    const sampledCards = shuffleDeck(unknownPool, rng);
+    const cpuHiddenCards = sampledCards.slice(0, cpuHiddenCount);
+    const opponentHand = sampledCards.slice(
+      cpuHiddenCount,
+      cpuHiddenCount + opponentCardCount,
+    );
+    const key = sampleKey(cpuHiddenCards, opponentHand);
+
+    if (seenSampleKeys.has(key)) {
+      continue;
+    }
+
+    seenSampleKeys.add(key);
+    samples.push({ cpuHiddenCards, opponentHand });
+  }
+
+  if (samples.length < targetSampleCount) {
+    for (const sample of iterateTrumpRollouts(
+      unknownPool,
+      cpuHiddenCount,
+      opponentCardCount,
+    )) {
+      const key = sampleKey(sample.cpuHiddenCards, sample.opponentHand);
+
+      if (seenSampleKeys.has(key)) {
+        continue;
+      }
+
+      seenSampleKeys.add(key);
+      samples.push(sample);
+
+      if (samples.length >= targetSampleCount) {
+        break;
+      }
+    }
+  }
+
+  return samples;
+}
+
+function sampleUniqueCardCombinations(
+  unknownPool: Card[],
+  requestedCardCount: number,
+  sampleCount: number,
+  rng: () => number,
+) {
+  const cardCount = Math.min(requestedCardCount, unknownPool.length);
+  const requestedSampleCount = Math.max(1, Math.floor(sampleCount));
+  const possibleSampleCount = cappedCombinationCount(
+    unknownPool.length,
+    cardCount,
+    requestedSampleCount + 1,
+  );
+  const targetSampleCount = Math.min(requestedSampleCount, possibleSampleCount);
+
+  if (possibleSampleCount <= requestedSampleCount) {
+    return enumerateCardCombinations(unknownPool, cardCount, targetSampleCount);
+  }
+
+  const samples: Card[][] = [];
+  const seenSampleKeys = new Set<string>();
+  const maxRandomAttempts = targetSampleCount * 10;
+
+  for (
+    let attempts = 0;
+    samples.length < targetSampleCount && attempts < maxRandomAttempts;
+    attempts += 1
+  ) {
+    const sample = shuffleDeck(unknownPool, rng).slice(0, cardCount);
+    const key = cardSetKey(sample);
+
+    if (seenSampleKeys.has(key)) {
+      continue;
+    }
+
+    seenSampleKeys.add(key);
+    samples.push(sample);
+  }
+
+  if (samples.length < targetSampleCount) {
+    for (const sample of iterateCardCombinations(unknownPool, cardCount)) {
+      const key = cardSetKey(sample);
+
+      if (seenSampleKeys.has(key)) {
+        continue;
+      }
+
+      seenSampleKeys.add(key);
+      samples.push(sample);
+
+      if (samples.length >= targetSampleCount) {
+        break;
+      }
+    }
+  }
+
+  return samples;
+}
+
+function enumerateTrumpRollouts(
+  unknownPool: Card[],
+  cpuHiddenCount: number,
+  opponentCardCount: number,
+  sampleCount: number,
+) {
+  const samples: Array<{ cpuHiddenCards: Card[]; opponentHand: Card[] }> = [];
+
+  for (const sample of iterateTrumpRollouts(
+    unknownPool,
+    cpuHiddenCount,
+    opponentCardCount,
+  )) {
+    samples.push(sample);
+
+    if (samples.length >= sampleCount) {
+      break;
+    }
+  }
+
+  return samples;
+}
+
+function* iterateTrumpRollouts(
+  unknownPool: Card[],
+  cpuHiddenCount: number,
+  opponentCardCount: number,
+): Generator<{ cpuHiddenCards: Card[]; opponentHand: Card[] }> {
+  for (const cpuHiddenCards of iterateCardCombinations(
+    unknownPool,
+    cpuHiddenCount,
+  )) {
+    const cpuHiddenCardIds = new Set(cpuHiddenCards.map((card) => card.id));
+    const remainingCards = unknownPool.filter(
+      (card) => !cpuHiddenCardIds.has(card.id),
+    );
+
+    for (const opponentHand of iterateCardCombinations(
+      remainingCards,
+      opponentCardCount,
+    )) {
+      yield { cpuHiddenCards, opponentHand };
+    }
+  }
+}
+
+function enumerateCardCombinations(
+  cards: Card[],
+  cardCount: number,
+  sampleCount: number,
+) {
+  const samples: Card[][] = [];
+
+  for (const sample of iterateCardCombinations(cards, cardCount)) {
+    samples.push(sample);
+
+    if (samples.length >= sampleCount) {
+      break;
+    }
+  }
+
+  return samples;
+}
+
+function* iterateCardCombinations(
+  cards: Card[],
+  cardCount: number,
+): Generator<Card[]> {
+  if (cardCount < 0 || cardCount > cards.length) {
+    return;
+  }
+
+  if (cardCount === 0) {
+    yield [];
+    return;
+  }
+
+  const indices = Array.from({ length: cardCount }, (_, index) => index);
+
+  while (true) {
+    yield indices.map((index) => cards[index]);
+
+    let pivotIndex = cardCount - 1;
+
+    while (
+      pivotIndex >= 0 &&
+      indices[pivotIndex] === cards.length - cardCount + pivotIndex
+    ) {
+      pivotIndex -= 1;
+    }
+
+    if (pivotIndex < 0) {
+      return;
+    }
+
+    indices[pivotIndex] += 1;
+
+    for (let index = pivotIndex + 1; index < cardCount; index += 1) {
+      indices[index] = indices[index - 1] + 1;
+    }
+  }
+}
+
+function cappedTrumpRolloutCount(
+  cardCount: number,
+  cpuHiddenCount: number,
+  opponentCardCount: number,
+  cap: number,
+) {
+  const hiddenCardCombinations = cappedCombinationCount(
+    cardCount,
+    cpuHiddenCount,
+    cap,
+  );
+  const opponentHandCombinations = cappedCombinationCount(
+    cardCount - cpuHiddenCount,
+    opponentCardCount,
+    cap,
+  );
+
+  return cappedProduct(hiddenCardCombinations, opponentHandCombinations, cap);
+}
+
+function cappedCombinationCount(
+  cardCount: number,
+  chooseCount: number,
+  cap: number,
+) {
+  if (chooseCount < 0 || chooseCount > cardCount) {
+    return 0;
+  }
+
+  const smallerChooseCount = Math.min(chooseCount, cardCount - chooseCount);
+  let result = 1;
+
+  for (let index = 1; index <= smallerChooseCount; index += 1) {
+    result = (result * (cardCount - smallerChooseCount + index)) / index;
+
+    if (result >= cap) {
+      return cap;
+    }
+  }
+
+  return Math.round(result);
+}
+
+function cappedProduct(left: number, right: number, cap: number) {
+  if (left === 0 || right === 0) {
+    return 0;
+  }
+
+  if (left >= cap / right) {
+    return cap;
+  }
+
+  return left * right;
+}
+
+function sampleKey(cpuHiddenCards: Card[], opponentHand: Card[]) {
+  return `${cardSetKey(cpuHiddenCards)}|${cardSetKey(opponentHand)}`;
+}
+
+function cardSetKey(cards: Card[]) {
+  return cards
+    .map((card) => card.id)
+    .sort((left, right) => left.localeCompare(right))
+    .join(",");
 }
 
 function impossibleOpponentCardIdsFromPlayHistory(
