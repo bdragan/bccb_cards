@@ -53,6 +53,13 @@ type BellotSearchResult = {
   callerFell?: boolean;
 };
 
+type BellotTranspositionEntry = {
+  depth: number;
+  result: BellotSearchResult;
+};
+
+type BellotTranspositionTable = Map<string, BellotTranspositionEntry>;
+
 export function bellotCpuMonteCarloSampleLimit(
   baseSampleCount: number,
   remainingHandCards: number,
@@ -266,8 +273,16 @@ function averageTrumpRolloutScore(
   );
   const searchPlies =
     options.trumpSearchPlies ?? remainingCardPlays(samples[0]);
+  const transpositions: BellotTranspositionTable = new Map();
   const results = samples.map((sample) =>
-    alphaBetaResult(sample, cpuPlayerId, searchPlies, -maxUtility, maxUtility),
+    alphaBetaResult(
+      sample,
+      cpuPlayerId,
+      searchPlies,
+      -maxUtility,
+      maxUtility,
+      transpositions,
+    ),
   );
   const successes = results.filter((result) =>
     callerAvoidedFall(result),
@@ -398,6 +413,7 @@ function chooseCardForTrick(
   );
   const searchCards = bellotCpuSearchCards(legalCards, state);
   const scores = new Map(searchCards.map((card) => [card.id, 0]));
+  const transpositions: BellotTranspositionTable = new Map();
 
   for (const sample of samples) {
     const sampleSearchCards = bellotCpuSearchCards(searchCards, sample);
@@ -418,6 +434,7 @@ function chooseCardForTrick(
         maxSearchPlies - 1,
         -maxUtility,
         maxUtility,
+        transpositions,
       );
 
       scores.set(card.id, (scores.get(card.id) ?? 0) + value);
@@ -444,8 +461,16 @@ function alphaBeta(
   depth: number,
   alpha: number,
   beta: number,
+  transpositions: BellotTranspositionTable,
 ): number {
-  return alphaBetaResult(state, cpuPlayerId, depth, alpha, beta).value;
+  return alphaBetaResult(
+    state,
+    cpuPlayerId,
+    depth,
+    alpha,
+    beta,
+    transpositions,
+  ).value;
 }
 
 function alphaBetaResult(
@@ -454,13 +479,23 @@ function alphaBetaResult(
   depth: number,
   alpha: number,
   beta: number,
+  transpositions: BellotTranspositionTable,
 ): BellotSearchResult {
+  const transpositionKey = bellotTranspositionKey(state, cpuPlayerId);
+  const cached = transpositions.get(transpositionKey);
+
+  if (cached && cached.depth >= depth) {
+    return cached.result;
+  }
+
   if (
     (depth <= 0 && state.currentTrick.length === 0) ||
     state.phase === "hand-complete" ||
     state.phase === "finished"
   ) {
-    return evaluateSearchLeaf(state, cpuPlayerId);
+    const result = evaluateSearchLeaf(state, cpuPlayerId);
+    transpositions.set(transpositionKey, { depth, result });
+    return result;
   }
 
   if (
@@ -468,7 +503,9 @@ function alphaBetaResult(
     !state.trumpSuit ||
     !state.currentTurnPlayerId
   ) {
-    return evaluateSearchLeaf(state, cpuPlayerId);
+    const result = evaluateSearchLeaf(state, cpuPlayerId);
+    transpositions.set(transpositionKey, { depth, result });
+    return result;
   }
 
   const currentPlayer = playerById(state, state.currentTurnPlayerId);
@@ -479,7 +516,9 @@ function alphaBetaResult(
   );
 
   if (legalCards.length === 0) {
-    return evaluateSearchLeaf(state, cpuPlayerId);
+    const result = evaluateSearchLeaf(state, cpuPlayerId);
+    transpositions.set(transpositionKey, { depth, result });
+    return result;
   }
 
   const searchCards = bellotCpuSearchCards(legalCards, state);
@@ -487,6 +526,7 @@ function alphaBetaResult(
   let best: BellotSearchResult = {
     value: maximizing ? -maxUtility : maxUtility,
   };
+  let pruned = false;
 
   for (const card of orderCardsForSearch(
     searchCards,
@@ -500,7 +540,14 @@ function alphaBetaResult(
     });
     const nextDepth =
       depth <= 0 && state.currentTrick.length > 0 ? depth : depth - 1;
-    const result = alphaBetaResult(next, cpuPlayerId, nextDepth, alpha, beta);
+    const result = alphaBetaResult(
+      next,
+      cpuPlayerId,
+      nextDepth,
+      alpha,
+      beta,
+      transpositions,
+    );
 
     if (searchResultBetter(result, best, maximizing)) {
       best = result;
@@ -513,8 +560,14 @@ function alphaBetaResult(
     }
 
     if (beta <= alpha) {
+      pruned = true;
       break;
     }
+  }
+
+  // Cutoff nodes only prove a bound; store exact results from fully searched nodes.
+  if (!pruned) {
+    transpositions.set(transpositionKey, { depth, result: best });
   }
 
   return best;
@@ -1002,6 +1055,62 @@ function cardSetKey(cards: Card[]) {
   return cards
     .map((card) => card.id)
     .sort((left, right) => left.localeCompare(right))
+    .join(",");
+}
+
+function bellotTranspositionKey(state: BellotState, cpuPlayerId: string) {
+  const playersKey = state.players
+    .map((player) =>
+      [
+        player.playerId,
+        cardSetKey(player.hand),
+        cardSetKey(player.hiddenCards),
+        cardSetKey(player.wonCards),
+        player.tricksWon,
+        player.totalScore,
+        declarationPoints(state, player.playerId),
+      ].join(":"),
+    )
+    .join("|");
+  const currentTrickKey = state.currentTrick
+    .map((play) => `${play.playerId}:${play.card.id}`)
+    .join(",");
+  const completedCardsKey = cardSetKey(
+    state.completedTricks.flatMap((trick) =>
+      trick.cards.map((play) => play.card),
+    ),
+  );
+  const lastHandKey = state.lastHandResult
+    ? [
+        state.lastHandResult.callerPlayerId,
+        state.lastHandResult.opponentPlayerId,
+        state.lastHandResult.callerFell,
+        state.lastHandResult.callerFellOnGame,
+        recordNumberKey(state.lastHandResult.handScoreByPlayer),
+      ].join(":")
+    : "";
+
+  return [
+    cpuPlayerId,
+    state.phase,
+    state.trumpSuit ?? "",
+    state.callerPlayerId ?? "",
+    state.currentTurnPlayerId ?? "",
+    state.winnerPlayerId ?? "",
+    state.isMus,
+    state.upcard?.id ?? "",
+    state.completedTricks.length,
+    completedCardsKey,
+    currentTrickKey,
+    playersKey,
+    lastHandKey,
+  ].join("#");
+}
+
+function recordNumberKey(record: Record<string, number>) {
+  return Object.entries(record)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}:${value}`)
     .join(",");
 }
 
