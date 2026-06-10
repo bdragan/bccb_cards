@@ -1,8 +1,8 @@
 import {
   applyBellotAction,
   type BellotAction,
+  type BellotCpuOptions,
   type BellotState,
-  chooseBellotCpuAction,
   createBellotInitialState,
   getBellotPublicState,
 } from "@card-games/game-core";
@@ -16,7 +16,7 @@ import type {
   RoomPublicState,
   Suit,
 } from "@card-games/shared";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "../api/client";
 import { BellotTable } from "../components/BellotTable";
@@ -26,6 +26,10 @@ import { GreaterCardTable } from "../components/GreaterCardTable";
 import { Lobby } from "../components/Lobby";
 import { createGameSocket, type GameSocket } from "../socket/game-socket";
 import { useAuthStore } from "../stores/auth-store";
+import type {
+  BellotCpuWorkerRequest,
+  BellotCpuWorkerResponse,
+} from "../workers/bellot-cpu.worker";
 
 const offlineCpuPlayerId = "offline-cpu";
 const offlineCpuDecisionDelayMs = 250;
@@ -82,6 +86,9 @@ export function Dashboard() {
   const [result, setResult] = useState<GameResult>();
   const [error, setError] = useState<string>();
   const [socket, setSocket] = useState<GameSocket>();
+  const offlineCpuWorkerRef = useRef<Worker | null>(null);
+  const offlineCpuRequestIdRef = useRef(0);
+  const offlineCpuPendingStateRef = useRef<BellotState | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -121,6 +128,72 @@ export function Dashboard() {
     };
   }, [token]);
 
+  useEffect(() => {
+    const worker = new Worker(
+      new URL("../workers/bellot-cpu.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+
+    offlineCpuWorkerRef.current = worker;
+
+    worker.onmessage = (event: MessageEvent<BellotCpuWorkerResponse>) => {
+      const { requestId, action, error: workerError } = event.data;
+
+      if (requestId !== offlineCpuRequestIdRef.current) {
+        return;
+      }
+
+      const requestedState = offlineCpuPendingStateRef.current;
+      offlineCpuPendingStateRef.current = null;
+
+      if (!requestedState) {
+        return;
+      }
+
+      setOfflineBellotState((current) => {
+        if (current !== requestedState) {
+          return current;
+        }
+
+        if (workerError) {
+          return {
+            ...current,
+            phase: "error",
+            error: workerError,
+          };
+        }
+
+        return action ? applyBellotAction(current, action) : current;
+      });
+    };
+
+    worker.onerror = (event) => {
+      const requestedState = offlineCpuPendingStateRef.current;
+      offlineCpuPendingStateRef.current = null;
+
+      if (!requestedState) {
+        return;
+      }
+
+      setOfflineBellotState((current) =>
+        current === requestedState
+          ? {
+              ...current,
+              phase: "error",
+              error: event.message || "CPU action failed",
+            }
+          : current,
+      );
+    };
+
+    return () => {
+      offlineCpuWorkerRef.current = null;
+      offlineCpuPendingStateRef.current = null;
+      offlineCpuRequestIdRef.current += 1;
+      worker.terminate();
+    };
+  }, []);
+
   const inLobby =
     room &&
     (room.phase === "waiting-for-players" || room.phase === "ready-check");
@@ -144,7 +217,7 @@ export function Dashboard() {
       return;
     }
 
-    const cpuOptions = {
+    const cpuOptions: BellotCpuOptions = {
       maxSearchPlies: 10,
       monteCarloSamples: 64,
     };
@@ -154,27 +227,30 @@ export function Dashboard() {
     }
 
     const timeout = window.setTimeout(() => {
-      setOfflineBellotState((current) => {
-        if (!current) {
-          return current;
-        }
+      const worker = offlineCpuWorkerRef.current;
 
-        try {
-          const nextAction = chooseBellotCpuAction(
-            current,
-            offlineCpuPlayerId,
-            cpuOptions,
-          );
+      if (!worker) {
+        setOfflineBellotState((current) =>
+          current === offlineBellotState
+            ? {
+                ...current,
+                phase: "error",
+                error: "CPU worker is not available",
+              }
+            : current,
+        );
+        return;
+      }
 
-          return nextAction ? applyBellotAction(current, nextAction) : current;
-        } catch (err) {
-          return {
-            ...current,
-            phase: "error",
-            error: err instanceof Error ? err.message : "CPU action failed",
-          };
-        }
-      });
+      const requestId = offlineCpuRequestIdRef.current + 1;
+      offlineCpuRequestIdRef.current = requestId;
+      offlineCpuPendingStateRef.current = offlineBellotState;
+      worker.postMessage({
+        requestId,
+        state: offlineBellotState,
+        cpuPlayerId: offlineCpuPlayerId,
+        options: cpuOptions,
+      } satisfies BellotCpuWorkerRequest);
     }, offlineCpuActionDelay(offlineBellotState));
 
     return () => window.clearTimeout(timeout);
