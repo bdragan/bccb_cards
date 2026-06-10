@@ -670,6 +670,109 @@ describe("Bellot", () => {
     });
   });
 
+  it("does not count the visible upcard as a playable CPU trump card", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trump-round-one",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "hearts"), card("X", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("U", "hearts"),
+      trumpTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+    };
+
+    expect(chooseBellotCpuAction(state, "p1")).toEqual({
+      type: "trump-pass",
+      playerId: "p1",
+    });
+  });
+
+  it("does not use hidden opponent cards or the unused deck for CPU trick decisions", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns"), card("VII", "acorns")],
+          hiddenCards: [],
+          wonCards: [card("K", "bells")],
+          tricksWon: 1,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("U", "hearts"), card("A", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      unusedCards: [card("IX", "hearts"), card("A", "hearts")],
+      upcard: card("K", "hearts"),
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("X", "acorns") }],
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("K", "bells") },
+            { playerId: "p2", card: card("VII", "bells") },
+          ],
+        },
+      ],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: {
+        p1: [],
+        p2: [card("O", "hearts")],
+      },
+    };
+    const changedHiddenState: BellotState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.playerId === "p2"
+          ? {
+              ...player,
+              hand: [card("VII", "leaves"), card("VIII", "leaves")],
+            }
+          : player,
+      ),
+      unusedCards: [card("U", "hearts"), card("A", "bells")],
+    };
+    const options = {
+      monteCarloSamples: 3,
+      maxSearchPlies: 3,
+      rng: () => 0.5,
+    };
+
+    expect(chooseBellotCpuAction(changedHiddenState, "p1", options)).toEqual(
+      chooseBellotCpuAction(state, "p1", options),
+    );
+  });
+
   it("passes the caller when caller total is strictly greater", () => {
     const result = calculateBellotHandResult(
       scoringState({

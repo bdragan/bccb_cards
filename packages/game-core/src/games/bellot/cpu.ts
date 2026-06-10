@@ -81,7 +81,7 @@ function chooseTrumpAction(
   options: BellotCpuOptions,
 ): BellotAction | undefined {
   if (state.phase === "trump-round-one" && state.upcard) {
-    const score = scoreTrumpSuit(player.hand, state.upcard.suit, state.upcard);
+    const score = scoreTrumpSuit(player.hand, state.upcard.suit);
     const threshold = options.trumpAcceptThreshold ?? 58;
 
     return score >= threshold
@@ -125,13 +125,12 @@ function bestTrumpSuit(hand: Card[], excludedSuit: Suit): [Suit, number] {
   return best;
 }
 
-function scoreTrumpSuit(hand: Card[], trumpSuit: Suit, upcard?: Card) {
-  const visible = upcard ? [...hand, upcard] : hand;
-  const trumpCards = visible.filter((card) => card.suit === trumpSuit);
-  const offSuitAces = visible.filter(
+function scoreTrumpSuit(hand: Card[], trumpSuit: Suit) {
+  const trumpCards = hand.filter((card) => card.suit === trumpSuit);
+  const offSuitAces = hand.filter(
     (card) => card.suit !== trumpSuit && card.rank === "A",
   ).length;
-  const offSuitTens = visible.filter(
+  const offSuitTens = hand.filter(
     (card) => card.suit !== trumpSuit && card.rank === "X",
   ).length;
   const declarationPoints = autoSelectBellotDeclarations(
