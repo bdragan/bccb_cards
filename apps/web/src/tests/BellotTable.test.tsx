@@ -116,7 +116,7 @@ describe("BellotTable", () => {
     expect(screen.getByAltText("K of Leaves")).toBeInTheDocument();
   });
 
-  it("groups declaration cards and dims called cards after they are played", () => {
+  it("shows declaration bonus points and dims called cards after they are played", () => {
     const playedDeclaration = {
       ...baseState,
       completedTricks: [
@@ -132,7 +132,7 @@ describe("BellotTable", () => {
 
     renderTable(playedDeclaration);
 
-    const group = screen.getByText("Four Nines").parentElement!;
+    const group = screen.getByText("150 bonus pts").parentElement!;
     const declarationCards = within(group).getAllByRole("img");
 
     expect(declarationCards.map((img) => img.getAttribute("alt"))).toEqual([

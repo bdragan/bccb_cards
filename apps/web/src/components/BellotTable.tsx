@@ -24,6 +24,13 @@ const suitLabels: Record<Suit, string> = {
   leaves: "Leaves",
 };
 
+const suitImagePaths: Record<Suit, string> = {
+  acorns: "/suits/c.png",
+  bells: "/suits/d.png",
+  hearts: "/suits/h.png",
+  leaves: "/suits/s.png",
+};
+
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
 const rankOrder: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
 const completedTrickLingerMs = 2_000;
@@ -72,11 +79,21 @@ function sortDeclarations(declarations: BellotDeclaration[]) {
   });
 }
 
-function declarationGroupLabel(type: BellotDeclaration["type"]) {
-  return type
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+function SuitImage({
+  suit,
+  className = "h-10 w-10",
+}: {
+  suit: Suit;
+  className?: string;
+}) {
+  return (
+    <img
+      src={suitImagePaths[suit]}
+      alt={suitLabels[suit]}
+      className={`${className} object-contain`}
+      loading="lazy"
+    />
+  );
 }
 
 function trickStrengthMap(trick: BellotTrickPlay[], trumpSuit?: Suit) {
@@ -265,6 +282,51 @@ export function BellotTable({
         (suit) => suit !== state.upcard?.suit,
       )
     : [];
+  const playerPanels = state.players.map((player) => {
+    const declarations = declarationsByPlayer[player.playerId] ?? [];
+    const bonusPoints = declarations.reduce(
+      (total, declaration) => total + declaration.points,
+      0,
+    );
+
+    return (
+      <article key={player.playerId} className="rounded-md bg-white/10 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold">{player.displayName}</h3>
+          <span className="text-sm text-white/80">
+            {player.totalScore} pts · {player.tricksWon} tricks
+          </span>
+        </div>
+        <p className="mt-1 text-xs uppercase text-white/60">
+          {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
+          {state.callerPlayerId === player.playerId ? " · Caller" : ""}
+        </p>
+        {declarations.length ? (
+          <div className="mt-3 min-w-0">
+            <p className="mb-1 text-xs font-semibold text-white/70">
+              {bonusPoints} bonus pts
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {declarations.flatMap((declaration, declarationIndex) =>
+                sortDeclarationCards(declaration.cards).map((card) => (
+                  <div
+                    key={`${declaration.type}-${declarationIndex}-${card.id}`}
+                    className={playedCardIds.has(card.id) ? "opacity-45" : ""}
+                  >
+                    <PlayingCard card={card} compact />
+                  </div>
+                )),
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-white/60">
+            {player.handCount} cards in hand
+          </p>
+        )}
+      </article>
+    );
+  });
 
   return (
     <section className="rounded-md bg-felt p-4 text-white shadow-lg">
@@ -273,7 +335,6 @@ export function BellotTable({
           <h2 className="text-lg font-bold">Bellot</h2>
           <p className="text-sm text-white/80" data-testid="bellot-status">
             Status: {state.phase.replaceAll("-", " ")}
-            {state.trumpSuit ? ` · Trump: ${suitLabels[state.trumpSuit]}` : ""}
             {state.isMus ? " · Mus" : ""}
           </p>
         </div>
@@ -286,61 +347,26 @@ export function BellotTable({
         ) : null}
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {state.players.map((player) => (
-          <article key={player.playerId} className="rounded-md bg-white/10 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold">{player.displayName}</h3>
-              <span className="text-sm text-white/80">
-                {player.totalScore} pts · {player.tricksWon} tricks
-              </span>
-            </div>
-            <p className="mt-1 text-xs uppercase text-white/60">
-              {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
-              {state.callerPlayerId === player.playerId ? " · Caller" : ""}
-            </p>
-            {declarationsByPlayer[player.playerId]?.length ? (
-              <div className="mt-3 flex flex-wrap gap-3">
-                {declarationsByPlayer[player.playerId].map(
-                  (declaration, index) => (
-                    <div
-                      key={`${declaration.type}-${index}`}
-                      className="min-w-0"
-                    >
-                      <p className="mb-1 text-xs font-semibold text-white/70">
-                        {declarationGroupLabel(declaration.type)}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {sortDeclarationCards(declaration.cards).map((card) => (
-                          <div
-                            key={card.id}
-                            className={
-                              playedCardIds.has(card.id) ? "opacity-45" : ""
-                            }
-                          >
-                            <PlayingCard card={card} compact />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ),
-                )}
+      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]">
+        {playerPanels[0]}
+        <div className="rounded-md bg-white/10 p-3">
+          <div className="flex flex-wrap items-start justify-center gap-4 md:flex-col md:items-center">
+            {state.trumpSuit ? (
+              <div className="text-center">
+                <p className="mb-1 text-sm font-semibold">Trump</p>
+                <SuitImage suit={state.trumpSuit} className="h-12 w-12" />
               </div>
-            ) : (
-              <p className="mt-3 text-sm text-white/60">
-                {player.handCount} cards in hand
-              </p>
-            )}
-          </article>
-        ))}
-      </div>
-
-      {state.upcard ? (
-        <div className="mt-4 rounded-md bg-white/10 p-3">
-          <p className="mb-2 text-sm font-semibold">Upcard</p>
-          <PlayingCard card={state.upcard} />
+            ) : null}
+            {state.upcard ? (
+              <div className="text-center">
+                <p className="mb-1 text-sm font-semibold">Upcard</p>
+                <PlayingCard card={state.upcard} compact />
+              </div>
+            ) : null}
+          </div>
         </div>
-      ) : null}
+        {playerPanels[1]}
+      </div>
 
       {state.trumpTurnPlayerId === currentPlayerId ? (
         <div className="mt-4 rounded-md bg-white p-3 text-ink">
@@ -349,8 +375,18 @@ export function BellotTable({
             {state.phase === "trump-round-one" ? (
               <Button
                 onClick={() => onTrumpDecision({ kind: "accept-upcard" })}
+                aria-label={
+                  state.upcard
+                    ? `Accept ${suitLabels[state.upcard.suit]}`
+                    : "Accept upcard"
+                }
               >
-                Accept {state.upcard ? suitLabels[state.upcard.suit] : "upcard"}
+                <span className="inline-flex items-center gap-2">
+                  Accept
+                  {state.upcard ? (
+                    <SuitImage suit={state.upcard.suit} className="h-7 w-7" />
+                  ) : null}
+                </span>
               </Button>
             ) : null}
             {state.phase !== "mus" ? (
@@ -365,8 +401,9 @@ export function BellotTable({
                     onClick={() =>
                       onTrumpDecision({ kind: "choose-suit", suit })
                     }
+                    aria-label={`Choose ${suitLabels[suit]}`}
                   >
-                    {suitLabels[suit]}
+                    <SuitImage suit={suit} className="h-9 w-9" />
                   </Button>
                 ))
               : null}
@@ -391,6 +428,44 @@ export function BellotTable({
                 <PlayingCard card={play.card} />
               </div>
             ))}
+          </div>
+        </div>
+      ) : null}
+
+      {currentHand.length ? (
+        <div className="mt-4">
+          <p className="mb-2 text-sm font-semibold">
+            Your hand
+            {state.currentTurnPlayerId === currentPlayerId
+              ? " · play a legal card"
+              : ""}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {sortedCurrentHand.map((card) => {
+              const playable = legalCardIds.has(card.id);
+              const canPlay =
+                state.phase === "trick-play" &&
+                state.currentTurnPlayerId === currentPlayerId &&
+                playable;
+
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  className="rounded-md disabled:cursor-default disabled:opacity-100"
+                  data-testid="bellot-hand-card"
+                  disabled={!canPlay}
+                  onClick={() => onPlayCard(card.id)}
+                >
+                  <PlayingCard card={card} />
+                  {state.trumpSuit ? (
+                    <span className="mt-1 block text-xs text-white/70">
+                      {bellotCardPoints(card, state.trumpSuit)} pts
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : null}
@@ -433,44 +508,6 @@ export function BellotTable({
               ))}
             </div>
           ) : null}
-        </div>
-      ) : null}
-
-      {currentHand.length ? (
-        <div className="mt-4">
-          <p className="mb-2 text-sm font-semibold">
-            Your hand
-            {state.currentTurnPlayerId === currentPlayerId
-              ? " · play a legal card"
-              : ""}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {sortedCurrentHand.map((card) => {
-              const playable = legalCardIds.has(card.id);
-
-              return (
-                <button
-                  key={card.id}
-                  type="button"
-                  className="rounded-md disabled:opacity-70"
-                  data-testid="bellot-hand-card"
-                  disabled={
-                    state.phase !== "trick-play" ||
-                    state.currentTurnPlayerId !== currentPlayerId ||
-                    !playable
-                  }
-                  onClick={() => onPlayCard(card.id)}
-                >
-                  <PlayingCard card={card} />
-                  {state.trumpSuit ? (
-                    <span className="mt-1 block text-xs text-white/70">
-                      {bellotCardPoints(card, state.trumpSuit)} pts
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
         </div>
       ) : null}
 
