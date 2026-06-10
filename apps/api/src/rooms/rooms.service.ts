@@ -202,7 +202,22 @@ export class RoomsService {
     declarations: BellotDeclaration[],
   ) {
     const room = this.getRoom(roomId);
-    this.ensureBellotRoom(room);
+    if (room.state.gameId !== "bellot") {
+      throw new BadRequestException(
+        "Bellot action is not supported for this game",
+      );
+    }
+
+    if (
+      room.state.phase !== "declarations" ||
+      Object.prototype.hasOwnProperty.call(
+        room.state.declarationsByPlayer,
+        playerId,
+      )
+    ) {
+      return room;
+    }
+
     room.state = await this.applyActionAndPersist(room, {
       type: "declare",
       playerId,

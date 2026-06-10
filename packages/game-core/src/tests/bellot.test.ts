@@ -357,6 +357,41 @@ describe("Bellot", () => {
     ).toHaveLength(3);
   });
 
+  it("ignores duplicate declaration submissions from a player", () => {
+    let state = readyState();
+    state = applyBellotAction(state, {
+      type: "trump-accept-upcard",
+      playerId: state.trumpTurnPlayerId!,
+    });
+
+    state = applyBellotAction(state, {
+      type: "declare",
+      playerId: "p1",
+      declarations: [],
+    });
+    state = applyBellotAction(state, {
+      type: "declare",
+      playerId: "p1",
+      declarations: [],
+    });
+
+    expect(state.phase).toBe("declarations");
+
+    state = applyBellotAction(state, {
+      type: "declare",
+      playerId: "p2",
+      declarations: [],
+    });
+    state = applyBellotAction(state, {
+      type: "declare",
+      playerId: "p1",
+      declarations: [],
+    });
+
+    expect(state.phase).toBe("trick-play");
+    expect(state.error).toBeUndefined();
+  });
+
   it("enters an error phase instead of continuing after an invalid declaration", () => {
     let state = readyState();
     state = applyBellotAction(state, {

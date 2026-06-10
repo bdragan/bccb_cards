@@ -8,7 +8,7 @@ import type {
   BellotPublicState,
   Suit,
 } from "@card-games/shared";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { PlayingCard } from "../game/cards";
 import { Button } from "./Button";
@@ -46,6 +46,7 @@ export function BellotTable({
     (player) => player.playerId === currentPlayerId,
   );
   const currentHand = currentPlayer?.hand ?? [];
+  const declarationSubmissionKeys = useRef(new Set<string>());
   const legalCardIds = useMemo(() => {
     if (
       state.phase !== "trick-play" ||
@@ -73,16 +74,26 @@ export function BellotTable({
     if (
       state.phase !== "declarations" ||
       !state.trumpSuit ||
+      !currentPlayerId ||
       !currentPlayer?.hand ||
       currentPlayer.declarationsSubmitted
     ) {
       return;
     }
 
+    const submissionKey = `${currentPlayerId}:${state.trumpSuit}:${currentPlayer.hand
+      .map((card) => card.id)
+      .join(",")}`;
+
+    if (declarationSubmissionKeys.current.has(submissionKey)) {
+      return;
+    }
+
+    declarationSubmissionKeys.current.add(submissionKey);
     onDeclare(
       autoSelectBellotDeclarations(currentPlayer.hand, state.trumpSuit),
     );
-  }, [currentPlayer, onDeclare, state.phase, state.trumpSuit]);
+  }, [currentPlayer, currentPlayerId, onDeclare, state.phase, state.trumpSuit]);
 
   const selectableSuits = state.upcard
     ? (Object.keys(suitLabels) as Suit[]).filter(
@@ -95,7 +106,7 @@ export function BellotTable({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">Bellot</h2>
-          <p className="text-sm text-white/80">
+          <p className="text-sm text-white/80" data-testid="bellot-status">
             Status: {state.phase.replaceAll("-", " ")}
             {state.trumpSuit ? ` · Trump: ${suitLabels[state.trumpSuit]}` : ""}
             {state.isMus ? " · Mus" : ""}
@@ -104,6 +115,8 @@ export function BellotTable({
         {state.phase === "hand-complete" ? (
           <Button onClick={onNextHand}>Next hand</Button>
         ) : state.phase === "finished" ? (
+          <Button onClick={onRestart}>New game</Button>
+        ) : state.phase === "error" ? (
           <Button onClick={onRestart}>New game</Button>
         ) : null}
       </div>
@@ -205,6 +218,7 @@ export function BellotTable({
                   key={card.id}
                   type="button"
                   className="rounded-md disabled:opacity-45"
+                  data-testid="bellot-hand-card"
                   disabled={
                     state.phase !== "trick-play" ||
                     state.currentTurnPlayerId !== currentPlayerId ||

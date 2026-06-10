@@ -27,7 +27,12 @@ export function Lobby({
           <h2 className="text-lg font-bold">Lobby</h2>
           <p className="text-sm text-slate-600">
             Room code{" "}
-            <span className="font-mono font-bold text-ink">{room.code}</span>
+            <span
+              className="font-mono font-bold text-ink"
+              data-testid="room-code"
+            >
+              {room.code}
+            </span>
           </p>
           <p className="text-sm text-slate-600">
             Game{" "}

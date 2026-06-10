@@ -52,12 +52,18 @@ The web app reads `VITE_API_URL`; if it is not set, it defaults to `http://local
 ```bash
 pnpm dev
 pnpm test
+pnpm test:e2e
 pnpm build
 pnpm lint
 pnpm typecheck
 pnpm format
 pnpm format:check
 ```
+
+`pnpm test:e2e` runs Playwright against the real web and API servers. Start
+PostgreSQL first with `docker compose up -d`; the script applies Prisma
+migrations, builds the workspace, launches both dev servers, and plays a full
+Bellot game in two browser contexts.
 
 ## MVP Flow
 

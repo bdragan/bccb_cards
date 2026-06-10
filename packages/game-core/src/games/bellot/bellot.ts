@@ -780,16 +780,16 @@ function applyDeclare(
   playerId: string,
   declarations: BellotDeclaration[],
 ): BellotState {
-  if (state.phase !== "declarations" || !state.trumpSuit) {
-    throw new Error("Declarations are not currently open");
-  }
-
   const player = ensurePlayer(state, playerId);
 
   if (
     Object.prototype.hasOwnProperty.call(state.declarationsByPlayer, playerId)
   ) {
-    throw new Error("Player has already submitted declarations");
+    return state;
+  }
+
+  if (state.phase !== "declarations" || !state.trumpSuit) {
+    throw new Error("Declarations are not currently open");
   }
 
   validateBellotDeclarations({
