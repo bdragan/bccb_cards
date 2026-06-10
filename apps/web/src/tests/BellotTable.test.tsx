@@ -28,6 +28,7 @@ const baseState: BellotPublicState = {
       declarationsSubmitted: true,
       totalScore: 0,
       handScore: 0,
+      gamePoints: 0,
       tricksWon: 0,
     },
     {
@@ -39,6 +40,7 @@ const baseState: BellotPublicState = {
       declarationsSubmitted: true,
       totalScore: 0,
       handScore: 0,
+      gamePoints: 11,
       tricksWon: 1,
     },
   ],
@@ -146,6 +148,19 @@ describe("BellotTable", () => {
     );
   });
 
+  it("keeps the current trick area mounted when trick play has no cards", () => {
+    renderTable({
+      ...baseState,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    const currentTrick = screen.getByTestId("bellot-current-trick");
+
+    expect(within(currentTrick).getByText("Current trick")).toBeInTheDocument();
+    expect(currentTrick.querySelector(".min-h-36")).toBeInTheDocument();
+  });
+
   it("shows played hands and highlights the trick winner's card", async () => {
     const user = userEvent.setup();
     renderTable();
@@ -160,5 +175,79 @@ describe("BellotTable", () => {
     expect(
       within(hand).getByAltText("VII of Acorns").parentElement,
     ).toHaveClass("opacity-45");
+  });
+
+  it("shows captured game points during trick play", () => {
+    renderTable({
+      ...baseState,
+      players: baseState.players.map((player) =>
+        player.playerId === "p1" ? { ...player, gamePoints: 24 } : player,
+      ),
+    });
+
+    expect(screen.getByText("24 pts · 0 tricks")).toBeInTheDocument();
+  });
+
+  it("falls back to completed tricks when game points are missing", () => {
+    const legacyState = {
+      ...baseState,
+      players: baseState.players.map(({ gamePoints: _gamePoints, ...player }) =>
+        player.playerId === "p2" ? player : { ...player, gamePoints: 0 },
+      ),
+    } as BellotPublicState;
+
+    renderTable(legacyState);
+
+    expect(screen.getByText("11 pts · 1 tricks")).toBeInTheDocument();
+  });
+
+  it("separates declaration combinations horizontally", () => {
+    renderTable({
+      ...baseState,
+      declarationsByPlayer: {
+        p1: [
+          {
+            type: "SEQUENCE_3",
+            points: 20,
+            cards: [
+              card("VII", "leaves"),
+              card("VIII", "leaves"),
+              card("IX", "leaves"),
+            ],
+          },
+          {
+            type: "BELOTE",
+            points: 20,
+            cards: [card("O", "hearts"), card("K", "hearts")],
+          },
+        ],
+      },
+    });
+
+    expect(screen.getAllByTestId("bellot-declaration-group")).toHaveLength(2);
+  });
+
+  it("does not show the upcard suit on mus and uses the correct suit icon", () => {
+    renderTable({
+      ...baseState,
+      phase: "mus",
+      trumpSuit: undefined,
+      trumpTurnPlayerId: "p1",
+      upcard: card("O", "acorns"),
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Choose Acorns" }),
+    ).not.toBeInTheDocument();
+
+    const leavesButton = screen.getByRole("button", { name: "Choose Leaves" });
+
+    expect(within(leavesButton).getByAltText("Leaves")).toHaveAttribute(
+      "src",
+      "/suits/c.png",
+    );
   });
 });

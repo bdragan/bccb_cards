@@ -50,8 +50,8 @@ Non-trump ranking from strongest to weakest:
 1. A
 2. X
 3. K
-4. O/Q
-5. U/J
+4. O/Q (lady/queen)
+5. U/J (boy/jack)
 6. IX
 7. VIII
 8. VII
@@ -63,18 +63,18 @@ Non-trump point values:
 | A             |     11 |
 | X             |     10 |
 | K             |      4 |
-| O/Q           |      3 |
-| U/J           |      2 |
+| O/Q (lady/queen) |      3 |
+| U/J (boy/jack)   |      2 |
 | IX, VIII, VII |      0 |
 
 Trump ranking from strongest to weakest:
 
-1. U/J
+1. U/J (boy/jack)
 2. IX
 3. A
 4. X
 5. K
-6. O/Q
+6. O/Q (lady/queen)
 7. VIII
 8. VII
 
@@ -82,13 +82,13 @@ Trump point values:
 
 | Rank      | Points |
 | --------- | -----: |
-| U/J       |     20 |
-| IX        |     14 |
-| A         |     11 |
-| X         |     10 |
-| K         |      4 |
-| O/Q       |      3 |
-| VIII, VII |      0 |
+| U/J (boy/jack)     |     20 |
+| IX                 |     14 |
+| A                  |     11 |
+| X                  |     10 |
+| K                  |      4 |
+| O/Q (lady/queen)   |      3 |
+| VIII, VII          |      0 |
 
 ## Declarations
 

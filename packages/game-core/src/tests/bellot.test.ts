@@ -127,6 +127,14 @@ describe("Bellot", () => {
       applyBellotAction(secondRound, { type: "trump-pass", playerId: first }),
       { type: "trump-pass", playerId: second },
     );
+    expect(() =>
+      applyBellotAction(mus, {
+        type: "trump-choose-suit",
+        playerId: first,
+        suit: mus.upcard!.suit,
+      }),
+    ).toThrow("upcard suit");
+
     const chosenSuit = (["acorns", "bells", "hearts", "leaves"] as Suit[]).find(
       (suit) => suit !== mus.upcard!.suit,
     )!;
@@ -140,6 +148,7 @@ describe("Bellot", () => {
     expect(declarations.phase).toBe("declarations");
     expect(declarations.isMus).toBe(true);
     expect(declarations.callerPlayerId).toBe(first);
+    expect(declarations.trumpSuit).toBe(chosenSuit);
     expect(
       declarations.players.every((player) => player.hand.length === 10),
     ).toBe(true);
@@ -156,10 +165,14 @@ describe("Bellot", () => {
   it("scores card points and card rank order differently for trump and non-trump suits", () => {
     expect(bellotCardPoints(card("U", "hearts"), "hearts")).toBe(20);
     expect(bellotCardPoints(card("IX", "hearts"), "hearts")).toBe(14);
+    expect(bellotCardPoints(card("O", "hearts"), "hearts")).toBe(3);
     expect(bellotCardPoints(card("U", "acorns"), "hearts")).toBe(2);
     expect(bellotCardPoints(card("A", "acorns"), "hearts")).toBe(11);
     expect(
       compareBellotCards(card("U", "hearts"), card("IX", "hearts"), "hearts"),
+    ).toBeGreaterThan(0);
+    expect(
+      compareBellotCards(card("IX", "hearts"), card("X", "hearts"), "hearts"),
     ).toBeGreaterThan(0);
     expect(
       compareBellotCards(card("A", "acorns"), card("X", "acorns"), "hearts"),
@@ -463,6 +476,43 @@ describe("Bellot", () => {
         "hearts",
       ).map((legalCard) => legalCard.id),
     ).toEqual(["U-hearts"]);
+  });
+
+  it("publishes in-hand game points after won tricks", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("VII", "acorns")],
+          hiddenCards: [],
+          wonCards: [card("U", "hearts"), card("X", "acorns")],
+          tricksWon: 1,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("VIII", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+      declarationsByPlayer: { p1: [], p2: [] },
+    };
+
+    const publicState = getBellotPublicState(state, "p1");
+
+    expect(publicState.players[0].gamePoints).toBe(30);
+    expect(publicState.players[1].gamePoints).toBe(0);
   });
 
   it("awards a trick to the strongest trump or strongest lead suit card", () => {

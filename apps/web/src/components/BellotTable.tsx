@@ -25,10 +25,10 @@ const suitLabels: Record<Suit, string> = {
 };
 
 const suitImagePaths: Record<Suit, string> = {
-  acorns: "/suits/c.png",
+  acorns: "/suits/s.png",
   bells: "/suits/d.png",
   hearts: "/suits/h.png",
-  leaves: "/suits/s.png",
+  leaves: "/suits/c.png",
 };
 
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
@@ -118,6 +118,31 @@ function trickStrengthMap(trick: BellotTrickPlay[], trumpSuit?: Suit) {
   return new Map(trick.map((play) => [play.card.id, play === strongest]));
 }
 
+function visibleGamePointsByPlayer(state: BellotPublicState) {
+  const points = Object.fromEntries(
+    state.players.map((player) => [player.playerId, 0]),
+  ) as Record<string, number>;
+
+  if (state.lastHandResult) {
+    return { ...points, ...state.lastHandResult.gamePointsByPlayer };
+  }
+
+  if (!state.trumpSuit) {
+    return points;
+  }
+
+  for (const trick of state.completedTricks) {
+    points[trick.winnerPlayerId] =
+      (points[trick.winnerPlayerId] ?? 0) +
+      trick.cards.reduce(
+        (sum, play) => sum + bellotCardPoints(play.card, state.trumpSuit!),
+        0,
+      );
+  }
+
+  return points;
+}
+
 export function BellotTable({
   state,
   currentPlayerId,
@@ -202,6 +227,10 @@ export function BellotTable({
       ) as Record<string, BellotDeclaration[]>,
     [state.declarationsByPlayer, state.players],
   );
+  const visibleGamePoints = useMemo(
+    () => visibleGamePointsByPlayer(state),
+    [state],
+  );
   const visibleTrick = state.currentTrick.length
     ? {
         label: "Current trick",
@@ -220,6 +249,7 @@ export function BellotTable({
           ),
         }
       : undefined;
+  const showTrickArea = state.phase === "trick-play" || Boolean(visibleTrick);
 
   useEffect(() => {
     if (state.currentTrick.length || !state.completedTricks.length) {
@@ -288,13 +318,17 @@ export function BellotTable({
       (total, declaration) => total + declaration.points,
       0,
     );
+    const gamePoints =
+      typeof player.gamePoints === "number"
+        ? player.gamePoints
+        : (visibleGamePoints[player.playerId] ?? 0);
 
     return (
       <article key={player.playerId} className="rounded-md bg-white/10 p-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold">{player.displayName}</h3>
           <span className="text-sm text-white/80">
-            {player.totalScore} pts · {player.tricksWon} tricks
+            {gamePoints} pts · {player.tricksWon} tricks
           </span>
         </div>
         <p className="mt-1 text-xs uppercase text-white/60">
@@ -306,17 +340,25 @@ export function BellotTable({
             <p className="mb-1 text-xs font-semibold text-white/70">
               {bonusPoints} bonus pts
             </p>
-            <div className="flex flex-wrap gap-2">
-              {declarations.flatMap((declaration, declarationIndex) =>
-                sortDeclarationCards(declaration.cards).map((card) => (
-                  <div
-                    key={`${declaration.type}-${declarationIndex}-${card.id}`}
-                    className={playedCardIds.has(card.id) ? "opacity-45" : ""}
-                  >
-                    <PlayingCard card={card} compact />
-                  </div>
-                )),
-              )}
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {declarations.map((declaration, declarationIndex) => (
+                <div
+                  key={`${declaration.type}-${declarationIndex}`}
+                  className="flex flex-wrap gap-2"
+                  data-testid="bellot-declaration-group"
+                >
+                  {sortDeclarationCards(declaration.cards).map((card) => (
+                    <div
+                      key={card.id}
+                      className={
+                        playedCardIds.has(card.id) ? "opacity-45" : ""
+                      }
+                    >
+                      <PlayingCard card={card} compact />
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
         ) : (
@@ -411,11 +453,16 @@ export function BellotTable({
         </div>
       ) : null}
 
-      {visibleTrick ? (
-        <div className="mt-4 rounded-md bg-white/10 p-3">
-          <p className="mb-2 text-sm font-semibold">{visibleTrick.label}</p>
-          <div className="flex flex-wrap gap-3">
-            {visibleTrick.cards.map((play) => (
+      {showTrickArea ? (
+        <div
+          className="mt-4 rounded-md bg-white/10 p-3"
+          data-testid="bellot-current-trick"
+        >
+          <p className="mb-2 text-sm font-semibold">
+            {visibleTrick?.label ?? "Current trick"}
+          </p>
+          <div className="flex min-h-36 flex-wrap content-start gap-3">
+            {visibleTrick?.cards.map((play) => (
               <div
                 key={`${play.playerId}-${play.card.id}`}
                 className={

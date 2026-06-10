@@ -172,6 +172,7 @@ export type BellotPublicPlayer = {
   declarationsSubmitted: boolean;
   totalScore: number;
   handScore: number;
+  gamePoints: number;
   tricksWon: number;
 };
 

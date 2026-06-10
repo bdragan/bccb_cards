@@ -866,6 +866,24 @@ export function bellotCardPoints(card: Card, trumpSuit: Suit) {
   )[card.rank];
 }
 
+function currentGamePointsForPlayer(
+  state: BellotState,
+  player: BellotPlayerState,
+) {
+  if (state.lastHandResult) {
+    return state.lastHandResult.gamePointsByPlayer[player.playerId] ?? 0;
+  }
+
+  if (!state.trumpSuit) {
+    return 0;
+  }
+
+  return player.wonCards.reduce(
+    (sum, card) => sum + bellotCardPoints(card, state.trumpSuit!),
+    0,
+  );
+}
+
 function cardPower(card: Card, trumpSuit: Suit) {
   return (card.suit === trumpSuit ? trumpPower : nonTrumpPower).indexOf(
     card.rank,
@@ -1226,6 +1244,7 @@ export function getBellotPublicState(
       ),
       totalScore: player.totalScore,
       handScore: state.lastHandResult?.handScoreByPlayer[player.playerId] ?? 0,
+      gamePoints: currentGamePointsForPlayer(state, player),
       tricksWon: player.tricksWon,
     })),
     dealerPlayerId: state.dealerPlayerId,
