@@ -32,8 +32,11 @@ const offlineCpuDecisionDelayMs = 250;
 const offlineCpuPlayDelayMs = 450;
 const offlineCpuCompletedTrickLeadDelayMs = 2_000;
 
-function offlineCpuActionDelay(state: BellotState, action: BellotAction) {
-  if (action.type !== "play-card") {
+function offlineCpuActionDelay(state: BellotState) {
+  if (
+    state.phase !== "trick-play" ||
+    state.currentTurnPlayerId !== offlineCpuPlayerId
+  ) {
     return offlineCpuDecisionDelayMs;
   }
 
@@ -43,6 +46,28 @@ function offlineCpuActionDelay(state: BellotState, action: BellotAction) {
   return isLeadingAfterCompletedTrick
     ? offlineCpuCompletedTrickLeadDelayMs
     : offlineCpuPlayDelayMs;
+}
+
+function isOfflineCpuTurn(state: BellotState) {
+  if (state.trumpTurnPlayerId === offlineCpuPlayerId) {
+    return true;
+  }
+
+  if (
+    state.phase === "declarations" &&
+    state.trumpSuit &&
+    !Object.prototype.hasOwnProperty.call(
+      state.declarationsByPlayer,
+      offlineCpuPlayerId,
+    )
+  ) {
+    return true;
+  }
+
+  return (
+    state.phase === "trick-play" &&
+    state.currentTurnPlayerId === offlineCpuPlayerId
+  );
 }
 
 export function Dashboard() {
@@ -123,25 +148,8 @@ export function Dashboard() {
       maxSearchPlies: 10,
       monteCarloSamples: 32,
     };
-    let action: BellotAction | undefined;
 
-    try {
-      action = chooseBellotCpuAction(
-        offlineBellotState,
-        offlineCpuPlayerId,
-        cpuOptions,
-      );
-    } catch (err) {
-      setOfflineBellotState({
-        ...offlineBellotState,
-        phase: "error",
-        error: err instanceof Error ? err.message : "CPU action failed",
-      });
-
-      return;
-    }
-
-    if (!action) {
+    if (!isOfflineCpuTurn(offlineBellotState)) {
       return;
     }
 
@@ -167,7 +175,7 @@ export function Dashboard() {
           };
         }
       });
-    }, offlineCpuActionDelay(offlineBellotState, action));
+    }, offlineCpuActionDelay(offlineBellotState));
 
     return () => window.clearTimeout(timeout);
   }, [offlineBellotState]);

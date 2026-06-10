@@ -786,6 +786,60 @@ describe("Bellot", () => {
     });
   });
 
+  it("does not use hidden pickup cards or the actual opponent hand during CPU trump rollouts", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trump-round-two",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("U", "hearts"), card("IX", "hearts")],
+          hiddenCards: [card("VII", "acorns"), card("VIII", "acorns")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("A", "bells"), card("X", "bells")],
+          hiddenCards: [card("K", "bells"), card("O", "bells")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("VII", "leaves"),
+      trumpTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+    };
+    const changedHiddenState: BellotState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hiddenCards: [card("A", "hearts"), card("X", "hearts")],
+            }
+          : {
+              ...player,
+              hand: [card("VII", "hearts"), card("VIII", "hearts")],
+              hiddenCards: [card("K", "hearts"), card("O", "hearts")],
+            },
+      ),
+    };
+    const options = {
+      trumpMonteCarloSamples: 3,
+      trumpSearchPlies: 2,
+      rng: () => 0.5,
+    };
+
+    expect(chooseBellotCpuAction(changedHiddenState, "p1", options)).toEqual(
+      chooseBellotCpuAction(state, "p1", options),
+    );
+  });
+
   it("does not use hidden opponent cards or the unused deck for CPU trick decisions", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
