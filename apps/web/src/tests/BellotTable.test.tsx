@@ -227,6 +227,48 @@ describe("BellotTable", () => {
     expect(screen.getAllByTestId("bellot-declaration-group")).toHaveLength(2);
   });
 
+  it("hides duplicate belote cards when an ordinary declaration already shows them", () => {
+    renderTable({
+      ...baseState,
+      declarationsByPlayer: {
+        p1: [
+          {
+            type: "SEQUENCE_4",
+            points: 50,
+            cards: [
+              card("X", "hearts"),
+              card("U", "hearts"),
+              card("O", "hearts"),
+              card("K", "hearts"),
+            ],
+          },
+          {
+            type: "BELOTE",
+            points: 20,
+            cards: [card("O", "hearts"), card("K", "hearts")],
+          },
+        ],
+      },
+    });
+
+    const group = screen.getByText("70 bonus pts").parentElement!;
+    const declarationGroups = within(group).getAllByTestId(
+      "bellot-declaration-group",
+    );
+
+    expect(declarationGroups).toHaveLength(1);
+    expect(
+      within(declarationGroups[0]).getAllByRole("img").map((img) =>
+        img.getAttribute("alt"),
+      ),
+    ).toEqual([
+      "X of Hearts",
+      "U of Hearts",
+      "O of Hearts",
+      "K of Hearts",
+    ]);
+  });
+
   it("does not show the upcard suit on mus and uses the correct suit icon", () => {
     renderTable({
       ...baseState,

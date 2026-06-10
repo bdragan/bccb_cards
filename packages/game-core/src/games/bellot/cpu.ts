@@ -1,4 +1,4 @@
-import type { Card, Suit } from "@card-games/shared";
+import type { Card, Rank, Suit } from "@card-games/shared";
 import { suits } from "@card-games/shared";
 
 import { createDeck, shuffleDeck } from "../../cards/deck";
@@ -31,6 +31,13 @@ const defaultMonteCarloSamples = 64;
 const defaultTrumpSearchPlies = 10;
 const defaultTrumpMonteCarloSamples = 64;
 const maxUtility = 1_000_000;
+const bellotDeck = createDeck();
+const trumpSearchRankGroups: Rank[][] = [
+  ["VII", "VIII", "O", "K", "X", "A", "IX", "U"],
+];
+const nonTrumpSearchRankGroups: Rank[][] = [
+  ["VII", "VIII", "IX", "U", "O", "K", "X", "A"],
+];
 
 export function chooseBellotCpuAction(
   state: BellotState,
@@ -401,10 +408,17 @@ function chooseCardForTrick(
     options.monteCarloSamples ?? defaultMonteCarloSamples,
     rng,
   );
-  const scores = new Map(legalCards.map((card) => [card.id, 0]));
+  const searchCards = bellotCpuSearchCards(legalCards, state);
+  const scores = new Map(searchCards.map((card) => [card.id, 0]));
 
   for (const sample of samples) {
-    for (const card of orderCardsForSearch(legalCards, sample, cpuPlayerId)) {
+    const sampleSearchCards = bellotCpuSearchCards(searchCards, sample);
+
+    for (const card of orderCardsForSearch(
+      sampleSearchCards,
+      sample,
+      cpuPlayerId,
+    )) {
       const next = applyBellotAction(sample, {
         type: "play-card",
         playerId: cpuPlayerId,
@@ -422,7 +436,7 @@ function chooseCardForTrick(
     }
   }
 
-  return legalCards.slice().sort((left, right) => {
+  return searchCards.slice().sort((left, right) => {
     const scoreDelta = (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0);
 
     if (scoreDelta !== 0) {
@@ -470,11 +484,12 @@ function alphaBeta(
     return evaluateState(state, cpuPlayerId);
   }
 
+  const searchCards = bellotCpuSearchCards(legalCards, state);
   const maximizing = state.currentTurnPlayerId === cpuPlayerId;
   let best = maximizing ? -maxUtility : maxUtility;
 
   for (const card of orderCardsForSearch(
-    legalCards,
+    searchCards,
     state,
     currentPlayer.playerId,
   )) {
@@ -501,6 +516,90 @@ function alphaBeta(
   }
 
   return best;
+}
+
+export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
+  if (!state.trumpSuit || cards.length <= 2) {
+    return cards;
+  }
+
+  const keepCardIds = new Set<string>();
+  const candidateCardIds = new Set(cards.map((card) => card.id));
+  const connectedCardIds = new Set([
+    ...candidateCardIds,
+    ...knownPlayedOrDeadCards(state).map((card) => card.id),
+  ]);
+
+  for (const suit of suits) {
+    const rankGroups =
+      suit === state.trumpSuit
+        ? trumpSearchRankGroups
+        : nonTrumpSearchRankGroups;
+
+    for (const rankGroup of rankGroups) {
+      let run: Card[] = [];
+
+      for (const rank of rankGroup) {
+        const card = bellotDeck.find(
+          (candidate) => candidate.suit === suit && candidate.rank === rank,
+        );
+
+        if (card && connectedCardIds.has(card.id)) {
+          run.push(card);
+          continue;
+        }
+
+        addSearchCardRangeEndpoints(keepCardIds, run, candidateCardIds);
+        run = [];
+      }
+
+      addSearchCardRangeEndpoints(keepCardIds, run, candidateCardIds);
+    }
+  }
+
+  return cards.filter((card) => keepCardIds.has(card.id));
+}
+
+function addSearchCardRangeEndpoints(
+  keepCardIds: Set<string>,
+  run: Card[],
+  candidateCardIds: Set<string>,
+) {
+  const playableCards = run.filter((card) => candidateCardIds.has(card.id));
+  const first = playableCards[0];
+  const last = playableCards[playableCards.length - 1];
+
+  if (first) {
+    keepCardIds.add(first.id);
+  }
+
+  if (last) {
+    keepCardIds.add(last.id);
+  }
+}
+
+function knownPlayedOrDeadCards(state: BellotState) {
+  const cards: Card[] = [];
+
+  if (state.upcard) {
+    cards.push(state.upcard);
+  }
+
+  for (const play of state.currentTrick) {
+    cards.push(play.card);
+  }
+
+  for (const trick of state.completedTricks) {
+    for (const play of trick.cards) {
+      cards.push(play.card);
+    }
+  }
+
+  for (const player of state.players) {
+    cards.push(...player.wonCards);
+  }
+
+  return cards;
 }
 
 function createDeterminizedStates(

@@ -79,6 +79,24 @@ function sortDeclarations(declarations: BellotDeclaration[]) {
   });
 }
 
+function visibleDeclarationGroups(declarations: BellotDeclaration[]) {
+  const ordinaryDeclarationCardIds = new Set(
+    declarations
+      .filter((declaration) => declaration.type !== "BELOTE")
+      .flatMap((declaration) => declaration.cards.map((card) => card.id)),
+  );
+
+  return declarations.filter((declaration) => {
+    if (declaration.type !== "BELOTE") {
+      return true;
+    }
+
+    return !declaration.cards.every((card) =>
+      ordinaryDeclarationCardIds.has(card.id),
+    );
+  });
+}
+
 function SuitImage({
   suit,
   className = "h-10 w-10",
@@ -314,6 +332,7 @@ export function BellotTable({
     : [];
   const playerPanels = state.players.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
+    const declarationGroups = visibleDeclarationGroups(declarations);
     const bonusPoints = declarations.reduce(
       (total, declaration) => total + declaration.points,
       0,
@@ -341,7 +360,7 @@ export function BellotTable({
               {bonusPoints} bonus pts
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {declarations.map((declaration, declarationIndex) => (
+              {declarationGroups.map((declaration, declarationIndex) => (
                 <div
                   key={`${declaration.type}-${declarationIndex}`}
                   className="flex flex-wrap gap-2"
