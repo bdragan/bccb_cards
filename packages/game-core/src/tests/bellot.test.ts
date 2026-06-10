@@ -976,7 +976,7 @@ describe("Bellot", () => {
     ).toEqual(["VII-hearts", "IX-hearts"]);
   });
 
-  it("does not count the visible upcard as a playable CPU trump card", () => {
+  it("gates voluntary CPU trump calls by rollout success rate", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
       phase: "trump-round-one",
@@ -1005,21 +1005,36 @@ describe("Bellot", () => {
       firstPlayerId: "p1",
     };
 
-    expect(chooseBellotCpuAction(state, "p1")).toEqual({
+    expect(
+      chooseBellotCpuAction(state, "p1", {
+        trumpAcceptMinSuccessRate: Number.POSITIVE_INFINITY,
+        trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+      }),
+    ).toEqual({
       type: "trump-pass",
+      playerId: "p1",
+    });
+
+    expect(
+      chooseBellotCpuAction(state, "p1", {
+        trumpAcceptMinSuccessRate: 0,
+        trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+      }),
+    ).toEqual({
+      type: "trump-accept-upcard",
       playerId: "p1",
     });
   });
 
-  it("uses the upcard rank as a known dead trump card during round-one trump selection", () => {
+  it("allows the CPU to pass the second trump round but still choose on mus", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
-      phase: "trump-round-one",
+      phase: "trump-round-two",
       players: [
         {
           ...players[0],
           ready: true,
-          hand: [card("IX", "hearts"), card("A", "hearts")],
+          hand: [card("VII", "acorns"), card("VIII", "bells")],
           hiddenCards: [],
           wonCards: [],
           tricksWon: 0,
@@ -1028,35 +1043,49 @@ describe("Bellot", () => {
         {
           ...players[1],
           ready: true,
-          hand: [],
+          hand: [card("VII", "leaves"), card("VIII", "acorns")],
           hiddenCards: [],
           wonCards: [],
           tricksWon: 0,
           totalScore: 0,
         },
       ],
-      upcard: card("U", "hearts"),
-      trumpTurnPlayerId: "p1",
+      upcard: card("A", "hearts"),
+      trumpTurnPlayerId: "p2",
       firstPlayerId: "p1",
+      trumpRound: 2,
+      trumpPasses: ["p1"],
     };
+    const action = chooseBellotCpuAction(state, "p2", {
+      trumpChooseMinSuccessRate: Number.POSITIVE_INFINITY,
+      trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+    });
 
-    expect(
-      chooseBellotCpuAction(state, "p1", { trumpAcceptThreshold: 73 }),
-    ).toEqual({
-      type: "trump-accept-upcard",
-      playerId: "p1",
-    });
-    expect(
-      chooseBellotCpuAction({ ...state, upcard: card("VII", "hearts") }, "p1", {
-        trumpAcceptThreshold: 73,
-      }),
-    ).toEqual({
+    expect(action).toEqual({
       type: "trump-pass",
-      playerId: "p1",
+      playerId: "p2",
     });
+    expect(applyBellotAction(state, action!).phase).toBe("mus");
+    expect(
+      chooseBellotCpuAction(
+        {
+          ...state,
+          phase: "mus",
+          trumpRound: 3,
+          trumpPasses: [],
+          trumpTurnPlayerId: "p1",
+          isMus: true,
+        },
+        "p1",
+        {
+          trumpChooseMinSuccessRate: Number.POSITIVE_INFINITY,
+          trumpMinExpectedValue: Number.POSITIVE_INFINITY,
+        },
+      )?.type,
+    ).toBe("trump-choose-suit");
   });
 
-  it("does not use hidden pickup cards during CPU trump selection", () => {
+  it("does not use hidden pickup card identities during CPU trump selection", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
       phase: "trump-round-one",
@@ -1065,7 +1094,7 @@ describe("Bellot", () => {
           ...players[0],
           ready: true,
           hand: [card("A", "hearts")],
-          hiddenCards: [card("U", "hearts"), card("IX", "hearts")],
+          hiddenCards: [card("VII", "acorns"), card("VIII", "acorns")],
           wonCards: [],
           tricksWon: 0,
           totalScore: 0,
@@ -1084,11 +1113,26 @@ describe("Bellot", () => {
       trumpTurnPlayerId: "p1",
       firstPlayerId: "p1",
     };
+    const changedHiddenState: BellotState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hiddenCards: [card("U", "hearts"), card("IX", "hearts")],
+            }
+          : player,
+      ),
+    };
+    const options = {
+      trumpMonteCarloSamples: 3,
+      trumpSearchPlies: 2,
+      rng: () => 0.5,
+    };
 
-    expect(chooseBellotCpuAction(state, "p1")).toEqual({
-      type: "trump-pass",
-      playerId: "p1",
-    });
+    expect(chooseBellotCpuAction(changedHiddenState, "p1", options)).toEqual(
+      chooseBellotCpuAction(state, "p1", options),
+    );
   });
 
   it("does not use hidden pickup cards or the actual opponent hand during CPU trump rollouts", () => {
