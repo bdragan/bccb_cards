@@ -205,7 +205,7 @@ The mus exception does not apply when the caller only falls because of declarati
 
 ## Schuster
 
-A player who wins no tricks in a hand is schuster. After the normal hand score is calculated, each schuster player receives an additional -100 points for that hand. Game totals may become negative.
+A player who wins no tricks in a hand is schuster. A schuster player's declaration points do not count for that player; they are added to the other player's hand score instead. After that scoring transfer, each schuster player receives an additional -100 points for that hand. Game totals may become negative.
 
 ## Server Responsibilities
 

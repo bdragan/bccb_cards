@@ -1074,10 +1074,32 @@ export function calculateBellotHandResult(
     ]),
   );
   const opponent = opponentOf(state, state.callerPlayerId);
+  const schusterPlayerIds = state.players
+    .filter((player) => player.tricksWon === 0)
+    .map((player) => player.playerId);
+  const scoringDeclarationPointsByPlayer = { ...declarationPointsByPlayer };
+
+  for (const playerId of schusterPlayerIds) {
+    const schusterDeclarationPoints =
+      scoringDeclarationPointsByPlayer[playerId] ?? 0;
+    const winner = opponentOf(state, playerId);
+
+    scoringDeclarationPointsByPlayer[playerId] = 0;
+    scoringDeclarationPointsByPlayer[winner.playerId] +=
+      schusterDeclarationPoints;
+  }
+
+  const scoringTotalPointsByPlayer = Object.fromEntries(
+    state.players.map((player) => [
+      player.playerId,
+      gamePointsByPlayer[player.playerId] +
+        scoringDeclarationPointsByPlayer[player.playerId],
+    ]),
+  );
   const callerGame = gamePointsByPlayer[state.callerPlayerId];
   const opponentGame = gamePointsByPlayer[opponent.playerId];
-  const callerTotal = totalPointsByPlayer[state.callerPlayerId];
-  const opponentTotal = totalPointsByPlayer[opponent.playerId];
+  const callerTotal = scoringTotalPointsByPlayer[state.callerPlayerId];
+  const opponentTotal = scoringTotalPointsByPlayer[opponent.playerId];
   const callerFell = callerTotal <= opponentTotal;
   const callerFellOnGame = callerGame <= opponentGame;
   const handScoreByPlayer = Object.fromEntries(
@@ -1097,10 +1119,6 @@ export function calculateBellotHandResult(
     handScoreByPlayer[state.callerPlayerId] = 0;
     handScoreByPlayer[opponent.playerId] = opponentTotal + callerTotal;
   }
-
-  const schusterPlayerIds = state.players
-    .filter((player) => player.tricksWon === 0)
-    .map((player) => player.playerId);
 
   for (const playerId of schusterPlayerIds) {
     handScoreByPlayer[playerId] -= 100;

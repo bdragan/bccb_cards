@@ -1470,6 +1470,49 @@ describe("Bellot", () => {
       musSchuster.totalPointsByPlayer.p2,
     );
     expect(musSchuster.schusterPlayerIds).toEqual(["p1"]);
+
+    const schusterWithDeclarations = calculateBellotHandResult(
+      scoringState({
+        callerPlayerId: "p2",
+        p1WonCards: [],
+        p2WonCards: [
+          card("U", "hearts"),
+          card("IX", "hearts"),
+          card("A", "hearts"),
+          card("X", "hearts"),
+          card("A", "acorns"),
+          card("X", "acorns"),
+          card("A", "bells"),
+          card("K", "acorns"),
+        ],
+        p1TricksWon: 0,
+        p2TricksWon: 10,
+        declarationsByPlayer: {
+          p1: [
+            {
+              type: "SEQUENCE_3",
+              cards: [
+                card("VII", "hearts"),
+                card("VIII", "hearts"),
+                card("IX", "hearts"),
+              ],
+              points: 20,
+            },
+          ],
+          p2: [
+            { type: "FOUR_OF_KIND_IX", cards: [], points: 150 },
+          ],
+        },
+        lastTrickWinnerPlayerId: "p2",
+      }),
+    );
+
+    expect(schusterWithDeclarations.declarationPointsByPlayer.p1).toBe(20);
+    expect(schusterWithDeclarations.declarationPointsByPlayer.p2).toBe(150);
+    expect(schusterWithDeclarations.gamePointsByPlayer.p2).toBe(101);
+    expect(schusterWithDeclarations.handScoreByPlayer.p1).toBe(-100);
+    expect(schusterWithDeclarations.handScoreByPlayer.p2).toBe(271);
+    expect(schusterWithDeclarations.schusterPlayerIds).toEqual(["p1"]);
   });
 
   it("finishes at 501 only when there is a winner after the hand", () => {
