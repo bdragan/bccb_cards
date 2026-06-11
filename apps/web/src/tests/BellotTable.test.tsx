@@ -138,6 +138,25 @@ describe("BellotTable", () => {
     ]);
   });
 
+  it("marks hidden pickup cards after they enter the player's hand", () => {
+    renderTable({
+      ...baseState,
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? { ...player, pickupCardIds: ["IX-bells", "A-hearts"] }
+          : player,
+      ),
+    });
+
+    const markedCards = screen
+      .getAllByText("Hidden pickup card")
+      .map((label) =>
+        within(label.closest("button")!).getByRole("img").getAttribute("alt"),
+      );
+
+    expect(markedCards).toEqual(["IX of Bells", "A of Hearts"]);
+  });
+
   it("shows declaration bonus points and dims called cards after they are played", () => {
     const playedDeclaration = {
       ...baseState,

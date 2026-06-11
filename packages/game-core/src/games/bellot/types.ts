@@ -22,6 +22,7 @@ export type BellotPlayerState = PlayerRef & {
   ready: boolean;
   hand: Card[];
   hiddenCards: Card[];
+  pickupCardIds?: string[];
   wonCards: Card[];
   tricksWon: number;
   totalScore: number;

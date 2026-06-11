@@ -167,6 +167,7 @@ export type BellotPublicPlayer = {
   displayName: string;
   ready: boolean;
   hand?: z.infer<typeof cardSchema>[];
+  pickupCardIds?: string[];
   handCount: number;
   publicCards: z.infer<typeof cardSchema>[];
   declarationsSubmitted: boolean;

@@ -207,6 +207,10 @@ export function BellotTable({
     () => groupCardsBySuit(sortedCurrentHand),
     [sortedCurrentHand],
   );
+  const pickupCardIds = useMemo(
+    () => new Set(currentPlayer?.pickupCardIds ?? []),
+    [currentPlayer?.pickupCardIds],
+  );
   const declarationSubmissionKeys = useRef(new Set<string>());
   const [lingeringTrick, setLingeringTrick] = useState<{
     trickNumber: number;
@@ -528,6 +532,7 @@ export function BellotTable({
               >
                 {group.cards.map((card) => {
                   const playable = legalCardIds.has(card.id);
+                  const pickedUp = pickupCardIds.has(card.id);
                   const canPlay =
                     state.phase === "trick-play" &&
                     state.currentTurnPlayerId === currentPlayerId &&
@@ -537,12 +542,17 @@ export function BellotTable({
                     <button
                       key={card.id}
                       type="button"
-                      className="rounded-md disabled:cursor-default disabled:opacity-100"
+                      className={`relative rounded-md disabled:cursor-default disabled:opacity-100 ${
+                        pickedUp ? "ring-2 ring-amber-300/80" : ""
+                      }`}
                       data-testid="bellot-hand-card"
                       disabled={!canPlay}
                       onClick={() => onPlayCard(card.id)}
                     >
                       <PlayingCard card={card} />
+                      {pickedUp ? (
+                        <span className="sr-only">Hidden pickup card</span>
+                      ) : null}
                       {state.trumpSuit ? (
                         <span className="mt-1 block text-xs text-white/70">
                           {bellotCardPoints(card, state.trumpSuit)} pts

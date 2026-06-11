@@ -79,6 +79,7 @@ function normalizePlayers(players: PlayerRef[]): BellotPlayerState[] {
     ready: false,
     hand: [],
     hiddenCards: [],
+    pickupCardIds: [],
     wonCards: [],
     tricksWon: 0,
     totalScore: 0,
@@ -143,6 +144,7 @@ function resetHandPlayer(player: BellotPlayerState): BellotPlayerState {
     ready: true,
     hand: [],
     hiddenCards: [],
+    pickupCardIds: [],
     wonCards: [],
     tricksWon: 0,
   };
@@ -265,6 +267,7 @@ function finishTrumpSelection(
   const players = state.players.map((player) => ({
     ...player,
     hand: [...player.hand, ...player.hiddenCards],
+    pickupCardIds: player.hiddenCards.map((card) => card.id),
     hiddenCards: [],
   }));
 
@@ -1223,6 +1226,12 @@ export function getBellotPublicState(
   state: BellotState,
   viewerPlayerId: string,
 ): BellotPublicState {
+  const viewerHasPlayedCard =
+    state.currentTrick.some((play) => play.playerId === viewerPlayerId) ||
+    state.completedTricks.some((trick) =>
+      trick.cards.some((play) => play.playerId === viewerPlayerId),
+    );
+
   return {
     gameId: "bellot",
     phase: state.phase,
@@ -1231,6 +1240,12 @@ export function getBellotPublicState(
       displayName: player.displayName,
       ready: player.ready,
       hand: player.playerId === viewerPlayerId ? player.hand : undefined,
+      pickupCardIds:
+        player.playerId === viewerPlayerId &&
+        player.hiddenCards.length === 0 &&
+        !viewerHasPlayedCard
+          ? (player.pickupCardIds ?? [])
+          : undefined,
       handCount: player.hand.length,
       publicCards: state.publicCardsByPlayer[player.playerId] ?? [],
       declarationsSubmitted: Object.prototype.hasOwnProperty.call(

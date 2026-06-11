@@ -107,6 +107,84 @@ describe("Bellot", () => {
     expect(state.trumpTurnPlayerId).toBe(state.firstPlayerId);
   });
 
+  it("publishes pickup card ids only to the owner after pickup", () => {
+    const state = readyState();
+    const firstPlayer = state.players.find(
+      (player) => player.playerId === state.trumpTurnPlayerId,
+    )!;
+    const firstPickupCardIds = firstPlayer.hiddenCards.map((card) => card.id);
+    const publicBeforePickup = getBellotPublicState(
+      state,
+      firstPlayer.playerId,
+    );
+    const firstPublicBeforePickup = publicBeforePickup.players.find(
+      (player) => player.playerId === firstPlayer.playerId,
+    )!;
+
+    expect(firstPublicBeforePickup.pickupCardIds).toBeUndefined();
+    expect(
+      firstPublicBeforePickup.hand?.some((card) =>
+        firstPickupCardIds.includes(card.id),
+      ),
+    ).toBe(false);
+
+    const afterPickup = applyBellotAction(state, {
+      type: "trump-accept-upcard",
+      playerId: firstPlayer.playerId,
+    });
+    const publicForOwner = getBellotPublicState(
+      afterPickup,
+      firstPlayer.playerId,
+    );
+    const opponentPlayerId = afterPickup.players.find(
+      (player) => player.playerId !== firstPlayer.playerId,
+    )!.playerId;
+    const publicForOpponent = getBellotPublicState(
+      afterPickup,
+      opponentPlayerId,
+    );
+
+    expect(
+      publicForOwner.players.find(
+        (player) => player.playerId === firstPlayer.playerId,
+      )?.pickupCardIds,
+    ).toEqual(firstPickupCardIds);
+    expect(
+      publicForOpponent.players.find(
+        (player) => player.playerId === firstPlayer.playerId,
+      )?.pickupCardIds,
+    ).toBeUndefined();
+    expect(
+      publicForOpponent.players.find(
+        (player) => player.playerId === firstPlayer.playerId,
+      )?.hand,
+    ).toBeUndefined();
+
+    const afterDeclarations = afterPickup.players.reduce(
+      (currentState, player) =>
+        applyBellotAction(currentState, {
+          type: "declare",
+          playerId: player.playerId,
+          declarations: [],
+        }),
+      afterPickup,
+    );
+    const firstCard = afterDeclarations.players.find(
+      (player) => player.playerId === firstPlayer.playerId,
+    )!.hand[0]!;
+    const afterFirstPlay = applyBellotAction(afterDeclarations, {
+      type: "play-card",
+      playerId: firstPlayer.playerId,
+      cardId: firstCard.id,
+    });
+
+    expect(
+      getBellotPublicState(afterFirstPlay, firstPlayer.playerId).players.find(
+        (player) => player.playerId === firstPlayer.playerId,
+      )?.pickupCardIds,
+    ).toBeUndefined();
+  });
+
   it("runs first round, second round, and mus trump selection rules", () => {
     const firstRound = readyState();
     const first = firstRound.trumpTurnPlayerId!;
