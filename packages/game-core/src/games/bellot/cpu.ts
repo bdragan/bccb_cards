@@ -71,13 +71,6 @@ type BellotSearchResult = {
   callerFell?: boolean;
 };
 
-type BellotTranspositionEntry = {
-  depth: number;
-  result: BellotSearchResult;
-};
-
-type BellotTranspositionTable = Map<string, BellotTranspositionEntry>;
-
 type BellotSearchContext = {
   closingSearchPlies: number;
 };
@@ -402,7 +395,6 @@ function averageTrumpRolloutScore(
     options.trumpSearchPlies ??
     options.maxSearchPlies ??
     defaultBellotCpuMaxSearchPlies;
-  const transpositions: BellotTranspositionTable = new Map();
   const searchContext = createBellotSearchContext(searchPlies);
   const results = samples.map((sample) =>
     alphaBetaResult(
@@ -411,7 +403,6 @@ function averageTrumpRolloutScore(
       searchPlies,
       -maxUtility,
       maxUtility,
-      transpositions,
       searchContext,
     ),
   );
@@ -539,7 +530,6 @@ function chooseCardForTrick(
   );
   const searchCards = bellotCpuSearchCards(legalCards, state);
   const scores = new Map(searchCards.map((card) => [card.id, 0]));
-  const transpositions: BellotTranspositionTable = new Map();
   const searchContext = createBellotSearchContext(maxSearchPlies);
 
   for (const sample of samples) {
@@ -561,7 +551,6 @@ function chooseCardForTrick(
         maxSearchPlies - 1,
         -maxUtility,
         maxUtility,
-        transpositions,
         searchContext,
       );
 
@@ -589,7 +578,6 @@ function alphaBeta(
   depth: number,
   alpha: number,
   beta: number,
-  transpositions: BellotTranspositionTable,
   context: BellotSearchContext = createBellotSearchContext(depth),
 ): number {
   return alphaBetaResult(
@@ -598,7 +586,6 @@ function alphaBeta(
     depth,
     alpha,
     beta,
-    transpositions,
     context,
   ).value;
 }
@@ -615,23 +602,13 @@ function alphaBetaResult(
   depth: number,
   alpha: number,
   beta: number,
-  transpositions: BellotTranspositionTable,
   context: BellotSearchContext,
 ): BellotSearchResult {
-  const transpositionKey = bellotTranspositionKey(state, cpuPlayerId);
-  const cached = transpositions.get(transpositionKey);
-
-  if (cached && cached.depth >= depth) {
-    return cached.result;
-  }
-
   if (
     state.phase === "hand-complete" ||
     state.phase === "finished"
   ) {
-    const result = evaluateSearchLeaf(state, cpuPlayerId);
-    transpositions.set(transpositionKey, { depth, result });
-    return result;
+    return evaluateSearchLeaf(state, cpuPlayerId);
   }
 
   if (
@@ -639,9 +616,7 @@ function alphaBetaResult(
     !state.trumpSuit ||
     !state.currentTurnPlayerId
   ) {
-    const result = evaluateSearchLeaf(state, cpuPlayerId);
-    transpositions.set(transpositionKey, { depth, result });
-    return result;
+    return evaluateSearchLeaf(state, cpuPlayerId);
   }
 
   const currentPlayer = playerById(state, state.currentTurnPlayerId);
@@ -652,9 +627,7 @@ function alphaBetaResult(
   );
 
   if (legalCards.length === 0) {
-    const result = evaluateSearchLeaf(state, cpuPlayerId);
-    transpositions.set(transpositionKey, { depth, result });
-    return result;
+    return evaluateSearchLeaf(state, cpuPlayerId);
   }
 
   if (shouldUseCheapSearchMove(state, depth, context)) {
@@ -670,11 +643,8 @@ function alphaBetaResult(
       depth,
       alpha,
       beta,
-      transpositions,
       context,
     );
-
-    transpositions.set(transpositionKey, { depth, result });
     return result;
   }
 
@@ -683,7 +653,6 @@ function alphaBetaResult(
   let best: BellotSearchResult = {
     value: maximizing ? -maxUtility : maxUtility,
   };
-  let pruned = false;
 
   for (const card of orderCardsForSearch(
     searchCards,
@@ -702,7 +671,6 @@ function alphaBetaResult(
       nextDepth,
       alpha,
       beta,
-      transpositions,
       context,
     );
 
@@ -717,14 +685,8 @@ function alphaBetaResult(
     }
 
     if (beta <= alpha) {
-      pruned = true;
       break;
     }
-  }
-
-  // Cutoff nodes only prove a bound; store exact results from fully searched nodes.
-  if (!pruned) {
-    transpositions.set(transpositionKey, { depth, result: best });
   }
 
   return best;
@@ -1265,62 +1227,6 @@ function cardSetKey(cards: Card[]) {
   return cards
     .map((card) => card.id)
     .sort((left, right) => left.localeCompare(right))
-    .join(",");
-}
-
-function bellotTranspositionKey(state: BellotState, cpuPlayerId: string) {
-  const playersKey = state.players
-    .map((player) =>
-      [
-        player.playerId,
-        cardSetKey(player.hand),
-        cardSetKey(player.hiddenCards),
-        cardSetKey(player.wonCards),
-        player.tricksWon,
-        player.totalScore,
-        declarationPoints(state, player.playerId),
-      ].join(":"),
-    )
-    .join("|");
-  const currentTrickKey = state.currentTrick
-    .map((play) => `${play.playerId}:${play.card.id}`)
-    .join(",");
-  const completedCardsKey = cardSetKey(
-    state.completedTricks.flatMap((trick) =>
-      trick.cards.map((play) => play.card),
-    ),
-  );
-  const lastHandKey = state.lastHandResult
-    ? [
-        state.lastHandResult.callerPlayerId,
-        state.lastHandResult.opponentPlayerId,
-        state.lastHandResult.callerFell,
-        state.lastHandResult.callerFellOnGame,
-        recordNumberKey(state.lastHandResult.handScoreByPlayer),
-      ].join(":")
-    : "";
-
-  return [
-    cpuPlayerId,
-    state.phase,
-    state.trumpSuit ?? "",
-    state.callerPlayerId ?? "",
-    state.currentTurnPlayerId ?? "",
-    state.winnerPlayerId ?? "",
-    state.isMus,
-    state.upcard?.id ?? "",
-    state.completedTricks.length,
-    completedCardsKey,
-    currentTrickKey,
-    playersKey,
-    lastHandKey,
-  ].join("#");
-}
-
-function recordNumberKey(record: Record<string, number>) {
-  return Object.entries(record)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => `${key}:${value}`)
     .join(",");
 }
 
