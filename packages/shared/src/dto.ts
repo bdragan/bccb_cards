@@ -207,6 +207,7 @@ export type BellotPublicState = {
   isMus: boolean;
   upcard?: z.infer<typeof cardSchema>;
   trumpTurnPlayerId?: string;
+  trumpPasses?: string[];
   currentTurnPlayerId?: string;
   currentTrick: BellotTrickPlay[];
   completedTricks: Array<{

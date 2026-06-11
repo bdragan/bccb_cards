@@ -34,6 +34,11 @@ const suitImagePaths: Record<Suit, string> = {
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
 const rankOrder: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
 const completedTrickLingerMs = 2_000;
+const trumpSelectionPhases: BellotPublicState["phase"][] = [
+  "trump-round-one",
+  "trump-round-two",
+  "mus",
+];
 
 function sortCards(cards: Card[]) {
   return [...cards].sort((left, right) => {
@@ -170,6 +175,59 @@ function visibleGamePointsByPlayer(state: BellotPublicState) {
   return points;
 }
 
+function playerName(state: BellotPublicState, playerId?: string) {
+  return (
+    state.players.find((player) => player.playerId === playerId)?.displayName ??
+    "Unknown player"
+  );
+}
+
+function trumpSelectionLogs(state: BellotPublicState) {
+  if (!trumpSelectionPhases.includes(state.phase)) {
+    return [];
+  }
+
+  const logs: string[] = [];
+  const upcardSuit = state.upcard?.suit;
+  const upcardSuitLabel = upcardSuit ? suitLabels[upcardSuit] : undefined;
+  const turnPlayer = playerName(state, state.trumpTurnPlayerId);
+  const passedPlayers = state.trumpPasses ?? [];
+
+  if (state.upcard && upcardSuitLabel) {
+    logs.push(`Upcard is ${state.upcard.rank} of ${upcardSuitLabel}.`);
+  }
+
+  if (state.phase === "trump-round-one") {
+    for (const playerId of passedPlayers) {
+      logs.push(
+        `${playerName(state, playerId)} passed on ${upcardSuitLabel ?? "the upcard suit"}.`,
+      );
+    }
+
+    logs.push(`${turnPlayer} is deciding whether to accept the upcard suit.`);
+    return logs;
+  }
+
+  if (upcardSuitLabel) {
+    logs.push(`Both players passed ${upcardSuitLabel}.`);
+  }
+
+  if (state.phase === "trump-round-two") {
+    for (const playerId of passedPlayers) {
+      logs.push(`${playerName(state, playerId)} passed choosing another suit.`);
+    }
+
+    logs.push(
+      `${turnPlayer} is choosing a suit other than ${upcardSuitLabel ?? "the upcard suit"}.`,
+    );
+    return logs;
+  }
+
+  logs.push("Both players passed twice.");
+  logs.push(`${turnPlayer} is on mus and must choose trump.`);
+  return logs;
+}
+
 export function BellotTable({
   state,
   currentPlayerId,
@@ -266,6 +324,7 @@ export function BellotTable({
     () => visibleGamePointsByPlayer(state),
     [state],
   );
+  const selectionLogs = trumpSelectionLogs(state);
   const visibleTrick = state.currentTrick.length
     ? {
         label: "Current trick",
@@ -284,7 +343,10 @@ export function BellotTable({
           ),
         }
       : undefined;
-  const showTrickArea = state.phase === "trick-play" || Boolean(visibleTrick);
+  const showTrickArea =
+    state.phase === "trick-play" ||
+    trumpSelectionPhases.includes(state.phase) ||
+    Boolean(visibleTrick);
   const showPlayedHandsButton =
     state.phase === "trick-play" || state.completedTricks.length > 0;
   const turnPlayerId =
@@ -516,23 +578,38 @@ export function BellotTable({
           data-testid="bellot-current-trick"
         >
           <p className="mb-2 text-sm font-semibold">
-            {visibleTrick?.label ?? "Current trick"}
+            {selectionLogs.length
+              ? "Trump selection"
+              : (visibleTrick?.label ?? "Current trick")}
           </p>
-          <div className="grid min-h-[114px] grid-cols-[repeat(2,71px)] justify-center gap-3">
-            {visibleTrick?.cards.map((play) => (
-              <div
-                key={`${play.playerId}-${play.card.id}`}
-                className={
-                  visibleTrick.strengthByCardId.size &&
-                  !visibleTrick.strengthByCardId.get(play.card.id)
-                    ? "opacity-45"
-                    : ""
-                }
-              >
-                <PlayingCard card={play.card} native />
-              </div>
-            ))}
-          </div>
+          {selectionLogs.length ? (
+            <ol className="min-h-[114px] space-y-2 text-sm text-white/85">
+              {selectionLogs.map((log, index) => (
+                <li
+                  key={`${index}-${log}`}
+                  className="rounded-md bg-black/15 px-3 py-2"
+                >
+                  {log}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="grid min-h-[114px] grid-cols-[repeat(2,71px)] justify-center gap-3">
+              {visibleTrick?.cards.map((play) => (
+                <div
+                  key={`${play.playerId}-${play.card.id}`}
+                  className={
+                    visibleTrick.strengthByCardId.size &&
+                    !visibleTrick.strengthByCardId.get(play.card.id)
+                      ? "opacity-45"
+                      : ""
+                  }
+                >
+                  <PlayingCard card={play.card} native />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : null}
 

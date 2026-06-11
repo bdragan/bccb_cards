@@ -200,6 +200,60 @@ describe("BellotTable", () => {
     expect(currentTrick.querySelector(".min-h-\\[114px\\]")).toBeInTheDocument();
   });
 
+  it("shows trump selection logs in the current trick area", () => {
+    renderTable({
+      ...baseState,
+      phase: "trump-round-one",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p2",
+      trumpPasses: ["p1"],
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    const currentTrick = screen.getByTestId("bellot-current-trick");
+
+    expect(within(currentTrick).getByText("Trump selection")).toBeInTheDocument();
+    expect(
+      within(currentTrick).getByText("Upcard is K of Leaves."),
+    ).toBeInTheDocument();
+    expect(
+      within(currentTrick).getByText("Alice passed on Leaves."),
+    ).toBeInTheDocument();
+    expect(
+      within(currentTrick).getByText(
+        "Bob is deciding whether to accept the upcard suit.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows mus logs in the current trick area", () => {
+    renderTable({
+      ...baseState,
+      phase: "mus",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p1",
+      trumpPasses: [],
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    const currentTrick = screen.getByTestId("bellot-current-trick");
+
+    expect(
+      within(currentTrick).getByText("Both players passed twice."),
+    ).toBeInTheDocument();
+    expect(
+      within(currentTrick).getByText(
+        "Alice is on mus and must choose trump.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("renders hand and current trick cards at the source image size", () => {
     renderTable({
       ...baseState,

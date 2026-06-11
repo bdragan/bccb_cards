@@ -1264,6 +1264,7 @@ export function getBellotPublicState(
     isMus: state.isMus,
     upcard: state.upcard,
     trumpTurnPlayerId: state.trumpTurnPlayerId,
+    trumpPasses: state.trumpPasses,
     currentTurnPlayerId: state.currentTurnPlayerId,
     currentTrick: state.currentTrick,
     completedTricks: state.completedTricks,
