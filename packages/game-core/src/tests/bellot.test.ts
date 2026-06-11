@@ -1024,6 +1024,46 @@ describe("Bellot", () => {
       type: "trump-accept-upcard",
       playerId: "p1",
     });
+
+    expect(
+      chooseBellotCpuAction(state, "p1", {
+        trumpAcceptMinSuccessRate: 0,
+        trumpHighSuccessRate: Number.POSITIVE_INFINITY,
+        trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+      }),
+    ).toEqual({
+      type: "trump-pass",
+      playerId: "p1",
+    });
+
+    expect(
+      chooseBellotCpuAction(
+        {
+          ...state,
+          players: state.players.map((player) =>
+            player.playerId === "p1"
+              ? {
+                  ...player,
+                  hand: [
+                    card("A", "hearts"),
+                    card("X", "hearts"),
+                    card("K", "hearts"),
+                  ],
+                }
+              : player,
+          ),
+        },
+        "p1",
+        {
+          trumpAcceptMinSuccessRate: 0,
+          trumpHighSuccessRate: Number.POSITIVE_INFINITY,
+          trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+        },
+      ),
+    ).toEqual({
+      type: "trump-accept-upcard",
+      playerId: "p1",
+    });
   });
 
   it("allows the CPU to pass the second trump round but still choose on mus", () => {

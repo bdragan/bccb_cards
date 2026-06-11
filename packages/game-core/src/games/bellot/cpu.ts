@@ -24,13 +24,17 @@ export type BellotCpuOptions = {
   trumpMonteCarloSamples?: number;
   trumpAcceptMinSuccessRate?: number;
   trumpChooseMinSuccessRate?: number;
+  trumpHighSuccessRate?: number;
+  trumpMinCardsForStandardSuccess?: number;
   trumpMinExpectedValue?: number;
 };
 
 const defaultMaxSearchPlies = 10;
 const defaultMonteCarloSamples = 64;
 const defaultTrumpMonteCarloSamples = 64;
-const defaultTrumpMinSuccessRate = 0.75;
+const defaultTrumpMinSuccessRate = 0.85;
+const defaultTrumpHighSuccessRate = 0.95;
+const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
 const sampleIncreasePerMissingCard = 0.2;
@@ -46,6 +50,19 @@ const nonTrumpSearchRankGroups: Rank[][] = [
 type TrumpCandidateScore = {
   expectedValue: number;
   successRate: number;
+};
+
+type TrumpSuitCandidate = {
+  suit: Suit;
+  score: TrumpCandidateScore;
+  trumpCardCount: number;
+};
+
+type TrumpCallThresholds = {
+  minSuccessRate: number;
+  highSuccessRate: number;
+  minTrumpCards: number;
+  minExpectedValue: number;
 };
 
 type BellotSearchResult = {
@@ -140,6 +157,11 @@ function chooseTrumpAction(
   const rng = options.rng ?? Math.random;
   const minExpectedValue =
     options.trumpMinExpectedValue ?? defaultTrumpMinExpectedValue;
+  const highSuccessRate =
+    options.trumpHighSuccessRate ?? defaultTrumpHighSuccessRate;
+  const minTrumpCards =
+    options.trumpMinCardsForStandardSuccess ??
+    defaultTrumpMinCardsForStandardSuccess;
 
   if (state.phase === "trump-round-one" && state.upcard) {
     const score = scoreTrumpCandidate(
@@ -152,9 +174,19 @@ function chooseTrumpAction(
     );
     const minSuccessRate =
       options.trumpAcceptMinSuccessRate ?? defaultTrumpMinSuccessRate;
+    const trumpCardCount = countTrumpCards(player.hand, state.upcard.suit);
+    const thresholds = {
+      minSuccessRate,
+      highSuccessRate,
+      minTrumpCards,
+      minExpectedValue,
+    };
 
-    return score.successRate >= minSuccessRate &&
-      score.expectedValue >= minExpectedValue
+    return shouldCallTrump({
+      score,
+      trumpCardCount,
+      thresholds,
+    })
       ? { type: "trump-accept-upcard", playerId: player.playerId }
       : { type: "trump-pass", playerId: player.playerId };
   }
@@ -163,7 +195,7 @@ function chooseTrumpAction(
     (state.phase === "trump-round-two" || state.phase === "mus") &&
     state.upcard
   ) {
-    const [bestSuit, bestScore] = bestTrumpSuit(
+    const candidates = trumpSuitCandidates(
       state,
       player.playerId,
       state.upcard.suit,
@@ -173,16 +205,23 @@ function chooseTrumpAction(
     );
     const minSuccessRate =
       options.trumpChooseMinSuccessRate ?? defaultTrumpMinSuccessRate;
+    const thresholds = {
+      minSuccessRate,
+      highSuccessRate,
+      minTrumpCards,
+      minExpectedValue,
+    };
+    const bestCandidate = candidates[0];
+    const acceptedCandidate =
+      state.phase === "mus"
+        ? bestCandidate
+        : bestAcceptedTrumpCandidate(candidates, thresholds);
 
-    if (
-      state.phase === "mus" ||
-      (bestScore.successRate >= minSuccessRate &&
-        bestScore.expectedValue >= minExpectedValue)
-    ) {
+    if (acceptedCandidate) {
       return {
         type: "trump-choose-suit",
         playerId: player.playerId,
-        suit: bestSuit,
+        suit: acceptedCandidate.suit,
       };
     }
 
@@ -192,32 +231,29 @@ function chooseTrumpAction(
   return undefined;
 }
 
-function bestTrumpSuit(
+function trumpSuitCandidates(
   state: BellotState,
   cpuPlayerId: string,
   excludedSuit: Suit,
   isMus: boolean,
   options: BellotCpuOptions,
   rng: () => number,
-): [Suit, TrumpCandidateScore] {
+) {
+  const cpu = playerById(state, cpuPlayerId);
   const candidates = suits
     .filter((suit) => suit !== excludedSuit)
-    .map(
-      (suit) =>
-        [
-          suit,
-          scoreTrumpCandidate(state, cpuPlayerId, suit, isMus, options, rng),
-        ] as [Suit, TrumpCandidateScore],
-    )
+    .map((suit) => ({
+      suit,
+      score: scoreTrumpCandidate(state, cpuPlayerId, suit, isMus, options, rng),
+      trumpCardCount: countTrumpCards(cpu.hand, suit),
+    }))
     .sort(compareTrumpCandidates);
 
-  const best = candidates[0];
-
-  if (!best) {
+  if (candidates.length === 0) {
     throw new Error("No selectable trump suit is available");
   }
 
-  return best;
+  return candidates;
 }
 
 function scoreTrumpCandidate(
@@ -238,17 +274,98 @@ function scoreTrumpCandidate(
   );
 }
 
-function compareTrumpCandidates(
-  left: [Suit, TrumpCandidateScore],
-  right: [Suit, TrumpCandidateScore],
+function bestAcceptedTrumpCandidate(
+  candidates: TrumpSuitCandidate[],
+  thresholds: TrumpCallThresholds,
 ) {
-  const expectedValueDelta = right[1].expectedValue - left[1].expectedValue;
+  return candidates
+    .filter((candidate) =>
+      shouldCallTrump({
+        score: candidate.score,
+        trumpCardCount: candidate.trumpCardCount,
+        thresholds,
+      }),
+    )
+    .sort((left, right) =>
+      compareAcceptedTrumpCandidates(left, right, thresholds),
+    )[0];
+}
+
+function shouldCallTrump(input: {
+  score: TrumpCandidateScore;
+  trumpCardCount: number;
+  thresholds: TrumpCallThresholds;
+}) {
+  return trumpAcceptanceTier(input) > 0;
+}
+
+function trumpAcceptanceTier(input: {
+  score: TrumpCandidateScore;
+  trumpCardCount: number;
+  thresholds: TrumpCallThresholds;
+}) {
+  if (input.score.expectedValue < input.thresholds.minExpectedValue) {
+    return 0;
+  }
+
+  const highSuccessRate = Math.max(
+    input.thresholds.highSuccessRate,
+    input.thresholds.minSuccessRate,
+  );
+
+  if (input.score.successRate >= highSuccessRate) {
+    return 2;
+  }
+
+  if (
+    input.score.successRate >= input.thresholds.minSuccessRate &&
+    input.trumpCardCount >= input.thresholds.minTrumpCards
+  ) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function countTrumpCards(hand: Card[], trumpSuit: Suit) {
+  return hand.filter((card) => card.suit === trumpSuit).length;
+}
+
+function compareAcceptedTrumpCandidates(
+  left: TrumpSuitCandidate,
+  right: TrumpSuitCandidate,
+  thresholds: TrumpCallThresholds,
+) {
+  const tierDelta =
+    trumpAcceptanceTier({
+      score: right.score,
+      trumpCardCount: right.trumpCardCount,
+      thresholds,
+    }) -
+    trumpAcceptanceTier({
+      score: left.score,
+      trumpCardCount: left.trumpCardCount,
+      thresholds,
+    });
+
+  if (tierDelta !== 0) {
+    return tierDelta;
+  }
+
+  return compareTrumpCandidates(left, right);
+}
+
+function compareTrumpCandidates(
+  left: TrumpSuitCandidate,
+  right: TrumpSuitCandidate,
+) {
+  const expectedValueDelta = right.score.expectedValue - left.score.expectedValue;
 
   if (expectedValueDelta !== 0) {
     return expectedValueDelta;
   }
 
-  return right[1].successRate - left[1].successRate;
+  return right.score.successRate - left.score.successRate;
 }
 
 function averageTrumpRolloutScore(
