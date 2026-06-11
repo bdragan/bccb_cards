@@ -530,7 +530,7 @@ export function BellotTable({
       </div>
 
       {state.trumpTurnPlayerId === currentPlayerId ? (
-        <div className="mt-4 rounded-md bg-white p-3 text-ink">
+        <div className="mt-4 rounded-md bg-white/10 p-3 text-white">
           <p className="text-sm font-semibold">Choose trump</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {state.phase === "trump-round-one" ? (
