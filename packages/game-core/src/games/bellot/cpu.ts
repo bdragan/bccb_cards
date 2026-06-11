@@ -30,6 +30,7 @@ export type BellotCpuOptions = {
 };
 
 const defaultMaxSearchPlies = 10;
+const trumpSearchPlyBonus = 2;
 const defaultMonteCarloSamples = 64;
 const defaultTrumpMonteCarloSamples = 64;
 const defaultTrumpMinSuccessRate = 0.85;
@@ -389,7 +390,8 @@ function averageTrumpRolloutScore(
     rng,
   );
   const searchPlies =
-    options.trumpSearchPlies ?? remainingCardPlays(samples[0]);
+    options.trumpSearchPlies ??
+    (options.maxSearchPlies ?? defaultMaxSearchPlies) + trumpSearchPlyBonus;
   const transpositions: BellotTranspositionTable = new Map();
   const results = samples.map((sample) =>
     alphaBetaResult(
@@ -414,12 +416,6 @@ function averageTrumpRolloutScore(
 
 function callerAvoidedFall(result: BellotSearchResult) {
   return result.callerFell === undefined ? result.value > 0 : !result.callerFell;
-}
-
-function remainingCardPlays(state: BellotState | undefined) {
-  return (
-    state?.players.reduce((sum, player) => sum + player.hand.length, 0) ?? 0
-  );
 }
 
 function createTrumpRolloutStates(
