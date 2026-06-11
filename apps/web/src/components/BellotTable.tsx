@@ -285,6 +285,10 @@ export function BellotTable({
         }
       : undefined;
   const showTrickArea = state.phase === "trick-play" || Boolean(visibleTrick);
+  const turnPlayerId =
+    state.phase === "trick-play"
+      ? state.currentTurnPlayerId
+      : state.trumpTurnPlayerId;
 
   useEffect(() => {
     if (state.currentTrick.length || !state.completedTricks.length) {
@@ -359,10 +363,24 @@ export function BellotTable({
         ? player.gamePoints
         : (visibleGamePoints[player.playerId] ?? 0);
 
+    const isTurnToPlay = turnPlayerId === player.playerId;
+
     return (
       <article key={player.playerId} className="rounded-md bg-white/10 p-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold">{player.displayName}</h3>
+          <h3 className="flex min-w-0 items-center gap-2 font-semibold">
+            <span className="truncate">{player.displayName}</span>
+            {isTurnToPlay ? (
+              <span
+                aria-label={`${player.displayName} to play`}
+                className="relative inline-flex h-4 w-4 shrink-0"
+                role="progressbar"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-300 opacity-60" />
+                <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-yellow-200 border-t-transparent animate-spin" />
+              </span>
+            ) : null}
+          </h3>
           <p className="text-xl font-bold leading-none text-white">
             {player.totalScore}
           </p>
@@ -498,7 +516,7 @@ export function BellotTable({
           <p className="mb-2 text-sm font-semibold">
             {visibleTrick?.label ?? "Current trick"}
           </p>
-          <div className="flex min-h-36 flex-wrap content-start gap-3">
+          <div className="flex min-h-[114px] flex-wrap content-start gap-3">
             {visibleTrick?.cards.map((play) => (
               <div
                 key={`${play.playerId}-${play.card.id}`}
@@ -509,7 +527,7 @@ export function BellotTable({
                     : ""
                 }
               >
-                <PlayingCard card={play.card} />
+                <PlayingCard card={play.card} native />
               </div>
             ))}
           </div>
@@ -550,7 +568,7 @@ export function BellotTable({
                       disabled={!canPlay}
                       onClick={() => onPlayCard(card.id)}
                     >
-                      <PlayingCard card={card} />
+                      <PlayingCard card={card} native />
                       {pickedUp ? (
                         <span className="sr-only">Hidden pickup card</span>
                       ) : null}

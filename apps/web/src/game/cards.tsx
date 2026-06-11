@@ -11,12 +11,18 @@ export function PlayingCard({
   card,
   hidden = false,
   compact = false,
+  native = false,
 }: {
   card?: Card;
   hidden?: boolean;
   compact?: boolean;
+  native?: boolean;
 }) {
-  const sizeClass = compact ? "h-24 w-16" : "h-36 w-24";
+  const sizeClass = native
+    ? "h-[114px] w-[71px]"
+    : compact
+      ? "h-24 w-16"
+      : "h-36 w-24";
 
   if (hidden || !card) {
     return (

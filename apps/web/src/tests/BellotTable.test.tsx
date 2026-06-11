@@ -197,7 +197,25 @@ describe("BellotTable", () => {
     const currentTrick = screen.getByTestId("bellot-current-trick");
 
     expect(within(currentTrick).getByText("Current trick")).toBeInTheDocument();
-    expect(currentTrick.querySelector(".min-h-36")).toBeInTheDocument();
+    expect(currentTrick.querySelector(".min-h-\\[114px\\]")).toBeInTheDocument();
+  });
+
+  it("renders hand and current trick cards at the source image size", () => {
+    renderTable({
+      ...baseState,
+      currentTrick: [{ playerId: "p2", card: card("K", "hearts") }],
+      completedTricks: [],
+    });
+
+    const currentTrick = screen.getByTestId("bellot-current-trick");
+
+    expect(within(currentTrick).getByAltText("K of Hearts")).toHaveClass(
+      "h-[114px]",
+      "w-[71px]",
+    );
+    expect(
+      within(screen.getAllByTestId("bellot-hand-card")[0]).getByRole("img"),
+    ).toHaveClass("h-[114px]", "w-[71px]");
   });
 
   it("shows played hands and highlights the trick winner's card", async () => {
@@ -239,6 +257,40 @@ describe("BellotTable", () => {
 
     expect(screen.getByText("184")).toBeInTheDocument();
     expect(screen.getByText("92")).toBeInTheDocument();
+  });
+
+  it("shows a progress indicator next to the player whose turn it is to play", () => {
+    renderTable();
+
+    const turnIndicator = screen.getByRole("progressbar", {
+      name: "Alice to play",
+    });
+
+    expect(turnIndicator.closest("h3")).toHaveTextContent("Alice");
+    expect(
+      screen.queryByRole("progressbar", { name: "Bob to play" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a progress indicator next to the player choosing trump", () => {
+    renderTable({
+      ...baseState,
+      phase: "trump-round-one",
+      trumpSuit: undefined,
+      trumpTurnPlayerId: "p2",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    const turnIndicator = screen.getByRole("progressbar", {
+      name: "Bob to play",
+    });
+
+    expect(turnIndicator.closest("h3")).toHaveTextContent("Bob");
+    expect(
+      screen.queryByRole("progressbar", { name: "Alice to play" }),
+    ).not.toBeInTheDocument();
   });
 
   it("falls back to completed tricks when game points are missing", () => {
