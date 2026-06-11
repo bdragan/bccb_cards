@@ -38,6 +38,7 @@ const defaultTrumpHighSuccessRate = 0.95;
 const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
+const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.2;
 const maxUtility = 1_000_000;
 const bellotDeck = createDeck();
@@ -77,6 +78,10 @@ type BellotTranspositionEntry = {
 };
 
 type BellotTranspositionTable = Map<string, BellotTranspositionEntry>;
+
+type BellotSearchContext = {
+  closingSearchPlies: number;
+};
 
 export function bellotCpuMonteCarloSampleLimit(
   baseSampleCount: number,
@@ -393,6 +398,7 @@ function averageTrumpRolloutScore(
     options.trumpSearchPlies ??
     (options.maxSearchPlies ?? defaultMaxSearchPlies) + trumpSearchPlyBonus;
   const transpositions: BellotTranspositionTable = new Map();
+  const searchContext = createBellotSearchContext(searchPlies);
   const results = samples.map((sample) =>
     alphaBetaResult(
       sample,
@@ -401,6 +407,7 @@ function averageTrumpRolloutScore(
       -maxUtility,
       maxUtility,
       transpositions,
+      searchContext,
     ),
   );
   const successes = results.filter((result) =>
@@ -527,6 +534,7 @@ function chooseCardForTrick(
   const searchCards = bellotCpuSearchCards(legalCards, state);
   const scores = new Map(searchCards.map((card) => [card.id, 0]));
   const transpositions: BellotTranspositionTable = new Map();
+  const searchContext = createBellotSearchContext(maxSearchPlies);
 
   for (const sample of samples) {
     const sampleSearchCards = bellotCpuSearchCards(searchCards, sample);
@@ -548,6 +556,7 @@ function chooseCardForTrick(
         -maxUtility,
         maxUtility,
         transpositions,
+        searchContext,
       );
 
       scores.set(card.id, (scores.get(card.id) ?? 0) + value);
@@ -575,6 +584,7 @@ function alphaBeta(
   alpha: number,
   beta: number,
   transpositions: BellotTranspositionTable,
+  context: BellotSearchContext = createBellotSearchContext(depth),
 ): number {
   return alphaBetaResult(
     state,
@@ -583,7 +593,14 @@ function alphaBeta(
     alpha,
     beta,
     transpositions,
+    context,
   ).value;
+}
+
+function createBellotSearchContext(depth: number): BellotSearchContext {
+  return {
+    closingSearchPlies: Math.max(0, depth - cheapOpeningSearchPlies),
+  };
 }
 
 function alphaBetaResult(
@@ -593,6 +610,7 @@ function alphaBetaResult(
   alpha: number,
   beta: number,
   transpositions: BellotTranspositionTable,
+  context: BellotSearchContext,
 ): BellotSearchResult {
   const transpositionKey = bellotTranspositionKey(state, cpuPlayerId);
   const cached = transpositions.get(transpositionKey);
@@ -602,7 +620,6 @@ function alphaBetaResult(
   }
 
   if (
-    (depth <= 0 && state.currentTrick.length === 0) ||
     state.phase === "hand-complete" ||
     state.phase === "finished"
   ) {
@@ -634,6 +651,27 @@ function alphaBetaResult(
     return result;
   }
 
+  if (shouldUseCheapSearchMove(state, depth, context)) {
+    const card = bellotCpuCheapSearchCard(legalCards, state);
+    const next = applyBellotAction(state, {
+      type: "play-card",
+      playerId: currentPlayer.playerId,
+      cardId: card.id,
+    });
+    const result = alphaBetaResult(
+      next,
+      cpuPlayerId,
+      depth,
+      alpha,
+      beta,
+      transpositions,
+      context,
+    );
+
+    transpositions.set(transpositionKey, { depth, result });
+    return result;
+  }
+
   const searchCards = bellotCpuSearchCards(legalCards, state);
   const maximizing = state.currentTurnPlayerId === cpuPlayerId;
   let best: BellotSearchResult = {
@@ -651,8 +689,7 @@ function alphaBetaResult(
       playerId: currentPlayer.playerId,
       cardId: card.id,
     });
-    const nextDepth =
-      depth <= 0 && state.currentTrick.length > 0 ? depth : depth - 1;
+    const nextDepth = depth - 1;
     const result = alphaBetaResult(
       next,
       cpuPlayerId,
@@ -660,6 +697,7 @@ function alphaBetaResult(
       alpha,
       beta,
       transpositions,
+      context,
     );
 
     if (searchResultBetter(result, best, maximizing)) {
@@ -684,6 +722,24 @@ function alphaBetaResult(
   }
 
   return best;
+}
+
+function shouldUseCheapSearchMove(
+  state: BellotState,
+  depth: number,
+  context: BellotSearchContext,
+) {
+  return (
+    remainingSearchPlies(state) > depth && depth <= context.closingSearchPlies
+  );
+}
+
+function remainingSearchPlies(state: BellotState) {
+  if (state.phase !== "trick-play" || !state.currentTurnPlayerId) {
+    return 0;
+  }
+
+  return state.players.reduce((sum, player) => sum + player.hand.length, 0);
 }
 
 function evaluateSearchLeaf(
@@ -760,6 +816,41 @@ export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
   }
 
   return cards.filter((card) => keepCardIds.has(card.id));
+}
+
+export function bellotCpuCheapSearchCard(
+  cards: Card[],
+  state: BellotState,
+): Card {
+  if (cards.length === 0) {
+    throw new Error("No cards are available for cheap Bellot search");
+  }
+
+  if (!state.trumpSuit) {
+    return cards[0]!;
+  }
+
+  if (state.currentTrick.length > 0) {
+    const winningCards = cards.filter((card) =>
+      wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit!),
+    );
+    const candidates = winningCards.length ? winningCards : cards;
+
+    return candidates
+      .slice()
+      .sort((left, right) =>
+        compareCardsByCheapValue(left, right, state.trumpSuit!),
+      )[0]!;
+  }
+
+  const nonTrumpCards = cards.filter((card) => card.suit !== state.trumpSuit);
+  const candidates = nonTrumpCards.length ? nonTrumpCards : cards;
+
+  return candidates
+    .slice()
+    .sort((left, right) =>
+      compareCardsByCheapValue(right, left, state.trumpSuit!),
+    )[0]!;
 }
 
 function addSearchCardRangeEndpoints(
@@ -1521,6 +1612,28 @@ function cardHeuristic(card: Card, trumpSuit: Suit) {
     (card.rank === "A" ? 4 : 0) +
     (card.rank === "X" ? 2 : 0)
   );
+}
+
+function compareCardsByCheapValue(
+  left: Card,
+  right: Card,
+  trumpSuit: Suit,
+) {
+  const heuristicDelta =
+    cardHeuristic(left, trumpSuit) - cardHeuristic(right, trumpSuit);
+
+  if (heuristicDelta !== 0) {
+    return heuristicDelta;
+  }
+
+  const strengthDelta =
+    left.suit === right.suit ? compareBellotCards(left, right, trumpSuit) : 0;
+
+  if (strengthDelta !== 0) {
+    return strengthDelta;
+  }
+
+  return left.id.localeCompare(right.id);
 }
 
 function playerById(state: BellotState, playerId: string) {

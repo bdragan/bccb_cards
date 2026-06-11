@@ -6,6 +6,7 @@ import {
   applyBellotAction,
   autoSelectBellotDeclarations,
   bellotCardPoints,
+  bellotCpuCheapSearchCard,
   bellotCpuMonteCarloSampleLimit,
   bellotCpuSearchCards,
   calculateBellotHandResult,
@@ -811,6 +812,105 @@ describe("Bellot", () => {
     expect(bellotCpuMonteCarloSampleLimit(64, 10)).toBe(64);
     expect(bellotCpuMonteCarloSampleLimit(64, 9)).toBe(77);
     expect(bellotCpuMonteCarloSampleLimit(64, 6)).toBe(116);
+  });
+
+  it("uses cheap Bellot search moves for distant rollout plies", () => {
+    const respondingState: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("X", "acorns"), card("A", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(respondingState.players[0].hand, respondingState)
+        .id,
+    ).toBe("X-acorns");
+
+    const losingResponseState: BellotState = {
+      ...respondingState,
+      players: respondingState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [card("VII", "acorns"), card("O", "acorns")],
+            }
+          : player,
+      ),
+      currentTrick: [{ playerId: "p2", card: card("A", "acorns") }],
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(
+        losingResponseState.players[0].hand,
+        losingResponseState,
+      ).id,
+    ).toBe("VII-acorns");
+
+    const leadingState: BellotState = {
+      ...respondingState,
+      players: respondingState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("VII", "hearts"),
+                card("U", "hearts"),
+                card("X", "bells"),
+                card("A", "acorns"),
+              ],
+            }
+          : player,
+      ),
+      currentTrick: [],
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(leadingState.players[0].hand, leadingState).id,
+    ).toBe("A-acorns");
+
+    const trumpOnlyLeadState: BellotState = {
+      ...leadingState,
+      players: leadingState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [card("VII", "hearts"), card("U", "hearts")],
+            }
+          : player,
+      ),
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(
+        trumpOnlyLeadState.players[0].hand,
+        trumpOnlyLeadState,
+      ).id,
+    ).toBe("U-hearts");
   });
 
   it("searches only the endpoints of strength-connected non-trump card ranges", () => {
