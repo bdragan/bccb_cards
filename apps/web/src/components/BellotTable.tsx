@@ -367,15 +367,15 @@ export function BellotTable({
             {player.totalScore}
           </p>
         </div>
-        <div className="mt-1 text-right">
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="text-xs uppercase text-white/60">
+            {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
+            {state.callerPlayerId === player.playerId ? " - Caller" : ""}
+          </p>
           <p className="text-xl font-bold leading-none text-yellow-300">
             {gamePoints}
           </p>
         </div>
-        <p className="mt-1 text-xs uppercase text-white/60">
-          {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
-          {state.callerPlayerId === player.playerId ? " · Caller" : ""}
-        </p>
         {declarations.length ? (
           <div className="mt-3 min-w-0">
             <p className="mb-1 text-xs font-semibold text-white/70">
@@ -402,11 +402,7 @@ export function BellotTable({
               ))}
             </div>
           </div>
-        ) : (
-          <p className="mt-3 text-sm text-white/60">
-            {player.handCount} cards in hand
-          </p>
-        )}
+        ) : null}
       </article>
     );
   });
