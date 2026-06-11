@@ -516,7 +516,7 @@ export function BellotTable({
           <p className="mb-2 text-sm font-semibold">
             {visibleTrick?.label ?? "Current trick"}
           </p>
-          <div className="flex min-h-[114px] flex-wrap content-start gap-3">
+          <div className="grid min-h-[114px] grid-cols-[repeat(2,71px)] justify-center gap-3">
             {visibleTrick?.cards.map((play) => (
               <div
                 key={`${play.playerId}-${play.card.id}`}
