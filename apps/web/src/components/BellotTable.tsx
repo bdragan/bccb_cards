@@ -671,14 +671,14 @@ export function BellotTable({
             type="button"
             onClick={() => setShowPlayedHands((visible) => !visible)}
           >
-            {showPlayedHands ? "Hide played hands" : "Show played hands"}
+            {showPlayedHands ? "Hide played tricks" : "Show played tricks"}
           </Button>
           {showPlayedHands ? (
             <div className="mt-3 space-y-3 rounded-md bg-white/10 p-3">
               {state.completedTricks.map((trick, index) => (
                 <div key={index}>
                   <p className="mb-2 text-sm font-semibold">
-                    Hand {index + 1} ·{" "}
+                    Trick {index + 1} ·{" "}
                     {
                       state.players.find(
                         (player) => player.playerId === trick.winnerPlayerId,

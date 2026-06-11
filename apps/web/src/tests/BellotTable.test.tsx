@@ -272,13 +272,13 @@ describe("BellotTable", () => {
     ).toHaveClass("h-[114px]", "w-[71px]");
   });
 
-  it("shows played hands and highlights the trick winner's card", async () => {
+  it("shows played tricks and highlights the trick winner's card", async () => {
     const user = userEvent.setup();
     renderTable();
 
-    await user.click(screen.getByRole("button", { name: "Show played hands" }));
+    await user.click(screen.getByRole("button", { name: "Show played tricks" }));
 
-    const hand = screen.getByText("Hand 1 · Bob").parentElement!;
+    const hand = screen.getByText("Trick 1 · Bob").parentElement!;
 
     expect(
       within(hand).getByAltText("A of Acorns").parentElement,
@@ -288,7 +288,7 @@ describe("BellotTable", () => {
     ).toHaveClass("opacity-45");
   });
 
-  it("shows played hands before the first trick has completed", async () => {
+  it("shows played tricks before the first trick has completed", async () => {
     const user = userEvent.setup();
     renderTable({
       ...baseState,
@@ -296,12 +296,12 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    await user.click(screen.getByRole("button", { name: "Show played hands" }));
+    await user.click(screen.getByRole("button", { name: "Show played tricks" }));
 
     expect(
-      screen.getByRole("button", { name: "Hide played hands" }),
+      screen.getByRole("button", { name: "Hide played tricks" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Hand 1/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Trick 1/)).not.toBeInTheDocument();
   });
 
   it("shows captured game points during trick play", () => {
