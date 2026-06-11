@@ -9,6 +9,7 @@ import {
   bellotCpuCheapSearchCard,
   bellotCpuMonteCarloSampleLimit,
   bellotCpuSearchCards,
+  bellotCpuTrumpMonteCarloSamples,
   calculateBellotHandResult,
   chooseBellotCpuAction,
   compareBellotCards,
@@ -817,6 +818,17 @@ describe("Bellot", () => {
 
   it("uses the same 14-ply default CPU search for trump and trick play", () => {
     expect(defaultBellotCpuMaxSearchPlies).toBe(14);
+  });
+
+  it("uses 50 percent more regular CPU Monte Carlo samples when selecting trump", () => {
+    expect(bellotCpuTrumpMonteCarloSamples()).toBe(96);
+    expect(bellotCpuTrumpMonteCarloSamples({ monteCarloSamples: 10 })).toBe(15);
+    expect(
+      bellotCpuTrumpMonteCarloSamples({
+        monteCarloSamples: 10,
+        trumpMonteCarloSamples: 7,
+      }),
+    ).toBe(7);
   });
 
   it("uses cheap Bellot search moves for distant rollout plies", () => {

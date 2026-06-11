@@ -31,9 +31,9 @@ export type BellotCpuOptions = {
 
 export const defaultBellotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
-const defaultTrumpMonteCarloSamples = 64;
-const defaultTrumpMinSuccessRate = 0.85;
-const defaultTrumpHighSuccessRate = 0.95;
+const trumpMonteCarloSampleMultiplier = 1.5;
+const defaultTrumpMinSuccessRate = 0.8;
+const defaultTrumpHighSuccessRate = 0.9;
 const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
@@ -95,6 +95,14 @@ export function bellotCpuMonteCarloSampleLimit(
       normalizedBaseSampleCount *
         (1 + missingCards * sampleIncreasePerMissingCard),
     ),
+  );
+}
+
+export function bellotCpuTrumpMonteCarloSamples(options: BellotCpuOptions = {}) {
+  return (
+    options.trumpMonteCarloSamples ??
+    (options.monteCarloSamples ?? defaultMonteCarloSamples) *
+      trumpMonteCarloSampleMultiplier
   );
 }
 
@@ -381,10 +389,7 @@ function averageTrumpRolloutScore(
   options: BellotCpuOptions,
   rng: () => number,
 ): TrumpCandidateScore {
-  const sampleCount =
-    options.trumpMonteCarloSamples ??
-    options.monteCarloSamples ??
-    defaultTrumpMonteCarloSamples;
+  const sampleCount = bellotCpuTrumpMonteCarloSamples(options);
   const samples = createTrumpRolloutStates(
     state,
     cpuPlayerId,
