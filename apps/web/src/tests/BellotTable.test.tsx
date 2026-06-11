@@ -1,5 +1,5 @@
 import type { BellotPublicState, Card } from "@card-games/shared";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -158,101 +158,126 @@ describe("BellotTable", () => {
     ).toHaveClass("ring-4");
   });
 
-  it("shows hand results in the middle with revealed player cards and Tesla", () => {
-    renderTable({
-      ...baseState,
-      phase: "hand-complete",
-      currentTurnPlayerId: undefined,
-      currentTrick: [],
-      players: baseState.players.map((player) =>
-        player.playerId === "p1"
-          ? {
-              ...player,
-              hand: [],
-              handCount: 0,
-              pickupCardIds: ["A-hearts"],
-            }
-          : {
-              ...player,
-              handCount: 0,
-              pickupCardIds: ["K-hearts"],
-            },
-      ),
-      completedTricks: [
-        {
-          winnerPlayerId: "p1",
-          cards: [
-            { playerId: "p1", card: card("VII", "acorns") },
-            { playerId: "p2", card: card("A", "acorns") },
-          ],
+  it("waits for the final trick linger before showing hand results", async () => {
+    vi.useFakeTimers();
+
+    try {
+      renderTable({
+        ...baseState,
+        phase: "hand-complete",
+        currentTurnPlayerId: undefined,
+        currentTrick: [],
+        players: baseState.players.map((player) =>
+          player.playerId === "p1"
+            ? {
+                ...player,
+                hand: [],
+                handCount: 0,
+                pickupCardIds: ["A-hearts"],
+              }
+            : {
+                ...player,
+                handCount: 0,
+                pickupCardIds: ["K-hearts"],
+              },
+        ),
+        completedTricks: [
+          {
+            winnerPlayerId: "p1",
+            cards: [
+              { playerId: "p1", card: card("VII", "acorns") },
+              { playerId: "p2", card: card("A", "acorns") },
+            ],
+          },
+          {
+            winnerPlayerId: "p2",
+            cards: [
+              { playerId: "p1", card: card("A", "hearts") },
+              { playerId: "p2", card: card("K", "hearts") },
+            ],
+          },
+        ],
+        unusedCards: [card("IX", "leaves"), card("X", "bells")],
+        lastHandResult: {
+          callerPlayerId: "p1",
+          opponentPlayerId: "p2",
+          gamePointsByPlayer: { p1: 21, p2: 15 },
+          declarationPointsByPlayer: { p1: 0, p2: 0 },
+          totalPointsByPlayer: { p1: 21, p2: 15 },
+          handScoreByPlayer: { p1: 2, p2: 1 },
+          schusterPlayerIds: [],
+          callerFell: true,
+          callerFellOnGame: false,
+          isMus: false,
+          lastTrickWinnerPlayerId: "p2",
         },
-        {
-          winnerPlayerId: "p2",
-          cards: [
-            { playerId: "p1", card: card("A", "hearts") },
-            { playerId: "p2", card: card("K", "hearts") },
-          ],
-        },
-      ],
-      unusedCards: [card("IX", "leaves"), card("X", "bells")],
-      lastHandResult: {
-        callerPlayerId: "p1",
-        opponentPlayerId: "p2",
-        gamePointsByPlayer: { p1: 21, p2: 15 },
-        declarationPointsByPlayer: { p1: 0, p2: 0 },
-        totalPointsByPlayer: { p1: 21, p2: 15 },
-        handScoreByPlayer: { p1: 2, p2: 1 },
-        schusterPlayerIds: [],
-        callerFell: true,
-        callerFellOnGame: false,
-        isMus: false,
-        lastTrickWinnerPlayerId: "p2",
-      },
-    });
+      });
 
-    const result = screen.getByTestId("bellot-hand-result");
-    const playedTricksButton = screen.getByRole("button", {
-      name: "Show played tricks",
-    });
+      const finalTrick = screen.getByTestId("bellot-current-trick");
 
-    expect(
-      screen.queryByTestId("bellot-current-trick"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("bellot-hand-card")).not.toBeInTheDocument();
-    expect(
-      result.compareDocumentPosition(playedTricksButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).not.toBe(0);
-    expect(result).toHaveClass("bg-white/10", "text-white");
+      expect(
+        screen.queryByTestId("bellot-hand-result"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(finalTrick).getByText("Completed trick 2"),
+      ).toBeInTheDocument();
+      expect(
+        within(finalTrick).getByAltText("A of Hearts"),
+      ).toBeInTheDocument();
+      expect(
+        within(finalTrick).getByAltText("K of Hearts"),
+      ).toBeInTheDocument();
 
-    const scoreRows = screen.getAllByTestId("bellot-result-score-row");
-    expect(within(scoreRows[0]).getByText("Alice:")).toBeInTheDocument();
-    expect(within(scoreRows[0]).getByText("2")).toHaveClass("text-right");
-    expect(within(scoreRows[1]).getByText("Bob:")).toBeInTheDocument();
-    expect(within(scoreRows[1]).getByText("1")).toHaveClass("text-right");
-    expect(screen.queryByText("(fell)")).not.toBeInTheDocument();
-    expect(screen.queryByText("Caller fell.")).not.toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(2_000);
+      });
 
-    const cardRows = screen.getAllByTestId("bellot-result-card-row");
-    expect(
-      within(cardRows[0])
-        .getAllByRole("img")
-        .map((img) => img.getAttribute("alt")),
-    ).toEqual(["VII of Acorns", "A of Hearts"]);
-    expect(
-      within(cardRows[1])
-        .getAllByRole("img")
-        .map((img) => img.getAttribute("alt")),
-    ).toEqual(["A of Acorns", "K of Hearts"]);
-    expect(
-      within(cardRows[2])
-        .getAllByRole("img")
-        .map((img) => img.getAttribute("alt")),
-    ).toEqual(["X of Bells", "IX of Leaves"]);
-    expect(screen.getAllByText("Hidden pickup card")).toHaveLength(2);
-    expect(
-      screen.getAllByText("Hidden pickup card")[0].parentElement,
-    ).toHaveClass("ring-4");
+      const result = screen.getByTestId("bellot-hand-result");
+      const playedTricksButton = screen.getByRole("button", {
+        name: "Show played tricks",
+      });
+
+      expect(
+        screen.queryByTestId("bellot-current-trick"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("bellot-hand-card")).not.toBeInTheDocument();
+      expect(
+        result.compareDocumentPosition(playedTricksButton) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(result).toHaveClass("bg-white/10", "text-white");
+
+      const scoreRows = screen.getAllByTestId("bellot-result-score-row");
+      expect(within(scoreRows[0]).getByText("Alice:")).toBeInTheDocument();
+      expect(within(scoreRows[0]).getByText("2")).toHaveClass("text-right");
+      expect(within(scoreRows[1]).getByText("Bob:")).toBeInTheDocument();
+      expect(within(scoreRows[1]).getByText("1")).toHaveClass("text-right");
+      expect(screen.queryByText("(fell)")).not.toBeInTheDocument();
+      expect(screen.queryByText("Caller fell.")).not.toBeInTheDocument();
+
+      const cardRows = screen.getAllByTestId("bellot-result-card-row");
+      expect(
+        within(cardRows[0])
+          .getAllByRole("img")
+          .map((img) => img.getAttribute("alt")),
+      ).toEqual(["VII of Acorns", "A of Hearts"]);
+      expect(
+        within(cardRows[1])
+          .getAllByRole("img")
+          .map((img) => img.getAttribute("alt")),
+      ).toEqual(["A of Acorns", "K of Hearts"]);
+      expect(
+        within(cardRows[2])
+          .getAllByRole("img")
+          .map((img) => img.getAttribute("alt")),
+      ).toEqual(["X of Bells", "IX of Leaves"]);
+      expect(screen.getAllByText("Hidden pickup card")).toHaveLength(2);
+      expect(
+        screen.getAllByText("Hidden pickup card")[0].parentElement,
+      ).toHaveClass("ring-4");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shows declaration bonus points and dims called cards after they are played", () => {

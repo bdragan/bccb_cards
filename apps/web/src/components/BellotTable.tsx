@@ -344,6 +344,7 @@ export function BellotTable({
     cards: BellotTrickPlay[];
   }>();
   const [showPlayedHands, setShowPlayedHands] = useState(false);
+  const [revealedHandResultKey, setRevealedHandResultKey] = useState<string>();
 
   const legalCardIds = useMemo(() => {
     if (
@@ -397,7 +398,25 @@ export function BellotTable({
     [state],
   );
   const selectionLogs = trumpSelectionLogs(state);
-  const hasHandResult = Boolean(state.lastHandResult);
+  const handResultKey = state.lastHandResult
+    ? [
+        state.completedTricks.length,
+        state.lastHandResult.lastTrickWinnerPlayerId,
+        ...state.players.map(
+          (player) =>
+            `${player.playerId}:${
+              state.lastHandResult?.handScoreByPlayer[player.playerId] ?? 0
+            }`,
+        ),
+      ].join("|")
+    : undefined;
+  const showHandResult = Boolean(
+    handResultKey && revealedHandResultKey === handResultKey,
+  );
+  const waitingForHandResult = Boolean(handResultKey && !showHandResult);
+  const resultDelayTrick = waitingForHandResult
+    ? state.completedTricks.at(-1)
+    : undefined;
   const visibleTrick = state.currentTrick.length
     ? {
         label: "Current trick",
@@ -415,9 +434,20 @@ export function BellotTable({
             ]),
           ),
         }
-      : undefined;
+      : resultDelayTrick
+        ? {
+            label: `Completed trick ${state.completedTricks.length}`,
+            cards: resultDelayTrick.cards,
+            strengthByCardId: new Map(
+              resultDelayTrick.cards.map((play) => [
+                play.card.id,
+                play.playerId === resultDelayTrick.winnerPlayerId,
+              ]),
+            ),
+          }
+        : undefined;
   const showTrickArea =
-    !hasHandResult &&
+    !showHandResult &&
     (state.phase === "trick-play" ||
       trumpSelectionPhases.includes(state.phase) ||
       Boolean(visibleTrick));
@@ -458,6 +488,19 @@ export function BellotTable({
 
     return () => window.clearTimeout(timeout);
   }, [state.completedTricks, state.currentTrick]);
+
+  useEffect(() => {
+    if (!handResultKey) {
+      setRevealedHandResultKey(undefined);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setRevealedHandResultKey(handResultKey);
+    }, completedTrickLingerMs);
+
+    return () => window.clearTimeout(timeout);
+  }, [handResultKey]);
 
   useEffect(() => {
     if (
@@ -690,7 +733,7 @@ export function BellotTable({
         </div>
       ) : null}
 
-      {state.lastHandResult ? (
+      {showHandResult ? (
         <div
           className="mt-4 rounded-md bg-white/10 p-3 text-white"
           data-testid="bellot-hand-result"
