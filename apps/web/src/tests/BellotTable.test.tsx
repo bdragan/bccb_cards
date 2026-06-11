@@ -233,6 +233,7 @@ describe("BellotTable", () => {
       });
 
       const result = screen.getByTestId("bellot-hand-result");
+      const startingCards = screen.getByTestId("bellot-starting-cards");
       const playedTricksButton = screen.getByRole("button", {
         name: "Show played tricks",
       });
@@ -246,6 +247,15 @@ describe("BellotTable", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
       expect(result).toHaveClass("bg-white/10", "text-white");
+      expect(startingCards).toHaveClass("bg-white/10", "text-white");
+      expect(
+        result.compareDocumentPosition(startingCards) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        startingCards.compareDocumentPosition(playedTricksButton) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
 
       const scoreRows = screen.getAllByTestId("bellot-result-score-row");
       expect(within(scoreRows[0]).getByText("Alice:")).toBeInTheDocument();
@@ -254,6 +264,9 @@ describe("BellotTable", () => {
       expect(within(scoreRows[1]).getByText("1")).toHaveClass("text-right");
       expect(screen.queryByText("(fell)")).not.toBeInTheDocument();
       expect(screen.queryByText("Caller fell.")).not.toBeInTheDocument();
+      expect(
+        within(startingCards).getByText("Starting cards"),
+      ).toBeInTheDocument();
 
       const cardRows = screen.getAllByTestId("bellot-result-card-row");
       expect(

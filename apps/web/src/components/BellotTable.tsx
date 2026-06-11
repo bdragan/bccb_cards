@@ -734,46 +734,59 @@ export function BellotTable({
       ) : null}
 
       {showHandResult ? (
-        <div
-          className="mt-4 rounded-md bg-white/10 p-3 text-white"
-          data-testid="bellot-hand-result"
-        >
-          <h3 className="font-bold">Hand score</h3>
-          <div className="mt-2 space-y-1 text-sm">
-            {[resultCurrentPlayer, resultOpponentPlayer].map((player) =>
-              player ? (
-                <p
-                  key={player.playerId}
-                  className="grid w-fit grid-cols-[5rem_3rem] items-baseline gap-x-2"
-                  data-testid="bellot-result-score-row"
-                >
-                  <span className="truncate">{player.displayName}:</span>
-                  <span className="text-right tabular-nums">
-                    {state.lastHandResult?.handScoreByPlayer[player.playerId] ??
-                      0}
-                  </span>
-                </p>
-              ) : null,
-            )}
+        <>
+          <div
+            className="mt-4 rounded-md bg-white/10 p-3 text-white"
+            data-testid="bellot-hand-result"
+          >
+            <h3 className="font-bold">Hand score</h3>
+            <div className="mt-2 space-y-1 text-sm">
+              {[resultCurrentPlayer, resultOpponentPlayer].map((player) =>
+                player ? (
+                  <p
+                    key={player.playerId}
+                    className="grid w-fit grid-cols-[5rem_3rem] items-baseline gap-x-2"
+                    data-testid="bellot-result-score-row"
+                  >
+                    <span className="truncate">{player.displayName}:</span>
+                    <span className="text-right tabular-nums">
+                      {state.lastHandResult?.handScoreByPlayer[
+                        player.playerId
+                      ] ?? 0}
+                    </span>
+                  </p>
+                ) : null,
+              )}
+            </div>
           </div>
-          <div className="mt-4 space-y-4">
-            {resultCurrentPlayer ? (
-              <ResultCardRow
-                label={resultCurrentPlayer.displayName}
-                cards={resultCardsByPlayer[resultCurrentPlayer.playerId] ?? []}
-                pickupCardIds={resultCurrentPlayer.pickupCardIds}
-              />
-            ) : null}
-            {resultOpponentPlayer ? (
-              <ResultCardRow
-                label={resultOpponentPlayer.displayName}
-                cards={resultCardsByPlayer[resultOpponentPlayer.playerId] ?? []}
-                pickupCardIds={resultOpponentPlayer.pickupCardIds}
-              />
-            ) : null}
-            <ResultCardRow label="Tesla" cards={state.unusedCards ?? []} />
+          <div
+            className="mt-4 rounded-md bg-white/10 p-3 text-white"
+            data-testid="bellot-starting-cards"
+          >
+            <h3 className="font-bold">Starting cards</h3>
+            <div className="mt-2 space-y-4">
+              {resultCurrentPlayer ? (
+                <ResultCardRow
+                  label={resultCurrentPlayer.displayName}
+                  cards={
+                    resultCardsByPlayer[resultCurrentPlayer.playerId] ?? []
+                  }
+                  pickupCardIds={resultCurrentPlayer.pickupCardIds}
+                />
+              ) : null}
+              {resultOpponentPlayer ? (
+                <ResultCardRow
+                  label={resultOpponentPlayer.displayName}
+                  cards={
+                    resultCardsByPlayer[resultOpponentPlayer.playerId] ?? []
+                  }
+                  pickupCardIds={resultOpponentPlayer.pickupCardIds}
+                />
+              ) : null}
+              <ResultCardRow label="Tesla" cards={state.unusedCards ?? []} />
+            </div>
           </div>
-        </div>
+        </>
       ) : currentHand.length ? (
         <div className="mt-4">
           <p className="mb-2 text-sm font-semibold">
