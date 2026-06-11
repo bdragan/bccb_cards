@@ -930,6 +930,94 @@ describe("Bellot", () => {
     ).toBe("U-hearts");
   });
 
+  it("plays VIII hearts from the screenshot trick-two lead within five CPU probes", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          displayName: "CPU",
+          ready: true,
+          hand: [
+            card("VII", "acorns"),
+            card("VIII", "acorns"),
+            card("O", "acorns"),
+            card("K", "acorns"),
+            card("IX", "bells"),
+            card("K", "bells"),
+            card("VIII", "hearts"),
+            card("VIII", "leaves"),
+            card("A", "leaves"),
+          ],
+          hiddenCards: [],
+          wonCards: [card("A", "hearts"), card("K", "hearts")],
+          tricksWon: 1,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          displayName: "Dragan",
+          ready: true,
+          hand: [
+            card("X", "bells"),
+            card("VIII", "acorns"),
+            card("U", "hearts"),
+            card("X", "hearts"),
+            card("VII", "hearts"),
+            card("K", "leaves"),
+            card("X", "leaves"),
+            card("O", "acorns"),
+            card("IX", "leaves"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("U", "acorns"),
+      trumpSuit: "leaves",
+      callerPlayerId: "p1",
+      firstPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "hearts") },
+            { playerId: "p2", card: card("K", "hearts") },
+          ],
+        },
+      ],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const rngValues = [0.13, 0.31, 0.47, 0.69, 0.83];
+    const playedCardIds: string[] = [];
+
+    for (const rngValue of rngValues) {
+      const action = chooseBellotCpuAction(state, "p1", {
+        maxSearchPlies: defaultBellotCpuMaxSearchPlies,
+        monteCarloSamples: 8,
+        rng: () => rngValue,
+      });
+
+      if (action?.type !== "play-card") {
+        throw new Error("CPU did not choose a card to play");
+      }
+
+      playedCardIds.push(action.cardId);
+
+      if (action.cardId === "VIII-hearts") {
+        return;
+      }
+    }
+
+    expect(playedCardIds).toContain("VIII-hearts");
+  });
+
   it("searches only the endpoints of strength-connected non-trump card ranges", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),

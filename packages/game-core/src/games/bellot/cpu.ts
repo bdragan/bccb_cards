@@ -427,7 +427,7 @@ function averageTrumpRolloutScore(
 }
 
 function callerAvoidedFall(result: BellotSearchResult) {
-  return result.callerFell === undefined ? result.value > 0 : !result.callerFell;
+  return result.callerFell === undefined ? result.value >= 0 : !result.callerFell;
 }
 
 function createTrumpRolloutStates(
@@ -1466,41 +1466,7 @@ function evaluateState(state: BellotState, cpuPlayerId: string) {
     return 0;
   }
 
-  if (state.winnerPlayerId === cpuPlayerId) {
-    return maxUtility / 2;
-  }
-
-  if (state.winnerPlayerId && state.winnerPlayerId !== cpuPlayerId) {
-    return -maxUtility / 2;
-  }
-
-  const handScoreDelta = state.lastHandResult
-    ? (state.lastHandResult.handScoreByPlayer[cpuPlayerId] ?? 0) -
-      (state.lastHandResult.handScoreByPlayer[opponent.playerId] ?? 0)
-    : 0;
-  const totalScoreDelta = cpu.totalScore - opponent.totalScore;
-  const declarationDelta =
-    declarationPoints(state, cpuPlayerId) -
-    declarationPoints(state, opponent.playerId);
-  const gamePointDelta = state.trumpSuit
-    ? capturedPoints(cpu, state) - capturedPoints(opponent, state)
-    : 0;
-  const handPointDelta = state.trumpSuit
-    ? remainingHandPotential(cpu.hand, state.trumpSuit) -
-      remainingHandPotential(opponent.hand, state.trumpSuit)
-    : 0;
-  const trickDelta = cpu.tricksWon - opponent.tricksWon;
-  const callerPressure = callerMarginPressure(state, cpuPlayerId);
-
-  return (
-    handScoreDelta * 12 +
-    totalScoreDelta * 2 +
-    declarationDelta * 1.4 +
-    gamePointDelta * 2.2 +
-    handPointDelta * 0.45 +
-    trickDelta * 5 +
-    callerPressure
-  );
+  return cpu.totalScore - opponent.totalScore;
 }
 
 function declarationPoints(state: BellotState, playerId: string) {
@@ -1508,45 +1474,6 @@ function declarationPoints(state: BellotState, playerId: string) {
     (sum, declaration) => sum + declaration.points,
     0,
   );
-}
-
-function capturedPoints(player: BellotPlayerState, state: BellotState) {
-  if (!state.trumpSuit) {
-    return 0;
-  }
-
-  return player.wonCards.reduce(
-    (sum, card) => sum + bellotCardPoints(card, state.trumpSuit!),
-    0,
-  );
-}
-
-function remainingHandPotential(hand: Card[], trumpSuit: Suit) {
-  return hand.reduce((sum, card) => sum + cardHeuristic(card, trumpSuit), 0);
-}
-
-function callerMarginPressure(state: BellotState, cpuPlayerId: string) {
-  if (!state.callerPlayerId || !state.trumpSuit) {
-    return 0;
-  }
-
-  const caller = playerById(state, state.callerPlayerId);
-  const opponent = state.players.find(
-    (player) => player.playerId !== state.callerPlayerId,
-  );
-
-  if (!opponent) {
-    return 0;
-  }
-
-  const callerTotal =
-    capturedPoints(caller, state) + declarationPoints(state, caller.playerId);
-  const opponentTotal =
-    capturedPoints(opponent, state) +
-    declarationPoints(state, opponent.playerId);
-  const margin = callerTotal - opponentTotal;
-
-  return state.callerPlayerId === cpuPlayerId ? margin * 0.9 : -margin * 0.9;
 }
 
 function orderCardsForSearch(
