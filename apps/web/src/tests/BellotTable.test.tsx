@@ -224,7 +224,21 @@ describe("BellotTable", () => {
       ),
     });
 
-    expect(screen.getByText("24 pts · 0 tricks")).toBeInTheDocument();
+    expect(screen.getByText("24")).toBeInTheDocument();
+  });
+
+  it("shows each player's running game score", () => {
+    renderTable({
+      ...baseState,
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? { ...player, totalScore: 184 }
+          : { ...player, totalScore: 92 },
+      ),
+    });
+
+    expect(screen.getByText("184")).toBeInTheDocument();
+    expect(screen.getByText("92")).toBeInTheDocument();
   });
 
   it("falls back to completed tricks when game points are missing", () => {
@@ -237,7 +251,7 @@ describe("BellotTable", () => {
 
     renderTable(legacyState);
 
-    expect(screen.getByText("11 pts · 1 tricks")).toBeInTheDocument();
+    expect(screen.getAllByText("11")).not.toHaveLength(0);
   });
 
   it("separates declaration combinations horizontally", () => {

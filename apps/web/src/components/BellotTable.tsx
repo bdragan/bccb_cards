@@ -361,11 +361,16 @@ export function BellotTable({
 
     return (
       <article key={player.playerId} className="rounded-md bg-white/10 p-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold">{player.displayName}</h3>
-          <span className="text-sm text-white/80">
-            {gamePoints} pts · {player.tricksWon} tricks
-          </span>
+          <p className="text-xl font-bold leading-none text-white">
+            {player.totalScore}
+          </p>
+        </div>
+        <div className="mt-1 text-right">
+          <p className="text-xl font-bold leading-none text-yellow-300">
+            {gamePoints}
+          </p>
         </div>
         <p className="mt-1 text-xs uppercase text-white/60">
           {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
