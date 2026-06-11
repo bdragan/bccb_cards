@@ -9,10 +9,12 @@ import {
   bellotCpuCheapSearchCard,
   bellotCpuMonteCarloSampleLimit,
   bellotCpuSearchCards,
+  bellotCpuTrumpSearchPlyBonus,
   calculateBellotHandResult,
   chooseBellotCpuAction,
   compareBellotCards,
   createBellotInitialState,
+  defaultBellotCpuMaxSearchPlies,
   getBellotPublicState,
   inferBellotCpuImpossibleOpponentCardIds,
   legalBellotCards,
@@ -812,6 +814,13 @@ describe("Bellot", () => {
     expect(bellotCpuMonteCarloSampleLimit(64, 10)).toBe(64);
     expect(bellotCpuMonteCarloSampleLimit(64, 9)).toBe(77);
     expect(bellotCpuMonteCarloSampleLimit(64, 6)).toBe(116);
+  });
+
+  it("uses a 14-ply default CPU search and 16-ply trump search", () => {
+    expect(defaultBellotCpuMaxSearchPlies).toBe(14);
+    expect(
+      defaultBellotCpuMaxSearchPlies + bellotCpuTrumpSearchPlyBonus,
+    ).toBe(16);
   });
 
   it("uses cheap Bellot search moves for distant rollout plies", () => {

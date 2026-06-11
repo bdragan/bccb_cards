@@ -29,8 +29,8 @@ export type BellotCpuOptions = {
   trumpMinExpectedValue?: number;
 };
 
-const defaultMaxSearchPlies = 10;
-const trumpSearchPlyBonus = 2;
+export const defaultBellotCpuMaxSearchPlies = 14;
+export const bellotCpuTrumpSearchPlyBonus = 2;
 const defaultMonteCarloSamples = 64;
 const defaultTrumpMonteCarloSamples = 64;
 const defaultTrumpMinSuccessRate = 0.85;
@@ -396,7 +396,8 @@ function averageTrumpRolloutScore(
   );
   const searchPlies =
     options.trumpSearchPlies ??
-    (options.maxSearchPlies ?? defaultMaxSearchPlies) + trumpSearchPlyBonus;
+    (options.maxSearchPlies ?? defaultBellotCpuMaxSearchPlies) +
+      bellotCpuTrumpSearchPlyBonus;
   const transpositions: BellotTranspositionTable = new Map();
   const searchContext = createBellotSearchContext(searchPlies);
   const results = samples.map((sample) =>
@@ -521,7 +522,8 @@ function chooseCardForTrick(
   }
 
   const rng = options.rng ?? Math.random;
-  const maxSearchPlies = options.maxSearchPlies ?? defaultMaxSearchPlies;
+  const maxSearchPlies =
+    options.maxSearchPlies ?? defaultBellotCpuMaxSearchPlies;
   const samples = createDeterminizedStates(
     state,
     cpuPlayerId,

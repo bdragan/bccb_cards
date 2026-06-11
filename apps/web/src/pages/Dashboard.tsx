@@ -4,6 +4,7 @@ import {
   type BellotCpuOptions,
   type BellotState,
   createBellotInitialState,
+  defaultBellotCpuMaxSearchPlies,
   getBellotPublicState,
 } from "@card-games/game-core";
 import type {
@@ -218,7 +219,7 @@ export function Dashboard() {
     }
 
     const cpuOptions: BellotCpuOptions = {
-      maxSearchPlies: 10,
+      maxSearchPlies: defaultBellotCpuMaxSearchPlies,
       monteCarloSamples: 64,
     };
 
