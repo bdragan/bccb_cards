@@ -127,9 +127,7 @@ describe("BellotTable", () => {
       suitGroups.map((group) =>
         within(group)
           .getAllByTestId("bellot-hand-card")
-          .map((button) =>
-            within(button).getByRole("img").getAttribute("alt"),
-          ),
+          .map((button) => within(button).getByRole("img").getAttribute("alt")),
       ),
     ).toEqual([
       ["VII of Acorns", "X of Acorns"],
@@ -155,6 +153,97 @@ describe("BellotTable", () => {
       );
 
     expect(markedCards).toEqual(["IX of Bells", "A of Hearts"]);
+    expect(
+      screen.getAllByText("Hidden pickup card")[0].closest("button"),
+    ).toHaveClass("ring-4");
+  });
+
+  it("shows hand results in the middle with revealed player cards and Tesla", () => {
+    renderTable({
+      ...baseState,
+      phase: "hand-complete",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [],
+              handCount: 0,
+              pickupCardIds: ["A-hearts"],
+            }
+          : {
+              ...player,
+              handCount: 0,
+              pickupCardIds: ["K-hearts"],
+            },
+      ),
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("VII", "acorns") },
+            { playerId: "p2", card: card("A", "acorns") },
+          ],
+        },
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p1", card: card("A", "hearts") },
+            { playerId: "p2", card: card("K", "hearts") },
+          ],
+        },
+      ],
+      unusedCards: [card("IX", "leaves"), card("X", "bells")],
+      lastHandResult: {
+        callerPlayerId: "p1",
+        opponentPlayerId: "p2",
+        gamePointsByPlayer: { p1: 21, p2: 15 },
+        declarationPointsByPlayer: { p1: 0, p2: 0 },
+        totalPointsByPlayer: { p1: 21, p2: 15 },
+        handScoreByPlayer: { p1: 2, p2: 1 },
+        schusterPlayerIds: [],
+        callerFell: false,
+        callerFellOnGame: false,
+        isMus: false,
+        lastTrickWinnerPlayerId: "p2",
+      },
+    });
+
+    const result = screen.getByTestId("bellot-hand-result");
+    const playedTricksButton = screen.getByRole("button", {
+      name: "Show played tricks",
+    });
+
+    expect(
+      screen.queryByTestId("bellot-current-trick"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("bellot-hand-card")).not.toBeInTheDocument();
+    expect(
+      result.compareDocumentPosition(playedTricksButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    expect(result).toHaveClass("bg-white/10", "text-white");
+
+    expect(
+      within(screen.getByText("Alice:").parentElement!)
+        .getAllByRole("img")
+        .map((img) => img.getAttribute("alt")),
+    ).toEqual(["VII of Acorns", "A of Hearts"]);
+    expect(
+      within(screen.getByText("Bob:").parentElement!)
+        .getAllByRole("img")
+        .map((img) => img.getAttribute("alt")),
+    ).toEqual(["A of Acorns", "K of Hearts"]);
+    expect(
+      within(screen.getByText("Tesla:").parentElement!)
+        .getAllByRole("img")
+        .map((img) => img.getAttribute("alt")),
+    ).toEqual(["X of Bells", "IX of Leaves"]);
+    expect(screen.getAllByText("Hidden pickup card")).toHaveLength(2);
+    expect(
+      screen.getAllByText("Hidden pickup card")[0].parentElement,
+    ).toHaveClass("ring-4");
   });
 
   it("shows declaration bonus points and dims called cards after they are played", () => {
@@ -197,7 +286,9 @@ describe("BellotTable", () => {
     const currentTrick = screen.getByTestId("bellot-current-trick");
 
     expect(within(currentTrick).getByText("Current trick")).toBeInTheDocument();
-    expect(currentTrick.querySelector(".min-h-\\[114px\\]")).toBeInTheDocument();
+    expect(
+      currentTrick.querySelector(".min-h-\\[114px\\]"),
+    ).toBeInTheDocument();
   });
 
   it("shows trump selection logs in the current trick area", () => {
@@ -215,7 +306,9 @@ describe("BellotTable", () => {
 
     const currentTrick = screen.getByTestId("bellot-current-trick");
 
-    expect(within(currentTrick).getByText("Trump selection")).toBeInTheDocument();
+    expect(
+      within(currentTrick).getByText("Trump selection"),
+    ).toBeInTheDocument();
     expect(
       within(currentTrick).getByText("Upcard is K of Leaves."),
     ).toBeInTheDocument();
@@ -248,9 +341,7 @@ describe("BellotTable", () => {
       within(currentTrick).getByText("Both players passed twice."),
     ).toBeInTheDocument();
     expect(
-      within(currentTrick).getByText(
-        "Alice is on mus and must choose trump.",
-      ),
+      within(currentTrick).getByText("Alice is on mus and must choose trump."),
     ).toBeInTheDocument();
   });
 
@@ -276,7 +367,9 @@ describe("BellotTable", () => {
     const user = userEvent.setup();
     renderTable();
 
-    await user.click(screen.getByRole("button", { name: "Show played tricks" }));
+    await user.click(
+      screen.getByRole("button", { name: "Show played tricks" }),
+    );
 
     const hand = screen.getByText("Trick 1 · Bob").parentElement!;
 
@@ -296,7 +389,9 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    await user.click(screen.getByRole("button", { name: "Show played tricks" }));
+    await user.click(
+      screen.getByRole("button", { name: "Show played tricks" }),
+    );
 
     expect(
       screen.getByRole("button", { name: "Hide played tricks" }),
@@ -366,8 +461,9 @@ describe("BellotTable", () => {
   it("falls back to completed tricks when game points are missing", () => {
     const legacyState = {
       ...baseState,
-      players: baseState.players.map(({ gamePoints: _gamePoints, ...player }) =>
-        player.playerId === "p2" ? player : { ...player, gamePoints: 0 },
+      players: baseState.players.map(
+        ({ gamePoints: _gamePoints, ...player }) =>
+          player.playerId === "p2" ? player : { ...player, gamePoints: 0 },
       ),
     } as BellotPublicState;
 
@@ -433,15 +529,10 @@ describe("BellotTable", () => {
 
     expect(declarationGroups).toHaveLength(1);
     expect(
-      within(declarationGroups[0]).getAllByRole("img").map((img) =>
-        img.getAttribute("alt"),
-      ),
-    ).toEqual([
-      "X of Hearts",
-      "U of Hearts",
-      "O of Hearts",
-      "K of Hearts",
-    ]);
+      within(declarationGroups[0])
+        .getAllByRole("img")
+        .map((img) => img.getAttribute("alt")),
+    ).toEqual(["X of Hearts", "U of Hearts", "O of Hearts", "K of Hearts"]);
   });
 
   it("does not show the upcard suit on mus and uses the correct suit icon", () => {

@@ -1232,6 +1232,8 @@ export function getBellotPublicState(
       trick.cards.some((play) => play.playerId === viewerPlayerId),
     );
 
+  const revealHandResultCards = Boolean(state.lastHandResult);
+
   return {
     gameId: "bellot",
     phase: state.phase,
@@ -1241,9 +1243,10 @@ export function getBellotPublicState(
       ready: player.ready,
       hand: player.playerId === viewerPlayerId ? player.hand : undefined,
       pickupCardIds:
-        player.playerId === viewerPlayerId &&
-        player.hiddenCards.length === 0 &&
-        !viewerHasPlayedCard
+        revealHandResultCards ||
+        (player.playerId === viewerPlayerId &&
+          player.hiddenCards.length === 0 &&
+          !viewerHasPlayedCard)
           ? (player.pickupCardIds ?? [])
           : undefined,
       handCount: player.hand.length,
@@ -1270,6 +1273,7 @@ export function getBellotPublicState(
     completedTricks: state.completedTricks,
     declarationsByPlayer: state.declarationsByPlayer,
     publicCardsByPlayer: state.publicCardsByPlayer,
+    unusedCards: revealHandResultCards ? state.unusedCards : undefined,
     lastHandResult: state.lastHandResult,
     winnerPlayerId: state.winnerPlayerId,
     createdAt: state.createdAt,

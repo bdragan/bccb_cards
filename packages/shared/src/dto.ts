@@ -216,6 +216,7 @@ export type BellotPublicState = {
   }>;
   declarationsByPlayer: Record<string, BellotDeclaration[]>;
   publicCardsByPlayer: Record<string, z.infer<typeof cardSchema>[]>;
+  unusedCards?: z.infer<typeof cardSchema>[];
   lastHandResult?: BellotHandResult;
   winnerPlayerId?: string;
   createdAt: string;

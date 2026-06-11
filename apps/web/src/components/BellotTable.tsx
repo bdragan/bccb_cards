@@ -228,6 +228,74 @@ function trumpSelectionLogs(state: BellotPublicState) {
   return logs;
 }
 
+function playedCardsByPlayer(state: BellotPublicState) {
+  const cardsByPlayer = Object.fromEntries(
+    state.players.map((player) => [player.playerId, [] as Card[]]),
+  ) as Record<string, Card[]>;
+
+  for (const trick of state.completedTricks) {
+    for (const play of trick.cards) {
+      cardsByPlayer[play.playerId]?.push(play.card);
+    }
+  }
+
+  for (const play of state.currentTrick) {
+    cardsByPlayer[play.playerId]?.push(play.card);
+  }
+
+  return Object.fromEntries(
+    Object.entries(cardsByPlayer).map(([playerId, cards]) => [
+      playerId,
+      sortCards(cards),
+    ]),
+  ) as Record<string, Card[]>;
+}
+
+function ResultCardRow({
+  label,
+  cards,
+  pickupCardIds,
+}: {
+  label: string;
+  cards: Card[];
+  pickupCardIds?: string[];
+}) {
+  const hiddenPickupCardIds = new Set(pickupCardIds ?? []);
+  const suitGroups = groupCardsBySuit(sortCards(cards));
+
+  return (
+    <div
+      className="flex items-start gap-3"
+      data-testid="bellot-result-card-row"
+    >
+      <p className="w-24 shrink-0 pt-8 text-sm font-semibold">{label}:</p>
+      <div className="flex min-h-24 min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2 overflow-x-auto px-1 py-1">
+        {suitGroups.map((group) => (
+          <div key={group.suit} className="flex flex-wrap gap-2">
+            {group.cards.map((card) => {
+              const pickedUp = hiddenPickupCardIds.has(card.id);
+
+              return (
+                <div
+                  key={card.id}
+                  className={`relative shrink-0 rounded-md ${
+                    pickedUp ? "ring-4 ring-amber-500" : ""
+                  }`}
+                >
+                  <PlayingCard card={card} compact />
+                  {pickedUp ? (
+                    <span className="sr-only">Hidden pickup card</span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function BellotTable({
   state,
   currentPlayerId,
@@ -324,7 +392,12 @@ export function BellotTable({
     () => visibleGamePointsByPlayer(state),
     [state],
   );
+  const resultCardsByPlayer = useMemo(
+    () => playedCardsByPlayer(state),
+    [state],
+  );
   const selectionLogs = trumpSelectionLogs(state);
+  const hasHandResult = Boolean(state.lastHandResult);
   const visibleTrick = state.currentTrick.length
     ? {
         label: "Current trick",
@@ -344,9 +417,10 @@ export function BellotTable({
         }
       : undefined;
   const showTrickArea =
-    state.phase === "trick-play" ||
-    trumpSelectionPhases.includes(state.phase) ||
-    Boolean(visibleTrick);
+    !hasHandResult &&
+    (state.phase === "trick-play" ||
+      trumpSelectionPhases.includes(state.phase) ||
+      Boolean(visibleTrick));
   const showPlayedHandsButton =
     state.phase === "trick-play" || state.completedTricks.length > 0;
   const turnPlayerId =
@@ -415,6 +489,11 @@ export function BellotTable({
         (suit) => suit !== state.upcard?.suit,
       )
     : [];
+  const resultCurrentPlayer = currentPlayer ?? state.players[0];
+  const resultOpponentPlayer =
+    state.players.find(
+      (player) => player.playerId !== resultCurrentPlayer?.playerId,
+    ) ?? state.players[1];
   const playerPanels = state.players.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
     const declarationGroups = visibleDeclarationGroups(declarations);
@@ -473,9 +552,7 @@ export function BellotTable({
                   {sortDeclarationCards(declaration.cards).map((card) => (
                     <div
                       key={card.id}
-                      className={
-                        playedCardIds.has(card.id) ? "opacity-45" : ""
-                      }
+                      className={playedCardIds.has(card.id) ? "opacity-45" : ""}
                     >
                       <PlayingCard card={card} compact />
                     </div>
@@ -613,7 +690,42 @@ export function BellotTable({
         </div>
       ) : null}
 
-      {currentHand.length ? (
+      {state.lastHandResult ? (
+        <div
+          className="mt-4 rounded-md bg-white/10 p-3 text-white"
+          data-testid="bellot-hand-result"
+        >
+          <h3 className="font-bold">Hand score</h3>
+          <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
+            {state.players.map((player) => (
+              <p key={player.playerId}>
+                {player.displayName}:{" "}
+                {state.lastHandResult?.handScoreByPlayer[player.playerId] ?? 0}
+              </p>
+            ))}
+          </div>
+          {state.lastHandResult.callerFell ? (
+            <p className="mt-2 text-sm text-red-200">Caller fell.</p>
+          ) : null}
+          <div className="mt-4 space-y-4">
+            {resultCurrentPlayer ? (
+              <ResultCardRow
+                label={resultCurrentPlayer.displayName}
+                cards={resultCardsByPlayer[resultCurrentPlayer.playerId] ?? []}
+                pickupCardIds={resultCurrentPlayer.pickupCardIds}
+              />
+            ) : null}
+            {resultOpponentPlayer ? (
+              <ResultCardRow
+                label={resultOpponentPlayer.displayName}
+                cards={resultCardsByPlayer[resultOpponentPlayer.playerId] ?? []}
+                pickupCardIds={resultOpponentPlayer.pickupCardIds}
+              />
+            ) : null}
+            <ResultCardRow label="Tesla" cards={state.unusedCards ?? []} />
+          </div>
+        </div>
+      ) : currentHand.length ? (
         <div className="mt-4">
           <p className="mb-2 text-sm font-semibold">
             Your hand
@@ -641,7 +753,7 @@ export function BellotTable({
                       key={card.id}
                       type="button"
                       className={`relative rounded-md disabled:cursor-default disabled:opacity-100 ${
-                        pickedUp ? "ring-2 ring-amber-300/80" : ""
+                        pickedUp ? "ring-4 ring-amber-300/80" : ""
                       }`}
                       data-testid="bellot-hand-card"
                       disabled={!canPlay}
@@ -702,23 +814,6 @@ export function BellotTable({
                 </div>
               ))}
             </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {state.lastHandResult ? (
-        <div className="mt-4 rounded-md bg-white p-3 text-ink">
-          <h3 className="font-bold">Hand score</h3>
-          <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
-            {state.players.map((player) => (
-              <p key={player.playerId}>
-                {player.displayName}:{" "}
-                {state.lastHandResult?.handScoreByPlayer[player.playerId] ?? 0}
-              </p>
-            ))}
-          </div>
-          {state.lastHandResult.callerFell ? (
-            <p className="mt-2 text-sm text-red-700">Caller fell.</p>
           ) : null}
         </div>
       ) : null}

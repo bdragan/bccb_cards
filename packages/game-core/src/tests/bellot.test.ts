@@ -185,6 +185,62 @@ describe("Bellot", () => {
     ).toBeUndefined();
   });
 
+  it("reveals pickup card ids and unused cards only with a hand result", () => {
+    const state = readyState();
+    const caller = state.players.find(
+      (player) => player.playerId === state.trumpTurnPlayerId,
+    )!;
+    const opponent = state.players.find(
+      (player) => player.playerId !== caller.playerId,
+    )!;
+    const callerPickupCardIds = caller.hiddenCards.map((card) => card.id);
+    const afterPickup = applyBellotAction(state, {
+      type: "trump-accept-upcard",
+      playerId: caller.playerId,
+    });
+
+    expect(
+      getBellotPublicState(afterPickup, opponent.playerId).players.find(
+        (player) => player.playerId === caller.playerId,
+      )?.pickupCardIds,
+    ).toBeUndefined();
+    expect(
+      getBellotPublicState(afterPickup, opponent.playerId).unusedCards,
+    ).toBeUndefined();
+
+    const withHandResult: BellotState = {
+      ...afterPickup,
+      phase: "hand-complete",
+      lastHandResult: {
+        callerPlayerId: caller.playerId,
+        opponentPlayerId: opponent.playerId,
+        gamePointsByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
+        declarationPointsByPlayer: {
+          [caller.playerId]: 0,
+          [opponent.playerId]: 0,
+        },
+        totalPointsByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
+        handScoreByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
+        schusterPlayerIds: [],
+        callerFell: false,
+        callerFellOnGame: false,
+        isMus: false,
+        lastTrickWinnerPlayerId: caller.playerId,
+      },
+    };
+    const publicHandResult = getBellotPublicState(
+      withHandResult,
+      opponent.playerId,
+    );
+
+    expect(publicHandResult.unusedCards).toEqual(afterPickup.unusedCards);
+    expect(
+      publicHandResult.players.find(
+        (player) => player.playerId === caller.playerId,
+      )?.pickupCardIds,
+    ).toEqual(callerPickupCardIds);
+  });
+
   it("runs first round, second round, and mus trump selection rules", () => {
     const firstRound = readyState();
     const first = firstRound.trumpTurnPlayerId!;
