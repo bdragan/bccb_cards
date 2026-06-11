@@ -234,6 +234,22 @@ describe("BellotTable", () => {
     ).toHaveClass("opacity-45");
   });
 
+  it("shows played hands before the first trick has completed", async () => {
+    const user = userEvent.setup();
+    renderTable({
+      ...baseState,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Show played hands" }));
+
+    expect(
+      screen.getByRole("button", { name: "Hide played hands" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Hand 1/)).not.toBeInTheDocument();
+  });
+
   it("shows captured game points during trick play", () => {
     renderTable({
       ...baseState,

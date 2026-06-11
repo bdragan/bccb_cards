@@ -285,6 +285,8 @@ export function BellotTable({
         }
       : undefined;
   const showTrickArea = state.phase === "trick-play" || Boolean(visibleTrick);
+  const showPlayedHandsButton =
+    state.phase === "trick-play" || state.completedTricks.length > 0;
   const turnPlayerId =
     state.phase === "trick-play"
       ? state.currentTurnPlayerId
@@ -586,7 +588,7 @@ export function BellotTable({
         </div>
       ) : null}
 
-      {state.completedTricks.length ? (
+      {showPlayedHandsButton ? (
         <div className="mt-4">
           <Button
             type="button"
