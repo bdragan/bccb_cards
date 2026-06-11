@@ -30,7 +30,6 @@ export type BellotCpuOptions = {
 };
 
 export const defaultBellotCpuMaxSearchPlies = 14;
-export const bellotCpuTrumpSearchPlyBonus = 2;
 const defaultMonteCarloSamples = 64;
 const defaultTrumpMonteCarloSamples = 64;
 const defaultTrumpMinSuccessRate = 0.85;
@@ -396,8 +395,8 @@ function averageTrumpRolloutScore(
   );
   const searchPlies =
     options.trumpSearchPlies ??
-    (options.maxSearchPlies ?? defaultBellotCpuMaxSearchPlies) +
-      bellotCpuTrumpSearchPlyBonus;
+    options.maxSearchPlies ??
+    defaultBellotCpuMaxSearchPlies;
   const transpositions: BellotTranspositionTable = new Map();
   const searchContext = createBellotSearchContext(searchPlies);
   const results = samples.map((sample) =>
