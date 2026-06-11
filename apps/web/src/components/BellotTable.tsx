@@ -46,6 +46,15 @@ function sortCards(cards: Card[]) {
   });
 }
 
+function groupCardsBySuit(cards: Card[]) {
+  return suitOrder
+    .map((suit) => ({
+      suit,
+      cards: cards.filter((card) => card.suit === suit),
+    }))
+    .filter((group) => group.cards.length > 0);
+}
+
 function sortDeclarationCards(cards: Card[]) {
   return [...cards].sort((left, right) => {
     const rankComparison =
@@ -193,6 +202,10 @@ export function BellotTable({
   const sortedCurrentHand = useMemo(
     () => sortCards(currentHand),
     [currentHand],
+  );
+  const currentHandSuitGroups = useMemo(
+    () => groupCardsBySuit(sortedCurrentHand),
+    [sortedCurrentHand],
   );
   const declarationSubmissionKeys = useRef(new Set<string>());
   const [lingeringTrick, setLingeringTrick] = useState<{
@@ -506,32 +519,40 @@ export function BellotTable({
               ? " · play a legal card"
               : ""}
           </p>
-          <div className="flex flex-wrap gap-2">
-            {sortedCurrentHand.map((card) => {
-              const playable = legalCardIds.has(card.id);
-              const canPlay =
-                state.phase === "trick-play" &&
-                state.currentTurnPlayerId === currentPlayerId &&
-                playable;
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {currentHandSuitGroups.map((group) => (
+              <div
+                key={group.suit}
+                className="flex flex-wrap gap-2"
+                data-testid="bellot-hand-suit-group"
+              >
+                {group.cards.map((card) => {
+                  const playable = legalCardIds.has(card.id);
+                  const canPlay =
+                    state.phase === "trick-play" &&
+                    state.currentTurnPlayerId === currentPlayerId &&
+                    playable;
 
-              return (
-                <button
-                  key={card.id}
-                  type="button"
-                  className="rounded-md disabled:cursor-default disabled:opacity-100"
-                  data-testid="bellot-hand-card"
-                  disabled={!canPlay}
-                  onClick={() => onPlayCard(card.id)}
-                >
-                  <PlayingCard card={card} />
-                  {state.trumpSuit ? (
-                    <span className="mt-1 block text-xs text-white/70">
-                      {bellotCardPoints(card, state.trumpSuit)} pts
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      className="rounded-md disabled:cursor-default disabled:opacity-100"
+                      data-testid="bellot-hand-card"
+                      disabled={!canPlay}
+                      onClick={() => onPlayCard(card.id)}
+                    >
+                      <PlayingCard card={card} />
+                      {state.trumpSuit ? (
+                        <span className="mt-1 block text-xs text-white/70">
+                          {bellotCardPoints(card, state.trumpSuit)} pts
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       ) : null}

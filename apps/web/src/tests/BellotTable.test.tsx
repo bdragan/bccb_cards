@@ -118,6 +118,26 @@ describe("BellotTable", () => {
     expect(screen.getByAltText("K of Leaves")).toBeInTheDocument();
   });
 
+  it("separates the player's hand into suit groups horizontally", () => {
+    renderTable();
+
+    const suitGroups = screen.getAllByTestId("bellot-hand-suit-group");
+
+    expect(
+      suitGroups.map((group) =>
+        within(group)
+          .getAllByTestId("bellot-hand-card")
+          .map((button) =>
+            within(button).getByRole("img").getAttribute("alt"),
+          ),
+      ),
+    ).toEqual([
+      ["VII of Acorns", "X of Acorns"],
+      ["IX of Bells"],
+      ["A of Hearts"],
+    ]);
+  });
+
   it("shows declaration bonus points and dims called cards after they are played", () => {
     const playedDeclaration = {
       ...baseState,
