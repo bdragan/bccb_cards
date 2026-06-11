@@ -203,7 +203,7 @@ describe("BellotTable", () => {
         totalPointsByPlayer: { p1: 21, p2: 15 },
         handScoreByPlayer: { p1: 2, p2: 1 },
         schusterPlayerIds: [],
-        callerFell: false,
+        callerFell: true,
         callerFellOnGame: false,
         isMus: false,
         lastTrickWinnerPlayerId: "p2",
@@ -225,18 +225,27 @@ describe("BellotTable", () => {
     ).not.toBe(0);
     expect(result).toHaveClass("bg-white/10", "text-white");
 
+    const scoreRows = screen.getAllByTestId("bellot-result-score-row");
+    expect(within(scoreRows[0]).getByText("Alice:")).toBeInTheDocument();
+    expect(within(scoreRows[0]).getByText("2")).toHaveClass("text-right");
+    expect(within(scoreRows[1]).getByText("Bob:")).toBeInTheDocument();
+    expect(within(scoreRows[1]).getByText("1")).toHaveClass("text-right");
+    expect(screen.queryByText("(fell)")).not.toBeInTheDocument();
+    expect(screen.queryByText("Caller fell.")).not.toBeInTheDocument();
+
+    const cardRows = screen.getAllByTestId("bellot-result-card-row");
     expect(
-      within(screen.getByText("Alice:").parentElement!)
+      within(cardRows[0])
         .getAllByRole("img")
         .map((img) => img.getAttribute("alt")),
     ).toEqual(["VII of Acorns", "A of Hearts"]);
     expect(
-      within(screen.getByText("Bob:").parentElement!)
+      within(cardRows[1])
         .getAllByRole("img")
         .map((img) => img.getAttribute("alt")),
     ).toEqual(["A of Acorns", "K of Hearts"]);
     expect(
-      within(screen.getByText("Tesla:").parentElement!)
+      within(cardRows[2])
         .getAllByRole("img")
         .map((img) => img.getAttribute("alt")),
     ).toEqual(["X of Bells", "IX of Leaves"]);

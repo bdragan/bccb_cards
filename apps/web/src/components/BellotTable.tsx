@@ -696,17 +696,23 @@ export function BellotTable({
           data-testid="bellot-hand-result"
         >
           <h3 className="font-bold">Hand score</h3>
-          <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
-            {state.players.map((player) => (
-              <p key={player.playerId}>
-                {player.displayName}:{" "}
-                {state.lastHandResult?.handScoreByPlayer[player.playerId] ?? 0}
-              </p>
-            ))}
+          <div className="mt-2 space-y-1 text-sm">
+            {[resultCurrentPlayer, resultOpponentPlayer].map((player) =>
+              player ? (
+                <p
+                  key={player.playerId}
+                  className="grid w-fit grid-cols-[5rem_3rem] items-baseline gap-x-2"
+                  data-testid="bellot-result-score-row"
+                >
+                  <span className="truncate">{player.displayName}:</span>
+                  <span className="text-right tabular-nums">
+                    {state.lastHandResult?.handScoreByPlayer[player.playerId] ??
+                      0}
+                  </span>
+                </p>
+              ) : null,
+            )}
           </div>
-          {state.lastHandResult.callerFell ? (
-            <p className="mt-2 text-sm text-red-200">Caller fell.</p>
-          ) : null}
           <div className="mt-4 space-y-4">
             {resultCurrentPlayer ? (
               <ResultCardRow
