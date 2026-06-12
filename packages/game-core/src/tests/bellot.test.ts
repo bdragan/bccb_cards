@@ -1063,7 +1063,106 @@ describe("Bellot", () => {
       }
     }
 
-    expect(eightHeartsCount, playedCardIds.join(", ")).toBeGreaterThanOrEqual(3);
+    expect(eightHeartsCount, playedCardIds.join(", ")).toBeGreaterThanOrEqual(
+      3,
+    );
+  });
+
+  it.skip("plays X leaves from the screenshot trick-three response in at least three of five CPU probes", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          displayName: "CPU",
+          ready: true,
+          hand: [
+            card("X", "acorns"),
+            card("O", "acorns"),
+            card("VII", "bells"),
+            card("VIII", "bells"),
+            card("VIII", "hearts"),
+            card("O", "hearts"),
+            card("X", "leaves"),
+            card("U", "leaves"),
+          ],
+          hiddenCards: [],
+          wonCards: [card("U", "bells"), card("O", "bells")],
+          tricksWon: 1,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          displayName: "Dragan",
+          ready: true,
+          hand: [
+            card("IX", "bells"),
+            card("U", "acorns"),
+            card("K", "bells"),
+            card("A", "bells"),
+            card("VII", "hearts"),
+            card("K", "hearts"),
+            card("VII", "leaves"),
+          ],
+          hiddenCards: [],
+          wonCards: [card("K", "leaves"), card("A", "leaves")],
+          tricksWon: 1,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("IX", "bells"),
+      trumpSuit: "bells",
+      callerPlayerId: "p2",
+      firstPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("VIII", "leaves") }],
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("U", "bells") },
+            { playerId: "p2", card: card("O", "bells") },
+          ],
+        },
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p1", card: card("K", "leaves") },
+            { playerId: "p2", card: card("A", "leaves") },
+          ],
+        },
+      ],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const rngValues = [0.13, 0.31, 0.47, 0.69, 0.83];
+    const playedCardIds: string[] = [];
+    let tenLeavesCount = 0;
+
+    for (const rngValue of rngValues) {
+      const action = chooseBellotCpuAction(state, "p1", {
+        maxSearchPlies: defaultBellotCpuMaxSearchPlies,
+        monteCarloSamples: 8,
+        rng: () => rngValue,
+      });
+
+      if (action?.type !== "play-card") {
+        throw new Error("CPU did not choose a card to play");
+      }
+
+      playedCardIds.push(action.cardId);
+
+      if (action.cardId === "X-leaves") {
+        tenLeavesCount += 1;
+
+        if (tenLeavesCount >= 3) {
+          return;
+        }
+      }
+    }
+
+    expect(tenLeavesCount, playedCardIds.join(", ")).toBeGreaterThanOrEqual(3);
   });
 
   it("searches only the endpoints of strength-connected non-trump card ranges", () => {
