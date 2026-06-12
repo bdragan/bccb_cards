@@ -812,13 +812,43 @@ export function bellotCpuCheapSearchCard(
   }
 
   const nonTrumpCards = cards.filter((card) => card.suit !== state.trumpSuit);
+  const currentPlayer = state.currentTurnPlayerId
+    ? playerById(state, state.currentTurnPlayerId)
+    : undefined;
+  const opponent = state.currentTurnPlayerId
+    ? state.players.find(
+        (player) => player.playerId !== state.currentTurnPlayerId,
+      )
+    : undefined;
+
+  if (currentPlayer && opponent) {
+    const opponentSuits = new Set(opponent.hand.map((card) => card.suit));
+    const sharedSuitNonTrumpCards = nonTrumpCards.filter((card) =>
+      opponentSuits.has(card.suit),
+    );
+
+    if (sharedSuitNonTrumpCards.length) {
+      return highestCheapValueCard(sharedSuitNonTrumpCards, state.trumpSuit);
+    }
+
+    const currentPlayerTrumpCount = countTrumpCards(
+      currentPlayer.hand,
+      state.trumpSuit,
+    );
+    const opponentTrumpCount = countTrumpCards(opponent.hand, state.trumpSuit);
+
+    if (opponentTrumpCount < currentPlayerTrumpCount) {
+      const trumpCards = cards.filter((card) => card.suit === state.trumpSuit);
+
+      if (trumpCards.length) {
+        return highestCheapValueCard(trumpCards, state.trumpSuit);
+      }
+    }
+  }
+
   const candidates = nonTrumpCards.length ? nonTrumpCards : cards;
 
-  return candidates
-    .slice()
-    .sort((left, right) =>
-      compareCardsByCheapValue(right, left, state.trumpSuit!),
-    )[0]!;
+  return highestCheapValueCard(candidates, state.trumpSuit);
 }
 
 function addSearchCardRangeEndpoints(
@@ -1473,6 +1503,14 @@ function compareCardsByCheapValue(
   }
 
   return left.id.localeCompare(right.id);
+}
+
+function highestCheapValueCard(cards: Card[], trumpSuit: Suit) {
+  return cards
+    .slice()
+    .sort((left, right) =>
+      compareCardsByCheapValue(right, left, trumpSuit),
+    )[0]!;
 }
 
 function playerById(state: BellotState, playerId: string) {

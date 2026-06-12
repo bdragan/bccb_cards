@@ -901,14 +901,57 @@ describe("Bellot", () => {
                 card("A", "acorns"),
               ],
             }
-          : player,
+          : player.playerId === "p2"
+            ? {
+                ...player,
+                hand: [card("VII", "bells")],
+              }
+            : player,
       ),
       currentTrick: [],
     };
 
     expect(
       bellotCpuCheapSearchCard(leadingState.players[0].hand, leadingState).id,
+    ).toBe("X-bells");
+
+    const equalOrMoreTrumpLeadState: BellotState = {
+      ...leadingState,
+      players: leadingState.players.map((player) =>
+        player.playerId === "p2"
+          ? {
+              ...player,
+              hand: [card("IX", "hearts"), card("X", "hearts")],
+            }
+          : player,
+      ),
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(
+        equalOrMoreTrumpLeadState.players[0].hand,
+        equalOrMoreTrumpLeadState,
+      ).id,
     ).toBe("A-acorns");
+
+    const fewerTrumpLeadState: BellotState = {
+      ...equalOrMoreTrumpLeadState,
+      players: equalOrMoreTrumpLeadState.players.map((player) =>
+        player.playerId === "p2"
+          ? {
+              ...player,
+              hand: [card("IX", "hearts")],
+            }
+          : player,
+      ),
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(
+        fewerTrumpLeadState.players[0].hand,
+        fewerTrumpLeadState,
+      ).id,
+    ).toBe("U-hearts");
 
     const trumpOnlyLeadState: BellotState = {
       ...leadingState,
