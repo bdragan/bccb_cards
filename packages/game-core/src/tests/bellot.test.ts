@@ -1195,6 +1195,84 @@ describe("Bellot", () => {
     ).toEqual(["VII-acorns"]);
   });
 
+  it("searches only the higher connected endpoint when both response endpoints win", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("X", "acorns"), card("A", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["A-acorns"]);
+  });
+
+  it("keeps both connected response endpoints when only one endpoint wins", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("O", "acorns"), card("X", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["O-acorns", "X-acorns"]);
+  });
+
   it("searches only the endpoints of a full non-trump suit range", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
