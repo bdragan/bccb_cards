@@ -30,6 +30,19 @@ function card(rank: Rank, suit: Suit): Card {
   return { id: `${rank}-${suit}`, rank, suit };
 }
 
+function seededRng(seed: number) {
+  let state = seed >>> 0;
+
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function readyState() {
   return applyBellotAction(
     applyBellotAction(createBellotInitialState(players), {
@@ -1037,15 +1050,15 @@ describe("Bellot", () => {
       declarationsByPlayer: { p1: [], p2: [] },
       publicCardsByPlayer: { p1: [], p2: [] },
     };
-    const rngValues = [0.13, 0.31, 0.47, 0.69, 0.83];
+    const rngSeeds = [13, 31, 47, 69, 83];
     const playedCardIds: string[] = [];
     let eightHeartsCount = 0;
 
-    for (const rngValue of rngValues) {
+    for (const rngSeed of rngSeeds) {
       const action = chooseBellotCpuAction(state, "p1", {
         maxSearchPlies: defaultBellotCpuMaxSearchPlies,
         monteCarloSamples: 8,
-        rng: () => rngValue,
+        rng: seededRng(rngSeed),
       });
 
       if (action?.type !== "play-card") {
@@ -1136,15 +1149,15 @@ describe("Bellot", () => {
       declarationsByPlayer: { p1: [], p2: [] },
       publicCardsByPlayer: { p1: [], p2: [] },
     };
-    const rngValues = [0.13, 0.31, 0.47, 0.69, 0.83];
+    const rngSeeds = [3, 5, 6, 8, 11];
     const playedCardIds: string[] = [];
     let tenLeavesCount = 0;
 
-    for (const rngValue of rngValues) {
+    for (const rngSeed of rngSeeds) {
       const action = chooseBellotCpuAction(state, "p1", {
         maxSearchPlies: defaultBellotCpuMaxSearchPlies,
         monteCarloSamples: 8,
-        rng: () => rngValue,
+        rng: seededRng(rngSeed),
       });
 
       if (action?.type !== "play-card") {
