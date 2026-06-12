@@ -1345,6 +1345,12 @@ function impossibleOpponentCardIdsFromPlayHistory(
     opponentPlayerId,
     state.trumpSuit,
   );
+  addImpossibleCheapCardsFromCostlyLostResponses(
+    impossibleCardIds,
+    state,
+    opponentPlayerId,
+    state.trumpSuit,
+  );
 
   return impossibleCardIds;
 }
@@ -1386,6 +1392,97 @@ function addSuitToImpossibleCards(impossibleCardIds: Set<string>, suit: Suit) {
       impossibleCardIds.add(card.id);
     }
   }
+}
+
+function addImpossibleCheapCardsFromCostlyLostResponses(
+  impossibleCardIds: Set<string>,
+  state: BellotState,
+  opponentPlayerId: string,
+  trumpSuit: Suit,
+) {
+  const trickHistory = [
+    ...state.completedTricks.map((trick) => ({
+      cards: trick.cards,
+      winnerPlayerId: trick.winnerPlayerId,
+    })),
+    ...(state.currentTrick.length > 1
+      ? [
+          {
+            cards: state.currentTrick,
+            winnerPlayerId: trickWinner(state.currentTrick, trumpSuit).playerId,
+          },
+        ]
+      : []),
+  ];
+
+  for (let trickIndex = 0; trickIndex < trickHistory.length; trickIndex += 1) {
+    const trick = trickHistory[trickIndex]!;
+    const responseIndex = trick.cards.findIndex(
+      (play) => play.playerId === opponentPlayerId,
+    );
+
+    if (responseIndex <= 0 || trick.winnerPlayerId === opponentPlayerId) {
+      continue;
+    }
+
+    const response = trick.cards[responseIndex];
+
+    if (!response) {
+      continue;
+    }
+
+    const responsePoints = bellotCardPoints(response.card, trumpSuit);
+
+    if (
+      responsePoints < 10 ||
+      hasSubsequentCheaperOpponentCard(
+        trickHistory,
+        trickIndex,
+        opponentPlayerId,
+        response.card.suit,
+        responsePoints,
+        trumpSuit,
+      )
+    ) {
+      continue;
+    }
+
+    for (const card of bellotDeck) {
+      if (
+        card.suit === response.card.suit &&
+        bellotCardPoints(card, trumpSuit) < responsePoints
+      ) {
+        impossibleCardIds.add(card.id);
+      }
+    }
+  }
+}
+
+function hasSubsequentCheaperOpponentCard(
+  trickHistory: Array<{
+    cards: BellotTrickPlay[];
+    winnerPlayerId: string;
+  }>,
+  trickIndex: number,
+  opponentPlayerId: string,
+  suit: Suit,
+  responsePoints: number,
+  trumpSuit: Suit,
+) {
+  for (let index = trickIndex + 1; index < trickHistory.length; index += 1) {
+    const subsequentPlay = trickHistory[index]!.cards.find(
+      (play) => play.playerId === opponentPlayerId,
+    );
+
+    if (
+      subsequentPlay?.card.suit === suit &&
+      bellotCardPoints(subsequentPlay.card, trumpSuit) < responsePoints
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function unknownCardsForCpu(

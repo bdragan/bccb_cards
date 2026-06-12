@@ -1982,6 +1982,111 @@ describe("Bellot", () => {
     expect(trumpResponseImpossibleCards.has("A-hearts")).toBe(false);
   });
 
+  it("infers cheaper same-suit cards are unavailable after costly lost responses", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("VII", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 1,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("VIII", "leaves")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "acorns") },
+            { playerId: "p2", card: card("X", "acorns") },
+          ],
+        },
+      ],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const impossibleCards = new Set(
+      inferBellotCpuImpossibleOpponentCardIds(state, "p2"),
+    );
+
+    expect(impossibleCards.has("K-acorns")).toBe(true);
+    expect(impossibleCards.has("U-acorns")).toBe(true);
+    expect(impossibleCards.has("IX-acorns")).toBe(true);
+    expect(impossibleCards.has("A-acorns")).toBe(false);
+    expect(impossibleCards.has("K-bells")).toBe(false);
+  });
+
+  it("keeps cheaper same-suit cards possible when later play history disproves the costly response inference", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("VII", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 2,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("VIII", "leaves")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "acorns") },
+            { playerId: "p2", card: card("X", "acorns") },
+          ],
+        },
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p2", card: card("VII", "acorns") },
+            { playerId: "p1", card: card("VIII", "acorns") },
+          ],
+        },
+      ],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const impossibleCards = new Set(
+      inferBellotCpuImpossibleOpponentCardIds(state, "p2"),
+    );
+
+    expect(impossibleCards.has("K-acorns")).toBe(false);
+    expect(impossibleCards.has("U-acorns")).toBe(false);
+    expect(impossibleCards.has("IX-acorns")).toBe(false);
+  });
+
   it("passes the caller when caller total is strictly greater", () => {
     const result = calculateBellotHandResult(
       scoringState({
