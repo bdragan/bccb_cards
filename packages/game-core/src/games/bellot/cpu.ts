@@ -745,12 +745,18 @@ function searchResultBetter(
 }
 
 export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
-  if (!state.trumpSuit || cards.length <= 2) {
+  if (!state.trumpSuit) {
     return cards;
   }
 
+  const responseCards = cheapestLosingResponseCardsBySuit(cards, state);
+
+  if (responseCards.length <= 2) {
+    return responseCards;
+  }
+
   const keepCardIds = new Set<string>();
-  const candidateCardIds = new Set(cards.map((card) => card.id));
+  const candidateCardIds = new Set(responseCards.map((card) => card.id));
   const connectedCardIds = new Set([
     ...candidateCardIds,
     ...knownPlayedOrDeadCards(state).map((card) => card.id),
@@ -781,6 +787,37 @@ export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
 
       addSearchCardRangeEndpoints(keepCardIds, run, candidateCardIds);
     }
+  }
+
+  return responseCards.filter((card) => keepCardIds.has(card.id));
+}
+
+function cheapestLosingResponseCardsBySuit(cards: Card[], state: BellotState) {
+  if (!state.trumpSuit || state.currentTrick.length === 0) {
+    return cards;
+  }
+
+  const keepCardIds = new Set<string>();
+  const cheapestLosingCardsBySuit = new Map<Suit, Card>();
+
+  for (const card of cards) {
+    if (wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit)) {
+      keepCardIds.add(card.id);
+      continue;
+    }
+
+    const cheapest = cheapestLosingCardsBySuit.get(card.suit);
+
+    if (
+      !cheapest ||
+      compareCardsByCheapValue(card, cheapest, state.trumpSuit) < 0
+    ) {
+      cheapestLosingCardsBySuit.set(card.suit, card);
+    }
+  }
+
+  for (const card of cheapestLosingCardsBySuit.values()) {
+    keepCardIds.add(card.id);
   }
 
   return cards.filter((card) => keepCardIds.has(card.id));

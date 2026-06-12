@@ -1113,6 +1113,88 @@ describe("Bellot", () => {
     ).toEqual(["VII-hearts", "X-hearts", "O-hearts"]);
   });
 
+  it("searches only the cheapest losing response card per suit", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("VII", "acorns"),
+            card("IX", "acorns"),
+            card("X", "acorns"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["VII-acorns", "X-acorns"]);
+  });
+
+  it("prunes same-suit losing responses before the small search-card return", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("VII", "acorns"), card("IX", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["VII-acorns"]);
+  });
+
   it("searches only the endpoints of a full non-trump suit range", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
