@@ -1077,7 +1077,6 @@ describe("Bellot", () => {
     for (const rngSeed of rngSeeds) {
       const action = chooseBellotCpuAction(state, "p1", {
         maxSearchPlies: defaultBellotCpuMaxSearchPlies,
-        monteCarloSamples: 8,
         rng: seededRng(rngSeed),
       });
 
