@@ -879,6 +879,26 @@ describe("Bellot", () => {
     expect(
       bellotCpuCheapSearchCard(respondingState.players[0].hand, respondingState)
         .id,
+    ).toBe("A-acorns");
+
+    const tenOnlyWinningResponseState: BellotState = {
+      ...respondingState,
+      players: respondingState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [card("U", "acorns"), card("X", "acorns")],
+            }
+          : player,
+      ),
+      currentTrick: [{ playerId: "p2", card: card("IX", "acorns") }],
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(
+        tenOnlyWinningResponseState.players[0].hand,
+        tenOnlyWinningResponseState,
+      ).id,
     ).toBe("X-acorns");
 
     const losingResponseState: BellotState = {
@@ -1344,6 +1364,84 @@ describe("Bellot", () => {
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-acorns"]);
+  });
+
+  it("searches only the non-trump ace when it can win a response trick", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("K", "acorns"), card("A", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("O", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["A-acorns"]);
+  });
+
+  it("searches only the non-trump ten when it can win and the ace is unavailable", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("U", "acorns"), card("X", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("IX", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["X-acorns"]);
   });
 
   it("keeps both connected response endpoints when only one endpoint wins", () => {

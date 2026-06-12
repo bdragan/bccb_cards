@@ -799,9 +799,19 @@ function cheapestLosingResponseCardsBySuit(cards: Card[], state: BellotState) {
 
   const keepCardIds = new Set<string>();
   const cheapestLosingCardsBySuit = new Map<Suit, Card>();
+  const preferredNonTrumpWinningResponseCard =
+    nonTrumpWinningResponseAceOrTen(cards, state);
 
   for (const card of cards) {
     if (wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit)) {
+      if (
+        preferredNonTrumpWinningResponseCard &&
+        card.suit === preferredNonTrumpWinningResponseCard.suit &&
+        card.id !== preferredNonTrumpWinningResponseCard.id
+      ) {
+        continue;
+      }
+
       keepCardIds.add(card.id);
       continue;
     }
@@ -823,6 +833,28 @@ function cheapestLosingResponseCardsBySuit(cards: Card[], state: BellotState) {
   return cards.filter((card) => keepCardIds.has(card.id));
 }
 
+function nonTrumpWinningResponseAceOrTen(cards: Card[], state: BellotState) {
+  if (!state.trumpSuit || state.currentTrick.length === 0) {
+    return undefined;
+  }
+
+  const leadSuit = state.currentTrick[0]?.card.suit;
+
+  if (!leadSuit || leadSuit === state.trumpSuit) {
+    return undefined;
+  }
+
+  const preferredCards = [
+    cards.find((card) => card.suit === leadSuit && card.rank === "A"),
+    cards.find((card) => card.suit === leadSuit && card.rank === "X"),
+  ];
+
+  return preferredCards.find(
+    (card): card is Card =>
+      !!card && wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit!),
+  );
+}
+
 export function bellotCpuCheapSearchCard(
   cards: Card[],
   state: BellotState,
@@ -839,7 +871,13 @@ export function bellotCpuCheapSearchCard(
     const winningCards = cards.filter((card) =>
       wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit!),
     );
-    const candidates = winningCards.length ? winningCards : cards;
+    const preferredNonTrumpWinningResponseCard =
+      nonTrumpWinningResponseAceOrTen(cards, state);
+    const candidates = preferredNonTrumpWinningResponseCard
+      ? [preferredNonTrumpWinningResponseCard]
+      : winningCards.length
+        ? winningCards
+        : cards;
 
     return candidates
       .slice()
