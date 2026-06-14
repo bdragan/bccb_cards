@@ -9,6 +9,16 @@ import {
   compareBellotCards,
   legalBellotCards,
 } from "./bellot";
+import {
+  bellotHandPlayAlphaBetaResult,
+  bellotHandPlayAlphaBetaValue,
+  bellotHandPlaySearchMaxUtility,
+  createBellotHandPlaySearchContext,
+} from "./hand-play-search";
+import type {
+  BellotHandPlaySearchContext,
+  BellotHandPlaySearchPolicy,
+} from "./hand-play-search";
 import type {
   BellotAction,
   BellotPlayerState,
@@ -38,7 +48,6 @@ const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.2;
-const maxUtility = 1_000_000;
 const bellotDeck = createDeck();
 const trumpSearchRankGroups: Rank[][] = [
   ["VII", "VIII", "O", "K", "X", "A", "IX", "U"],
@@ -70,10 +79,6 @@ type TrumpCallThresholds = {
   minExpectedValue: number;
 };
 
-type BellotSearchResult = {
-  value: number;
-};
-
 export type BellotCpuRootCardSampleStats = {
   sampleCount: number;
   successCount: number;
@@ -84,10 +89,6 @@ type BellotRootSampleSearchResult = {
   bestCardId: string;
   bestValue: number;
   searchedCardIds: string[];
-};
-
-type BellotSearchContext = {
-  closingSearchPlies: number;
 };
 
 export function bellotCpuMonteCarloSampleLimit(
@@ -452,14 +453,17 @@ function averageTrumpRolloutScore(
     options.trumpSearchPlies ??
     options.maxSearchPlies ??
     defaultBellotCpuMaxSearchPlies;
-  const searchContext = createBellotSearchContext(searchPlies);
+  const searchContext = createBellotHandPlaySearchContext(
+    searchPlies,
+    bellotCpuHandPlaySearchPolicy,
+  );
   const results = rolloutStates.map((sample) =>
-    alphaBetaResult(
+    bellotHandPlayAlphaBetaResult(
       sample,
       cpuPlayerId,
       searchPlies,
-      -maxUtility,
-      maxUtility,
+      -bellotHandPlaySearchMaxUtility,
+      bellotHandPlaySearchMaxUtility,
       searchContext,
     ),
   );
@@ -603,7 +607,10 @@ function chooseCardForTrick(
   );
   const searchCards = bellotCpuSearchCards(legalCards, state);
   const rootCardStats = createRootCardSampleStats(searchCards);
-  const searchContext = createBellotSearchContext(maxSearchPlies);
+  const searchContext = createBellotHandPlaySearchContext(
+    maxSearchPlies,
+    bellotCpuHandPlaySearchPolicy,
+  );
 
   for (const sample of samples) {
     const sampleSearchCards = bellotCpuSearchCards(searchCards, sample);
@@ -630,11 +637,11 @@ function searchRootCardsForSample(
   rootCards: Card[],
   rootCardStats: ReadonlyMap<string, BellotCpuRootCardSampleStats>,
   maxSearchPlies: number,
-  searchContext: BellotSearchContext,
+  searchContext: BellotHandPlaySearchContext,
 ): BellotRootSampleSearchResult {
-  let alpha = -maxUtility;
+  let alpha = -bellotHandPlaySearchMaxUtility;
   let bestCardId = rootCards[0]?.id;
-  let bestValue = -maxUtility;
+  let bestValue = -bellotHandPlaySearchMaxUtility;
   const searchedCardIds: string[] = [];
 
   if (!bestCardId) {
@@ -651,12 +658,12 @@ function searchRootCardsForSample(
       playerId: cpuPlayerId,
       cardId: card.id,
     });
-    const value = alphaBeta(
+    const value = bellotHandPlayAlphaBetaValue(
       next,
       cpuPlayerId,
       maxSearchPlies - 1,
       alpha,
-      maxUtility,
+      bellotHandPlaySearchMaxUtility,
       searchContext,
     );
 
@@ -670,172 +677,6 @@ function searchRootCardsForSample(
   }
 
   return { bestCardId, bestValue, searchedCardIds };
-}
-
-function alphaBeta(
-  state: BellotState,
-  cpuPlayerId: string,
-  depth: number,
-  alpha: number,
-  beta: number,
-  context: BellotSearchContext = createBellotSearchContext(depth),
-): number {
-  return alphaBetaResult(state, cpuPlayerId, depth, alpha, beta, context).value;
-}
-
-function createBellotSearchContext(depth: number): BellotSearchContext {
-  return {
-    closingSearchPlies: Math.max(0, depth - cheapOpeningSearchPlies),
-  };
-}
-
-function alphaBetaResult(
-  state: BellotState,
-  cpuPlayerId: string,
-  depth: number,
-  alpha: number,
-  beta: number,
-  context: BellotSearchContext,
-): BellotSearchResult {
-  if (state.phase === "hand-complete" || state.phase === "finished") {
-    return evaluateSearchLeaf(state, cpuPlayerId);
-  }
-
-  if (
-    state.phase !== "trick-play" ||
-    !state.trumpSuit ||
-    !state.currentTurnPlayerId
-  ) {
-    return evaluateSearchLeaf(state, cpuPlayerId);
-  }
-
-  const currentPlayer = playerById(state, state.currentTurnPlayerId);
-  const legalCards = legalBellotCards(
-    currentPlayer.hand,
-    state.currentTrick,
-    state.trumpSuit,
-  );
-
-  if (legalCards.length === 0) {
-    return evaluateSearchLeaf(state, cpuPlayerId);
-  }
-
-  const bounds = shouldUseRawPointBounds(state)
-    ? rawGamePointDeltaBounds(state, cpuPlayerId)
-    : undefined;
-
-  if (bounds && bounds.upper <= alpha) {
-    return { value: alpha };
-  }
-
-  if (bounds && bounds.lower >= beta) {
-    return { value: beta };
-  }
-
-  if (shouldUseCheapSearchMove(state, depth, context)) {
-    const card = bellotCpuCheapSearchCard(legalCards, state);
-    const next = applyBellotAction(state, {
-      type: "play-card",
-      playerId: currentPlayer.playerId,
-      cardId: card.id,
-    });
-    const result = alphaBetaResult(
-      next,
-      cpuPlayerId,
-      depth,
-      alpha,
-      beta,
-      context,
-    );
-    return result;
-  }
-
-  const searchCards = bellotCpuSearchCards(legalCards, state);
-  const maximizing = state.currentTurnPlayerId === cpuPlayerId;
-  let best: BellotSearchResult = {
-    value: maximizing ? -maxUtility : maxUtility,
-  };
-
-  for (const card of orderCardsForSearch(searchCards, state, maximizing)) {
-    const next = applyBellotAction(state, {
-      type: "play-card",
-      playerId: currentPlayer.playerId,
-      cardId: card.id,
-    });
-    const nextDepth = depth - 1;
-    const result = alphaBetaResult(
-      next,
-      cpuPlayerId,
-      nextDepth,
-      alpha,
-      beta,
-      context,
-    );
-
-    if (searchResultBetter(result, best, maximizing)) {
-      best = result;
-    }
-
-    if (maximizing) {
-      alpha = Math.max(alpha, result.value);
-    } else {
-      beta = Math.min(beta, result.value);
-    }
-
-    if (beta <= alpha) {
-      break;
-    }
-  }
-
-  return best;
-}
-
-function shouldUseCheapSearchMove(
-  state: BellotState,
-  depth: number,
-  context: BellotSearchContext,
-) {
-  return (
-    remainingSearchPlies(state) > depth && depth <= context.closingSearchPlies
-  );
-}
-
-function remainingSearchPlies(state: BellotState) {
-  if (state.phase !== "trick-play" || !state.currentTurnPlayerId) {
-    return 0;
-  }
-
-  return state.players.reduce((sum, player) => sum + player.hand.length, 0);
-}
-
-function shouldUseRawPointBounds(state: BellotState) {
-  return (
-    state.currentTrick.length === 0 &&
-    state.players.every((player) => player.hand.length <= 3)
-  );
-}
-
-function evaluateSearchLeaf(
-  state: BellotState,
-  cpuPlayerId: string,
-): BellotSearchResult {
-  return {
-    value: evaluateRawGamePointDelta(state, cpuPlayerId),
-  };
-}
-
-function searchResultBetter(
-  candidate: BellotSearchResult,
-  current: BellotSearchResult,
-  maximizing: boolean,
-) {
-  if (candidate.value !== current.value) {
-    return maximizing
-      ? candidate.value > current.value
-      : candidate.value < current.value;
-  }
-
-  return false;
 }
 
 export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
@@ -1720,34 +1561,6 @@ function knownUnplayedOpponentCards(
   );
 }
 
-function evaluateRawGamePointDelta(state: BellotState, cpuPlayerId: string) {
-  const cpu = playerById(state, cpuPlayerId);
-  const opponent = state.players.find(
-    (player) => player.playerId !== cpuPlayerId,
-  );
-
-  if (!opponent || !state.trumpSuit) {
-    return 0;
-  }
-
-  const gamePointsByPlayer =
-    state.lastHandResult?.gamePointsByPlayer ??
-    Object.fromEntries(
-      state.players.map((player) => [
-        player.playerId,
-        player.wonCards.reduce(
-          (sum, card) => sum + bellotCardPoints(card, state.trumpSuit!),
-          0,
-        ),
-      ]),
-    );
-
-  return (
-    (gamePointsByPlayer[cpu.playerId] ?? 0) -
-    (gamePointsByPlayer[opponent.playerId] ?? 0)
-  );
-}
-
 function trumpCandidateSucceedsFromRawGamePointDelta(
   state: BellotState,
   cpuPlayerId: string,
@@ -1806,87 +1619,6 @@ function fixedDeclarationPoints(state: BellotState, playerId: string) {
   );
 }
 
-function rawGamePointDeltaBounds(state: BellotState, cpuPlayerId: string) {
-  const cpu = playerById(state, cpuPlayerId);
-  const opponent = state.players.find(
-    (player) => player.playerId !== cpuPlayerId,
-  );
-
-  if (!opponent || !state.trumpSuit) {
-    return { lower: 0, upper: 0 };
-  }
-
-  let cpuPoints = rawWonCardPoints(cpu.wonCards, state.trumpSuit);
-  let opponentPoints = rawWonCardPoints(opponent.wonCards, state.trumpSuit);
-  let remainingPointMass = 10;
-  const remainingCards: Array<{ card: Card; playerId: string }> = [];
-
-  for (const play of state.currentTrick) {
-    remainingCards.push({ card: play.card, playerId: play.playerId });
-  }
-
-  for (const player of state.players) {
-    for (const card of player.hand) {
-      remainingCards.push({ card, playerId: player.playerId });
-    }
-  }
-
-  for (const entry of remainingCards) {
-    remainingPointMass += bellotCardPoints(entry.card, state.trumpSuit);
-  }
-
-  const highestTrump = highestRemainingTrump(remainingCards, state.trumpSuit);
-
-  if (highestTrump) {
-    const guaranteedPoints = bellotCardPoints(
-      highestTrump.card,
-      state.trumpSuit,
-    );
-
-    remainingPointMass -= guaranteedPoints;
-
-    if (highestTrump.playerId === cpuPlayerId) {
-      cpuPoints += guaranteedPoints;
-    } else {
-      opponentPoints += guaranteedPoints;
-    }
-  }
-
-  return {
-    lower: cpuPoints - (opponentPoints + remainingPointMass),
-    upper: cpuPoints + remainingPointMass - opponentPoints,
-  };
-}
-
-function rawWonCardPoints(cards: Card[], trumpSuit: Suit) {
-  return cards.reduce(
-    (sum, card) => sum + bellotCardPoints(card, trumpSuit),
-    0,
-  );
-}
-
-function highestRemainingTrump(
-  cards: Array<{ card: Card; playerId: string }>,
-  trumpSuit: Suit,
-) {
-  let highest: { card: Card; playerId: string } | undefined;
-
-  for (const entry of cards) {
-    if (entry.card.suit !== trumpSuit) {
-      continue;
-    }
-
-    if (
-      !highest ||
-      compareBellotCards(entry.card, highest.card, trumpSuit) > 0
-    ) {
-      highest = entry;
-    }
-  }
-
-  return highest;
-}
-
 export function bellotCpuOrderCardsForSearch(
   cards: Card[],
   state: BellotState,
@@ -1908,7 +1640,12 @@ export function bellotCpuOrderCardsForSearch(
   });
 }
 
-const orderCardsForSearch = bellotCpuOrderCardsForSearch;
+const bellotCpuHandPlaySearchPolicy: BellotHandPlaySearchPolicy = {
+  cheapOpeningSearchPlies,
+  searchCards: bellotCpuSearchCards,
+  orderCards: bellotCpuOrderCardsForSearch,
+  cheapSearchCard: bellotCpuCheapSearchCard,
+};
 
 export function bellotCpuOrderRootCardsForSearch(
   cards: Card[],
