@@ -747,9 +747,16 @@ describe("Bellot", () => {
       upcard: card("K", "hearts"),
       trumpTurnPlayerId: "p1",
       firstPlayerId: "p1",
+      trumpPasses: ["p2"],
     };
 
-    expect(chooseBellotCpuAction(trumpState, "p1")).toEqual({
+    expect(
+      chooseBellotCpuAction(trumpState, "p1", {
+        trumpMinSuccessRate: 0,
+        trumpHighSuccessRate: Number.POSITIVE_INFINITY,
+        trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+      }),
+    ).toEqual({
       type: "trump-accept-upcard",
       playerId: "p1",
     });
@@ -2002,6 +2009,10 @@ describe("Bellot", () => {
       trumpTurnPlayerId: "p1",
       firstPlayerId: "p1",
     };
+    const secondRoundOneTurnState: BellotState = {
+      ...state,
+      trumpPasses: ["p2"],
+    };
 
     expect(
       chooseBellotCpuAction(state, "p1", {
@@ -2014,8 +2025,9 @@ describe("Bellot", () => {
     });
 
     expect(
-      chooseBellotCpuAction(state, "p1", {
+      chooseBellotCpuAction(secondRoundOneTurnState, "p1", {
         trumpMinSuccessRate: 0,
+        trumpHighSuccessRate: 0,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
       }),
     ).toEqual({
@@ -2037,8 +2049,8 @@ describe("Bellot", () => {
     expect(
       chooseBellotCpuAction(
         {
-          ...state,
-          players: state.players.map((player) =>
+          ...secondRoundOneTurnState,
+          players: secondRoundOneTurnState.players.map((player) =>
             player.playerId === "p1"
               ? {
                   ...player,

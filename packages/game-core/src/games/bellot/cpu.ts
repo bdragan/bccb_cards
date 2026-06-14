@@ -72,7 +72,6 @@ type TrumpCallThresholds = {
 
 type BellotSearchResult = {
   value: number;
-  callerFell?: boolean;
 };
 
 export type BellotCpuRootCardSampleStats = {
@@ -464,8 +463,12 @@ function averageTrumpRolloutScore(
       searchContext,
     ),
   );
-  const successes = results.filter((result) =>
-    callerAvoidedFall(result),
+  const successes = results.filter((result, index) =>
+    trumpCandidateSucceedsFromRawGamePointDelta(
+      rolloutStates[index]!,
+      cpuPlayerId,
+      result.value,
+    ),
   ).length;
 
   return {
@@ -473,12 +476,6 @@ function averageTrumpRolloutScore(
       results.reduce((sum, result) => sum + result.value, 0) / results.length,
     successRate: successes / results.length,
   };
-}
-
-function callerAvoidedFall(result: BellotSearchResult) {
-  return result.callerFell === undefined
-    ? result.value >= 0
-    : !result.callerFell;
 }
 
 function createTrumpRolloutSamples(
@@ -723,6 +720,18 @@ function alphaBetaResult(
     return evaluateSearchLeaf(state, cpuPlayerId);
   }
 
+  const bounds = shouldUseRawPointBounds(state)
+    ? rawGamePointDeltaBounds(state, cpuPlayerId)
+    : undefined;
+
+  if (bounds && bounds.upper <= alpha) {
+    return { value: alpha };
+  }
+
+  if (bounds && bounds.lower >= beta) {
+    return { value: beta };
+  }
+
   if (shouldUseCheapSearchMove(state, depth, context)) {
     const card = bellotCpuCheapSearchCard(legalCards, state);
     const next = applyBellotAction(state, {
@@ -799,16 +808,19 @@ function remainingSearchPlies(state: BellotState) {
   return state.players.reduce((sum, player) => sum + player.hand.length, 0);
 }
 
+function shouldUseRawPointBounds(state: BellotState) {
+  return (
+    state.currentTrick.length === 0 &&
+    state.players.every((player) => player.hand.length <= 3)
+  );
+}
+
 function evaluateSearchLeaf(
   state: BellotState,
   cpuPlayerId: string,
 ): BellotSearchResult {
   return {
-    value: evaluateState(state, cpuPlayerId),
-    callerFell:
-      state.callerPlayerId === cpuPlayerId
-        ? state.lastHandResult?.callerFell
-        : undefined,
+    value: evaluateRawGamePointDelta(state, cpuPlayerId),
   };
 }
 
@@ -823,14 +835,7 @@ function searchResultBetter(
       : candidate.value < current.value;
   }
 
-  const candidateAvoidedFall = callerAvoidedFall(candidate);
-  const currentAvoidedFall = callerAvoidedFall(current);
-
-  if (candidateAvoidedFall === currentAvoidedFall) {
-    return false;
-  }
-
-  return maximizing ? candidateAvoidedFall : !candidateAvoidedFall;
+  return false;
 }
 
 export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
@@ -1715,24 +1720,171 @@ function knownUnplayedOpponentCards(
   );
 }
 
-function evaluateState(state: BellotState, cpuPlayerId: string) {
+function evaluateRawGamePointDelta(state: BellotState, cpuPlayerId: string) {
   const cpu = playerById(state, cpuPlayerId);
   const opponent = state.players.find(
     (player) => player.playerId !== cpuPlayerId,
   );
 
-  if (!opponent) {
+  if (!opponent || !state.trumpSuit) {
     return 0;
   }
 
-  return cpu.totalScore - opponent.totalScore;
+  const gamePointsByPlayer =
+    state.lastHandResult?.gamePointsByPlayer ??
+    Object.fromEntries(
+      state.players.map((player) => [
+        player.playerId,
+        player.wonCards.reduce(
+          (sum, card) => sum + bellotCardPoints(card, state.trumpSuit!),
+          0,
+        ),
+      ]),
+    );
+
+  return (
+    (gamePointsByPlayer[cpu.playerId] ?? 0) -
+    (gamePointsByPlayer[opponent.playerId] ?? 0)
+  );
 }
 
-function declarationPoints(state: BellotState, playerId: string) {
+function trumpCandidateSucceedsFromRawGamePointDelta(
+  state: BellotState,
+  cpuPlayerId: string,
+  rawGamePointDelta: number,
+) {
+  if (!state.trumpSuit || state.callerPlayerId !== cpuPlayerId) {
+    throw new Error("Trump candidate success requires CPU to be caller");
+  }
+
+  const opponent = state.players.find(
+    (player) => player.playerId !== cpuPlayerId,
+  );
+
+  if (!opponent) {
+    throw new Error("CPU opponent is not available");
+  }
+
+  const totalGamePoints = totalPlayableGamePoints(state);
+  const cpuGame = (totalGamePoints + rawGamePointDelta) / 2;
+  const opponentGame = totalGamePoints - cpuGame;
+  const cpuTotal = cpuGame + fixedDeclarationPoints(state, cpuPlayerId);
+  const opponentTotal =
+    opponentGame + fixedDeclarationPoints(state, opponent.playerId);
+
+  return cpuTotal > opponentTotal;
+}
+
+function totalPlayableGamePoints(state: BellotState) {
+  if (!state.trumpSuit) {
+    return 0;
+  }
+
+  let total = 10;
+
+  for (const player of state.players) {
+    for (const card of player.hand) {
+      total += bellotCardPoints(card, state.trumpSuit);
+    }
+
+    for (const card of player.wonCards) {
+      total += bellotCardPoints(card, state.trumpSuit);
+    }
+  }
+
+  for (const play of state.currentTrick) {
+    total += bellotCardPoints(play.card, state.trumpSuit);
+  }
+
+  return total;
+}
+
+function fixedDeclarationPoints(state: BellotState, playerId: string) {
   return (state.declarationsByPlayer[playerId] ?? []).reduce(
     (sum, declaration) => sum + declaration.points,
     0,
   );
+}
+
+function rawGamePointDeltaBounds(state: BellotState, cpuPlayerId: string) {
+  const cpu = playerById(state, cpuPlayerId);
+  const opponent = state.players.find(
+    (player) => player.playerId !== cpuPlayerId,
+  );
+
+  if (!opponent || !state.trumpSuit) {
+    return { lower: 0, upper: 0 };
+  }
+
+  let cpuPoints = rawWonCardPoints(cpu.wonCards, state.trumpSuit);
+  let opponentPoints = rawWonCardPoints(opponent.wonCards, state.trumpSuit);
+  let remainingPointMass = 10;
+  const remainingCards: Array<{ card: Card; playerId: string }> = [];
+
+  for (const play of state.currentTrick) {
+    remainingCards.push({ card: play.card, playerId: play.playerId });
+  }
+
+  for (const player of state.players) {
+    for (const card of player.hand) {
+      remainingCards.push({ card, playerId: player.playerId });
+    }
+  }
+
+  for (const entry of remainingCards) {
+    remainingPointMass += bellotCardPoints(entry.card, state.trumpSuit);
+  }
+
+  const highestTrump = highestRemainingTrump(remainingCards, state.trumpSuit);
+
+  if (highestTrump) {
+    const guaranteedPoints = bellotCardPoints(
+      highestTrump.card,
+      state.trumpSuit,
+    );
+
+    remainingPointMass -= guaranteedPoints;
+
+    if (highestTrump.playerId === cpuPlayerId) {
+      cpuPoints += guaranteedPoints;
+    } else {
+      opponentPoints += guaranteedPoints;
+    }
+  }
+
+  return {
+    lower: cpuPoints - (opponentPoints + remainingPointMass),
+    upper: cpuPoints + remainingPointMass - opponentPoints,
+  };
+}
+
+function rawWonCardPoints(cards: Card[], trumpSuit: Suit) {
+  return cards.reduce(
+    (sum, card) => sum + bellotCardPoints(card, trumpSuit),
+    0,
+  );
+}
+
+function highestRemainingTrump(
+  cards: Array<{ card: Card; playerId: string }>,
+  trumpSuit: Suit,
+) {
+  let highest: { card: Card; playerId: string } | undefined;
+
+  for (const entry of cards) {
+    if (entry.card.suit !== trumpSuit) {
+      continue;
+    }
+
+    if (
+      !highest ||
+      compareBellotCards(entry.card, highest.card, trumpSuit) > 0
+    ) {
+      highest = entry;
+    }
+  }
+
+  return highest;
 }
 
 export function bellotCpuOrderCardsForSearch(
