@@ -844,15 +844,52 @@ function nonTrumpWinningResponseAceOrTen(cards: Card[], state: BellotState) {
     return undefined;
   }
 
-  const preferredCards = [
-    cards.find((card) => card.suit === leadSuit && card.rank === "A"),
-    cards.find((card) => card.suit === leadSuit && card.rank === "X"),
-  ];
+  const ace = cards.find((card) => card.suit === leadSuit && card.rank === "A");
+  const ten = cards.find((card) => card.suit === leadSuit && card.rank === "X");
 
-  return preferredCards.find(
-    (card): card is Card =>
-      !!card && wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit!),
-  );
+  if (
+    ace &&
+    (ten || hasPlayedCard(state, leadSuit, "X")) &&
+    wouldCurrentlyWin(ace, state.currentTrick, state.trumpSuit)
+  ) {
+    return ace;
+  }
+
+  if (
+    ten &&
+    !ace &&
+    wouldCurrentlyWin(ten, state.currentTrick, state.trumpSuit)
+  ) {
+    return ten;
+  }
+
+  return undefined;
+}
+
+function hasPlayedCard(state: BellotState, suit: Suit, rank: Rank) {
+  for (const play of state.currentTrick) {
+    if (play.card.suit === suit && play.card.rank === rank) {
+      return true;
+    }
+  }
+
+  for (const trick of state.completedTricks) {
+    for (const play of trick.cards) {
+      if (play.card.suit === suit && play.card.rank === rank) {
+        return true;
+      }
+    }
+  }
+
+  for (const player of state.players) {
+    for (const card of player.wonCards) {
+      if (card.suit === suit && card.rank === rank) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 export function bellotCpuCheapSearchCard(

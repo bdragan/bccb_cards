@@ -881,6 +881,26 @@ describe("Bellot", () => {
         .id,
     ).toBe("A-acorns");
 
+    const aceOnlyWinningResponseState: BellotState = {
+      ...respondingState,
+      players: respondingState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [card("K", "acorns"), card("A", "acorns")],
+            }
+          : player,
+      ),
+      currentTrick: [{ playerId: "p2", card: card("O", "acorns") }],
+    };
+
+    expect(
+      bellotCpuCheapSearchCard(
+        aceOnlyWinningResponseState.players[0].hand,
+        aceOnlyWinningResponseState,
+      ).id,
+    ).toBe("K-acorns");
+
     const tenOnlyWinningResponseState: BellotState = {
       ...respondingState,
       players: respondingState.players.map((player) =>
@@ -1365,7 +1385,7 @@ describe("Bellot", () => {
     ).toEqual(["A-acorns"]);
   });
 
-  it("searches only the non-trump ace when it can win a response trick", () => {
+  it("keeps existing winning response evaluations for an unsupported non-trump ace", () => {
     const state: BellotState = {
       ...createBellotInitialState(players),
       phase: "trick-play",
@@ -1393,6 +1413,54 @@ describe("Bellot", () => {
       callerPlayerId: "p1",
       currentTurnPlayerId: "p1",
       currentTrick: [{ playerId: "p2", card: card("O", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      bellotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["K-acorns", "A-acorns"]);
+  });
+
+  it("searches only the non-trump ace when the ten has already been played", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("K", "acorns"), card("A", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("O", "acorns") }],
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("X", "acorns") },
+            { playerId: "p2", card: card("VII", "acorns") },
+          ],
+        },
+      ],
       declarationsByPlayer: { p1: [], p2: [] },
       publicCardsByPlayer: { p1: [], p2: [] },
     };
