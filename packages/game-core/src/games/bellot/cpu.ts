@@ -538,7 +538,7 @@ function chooseCardForTrick(
     for (const card of orderCardsForSearch(
       sampleSearchCards,
       sample,
-      cpuPlayerId,
+      true,
     )) {
       const next = applyBellotAction(sample, {
         type: "play-card",
@@ -657,7 +657,7 @@ function alphaBetaResult(
   for (const card of orderCardsForSearch(
     searchCards,
     state,
-    currentPlayer.playerId,
+    maximizing,
   )) {
     const next = applyBellotAction(state, {
       type: "play-card",
@@ -1644,38 +1644,39 @@ function declarationPoints(state: BellotState, playerId: string) {
   );
 }
 
-function orderCardsForSearch(
+export function bellotCpuOrderCardsForSearch(
   cards: Card[],
   state: BellotState,
-  playerId: string,
+  maximizing: boolean,
 ) {
   if (!state.trumpSuit) {
     return cards;
   }
 
   return cards.slice().sort((left, right) => {
-    const leftWin = wouldCurrentlyWin(
-      left,
-      state.currentTrick,
-      state.trumpSuit!,
-    );
-    const rightWin = wouldCurrentlyWin(
-      right,
-      state.currentTrick,
-      state.trumpSuit!,
-    );
+    const leftScore = cardSearchOrderingScore(left, state, maximizing);
+    const rightScore = cardSearchOrderingScore(right, state, maximizing);
 
-    if (leftWin !== rightWin) {
-      return playerId === state.currentTurnPlayerId
-        ? Number(rightWin) - Number(leftWin)
-        : Number(leftWin) - Number(rightWin);
+    if (leftScore !== rightScore) {
+      return maximizing ? rightScore - leftScore : leftScore - rightScore;
     }
 
-    return (
-      cardHeuristic(right, state.trumpSuit!) -
-      cardHeuristic(left, state.trumpSuit!)
-    );
+    return left.id.localeCompare(right.id);
   });
+}
+
+const orderCardsForSearch = bellotCpuOrderCardsForSearch;
+
+function cardSearchOrderingScore(
+  card: Card,
+  state: BellotState,
+  maximizing: boolean,
+) {
+  const currentPlayerScore =
+    (wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit!) ? 1000 : 0) +
+    cardHeuristic(card, state.trumpSuit!);
+
+  return maximizing ? currentPlayerScore : -currentPlayerScore;
 }
 
 function wouldCurrentlyWin(
