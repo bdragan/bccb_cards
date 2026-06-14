@@ -1950,7 +1950,7 @@ describe("Bellot", () => {
 
     expect(
       chooseBellotCpuAction(state, "p1", {
-        trumpAcceptMinSuccessRate: Number.POSITIVE_INFINITY,
+        trumpMinSuccessRate: Number.POSITIVE_INFINITY,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
       }),
     ).toEqual({
@@ -1960,7 +1960,7 @@ describe("Bellot", () => {
 
     expect(
       chooseBellotCpuAction(state, "p1", {
-        trumpAcceptMinSuccessRate: 0,
+        trumpMinSuccessRate: 0,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
       }),
     ).toEqual({
@@ -1970,7 +1970,7 @@ describe("Bellot", () => {
 
     expect(
       chooseBellotCpuAction(state, "p1", {
-        trumpAcceptMinSuccessRate: 0,
+        trumpMinSuccessRate: 0,
         trumpHighSuccessRate: Number.POSITIVE_INFINITY,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
       }),
@@ -1998,7 +1998,7 @@ describe("Bellot", () => {
         },
         "p1",
         {
-          trumpAcceptMinSuccessRate: 0,
+          trumpMinSuccessRate: 0,
           trumpHighSuccessRate: Number.POSITIVE_INFINITY,
           trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
         },
@@ -2040,7 +2040,7 @@ describe("Bellot", () => {
       trumpPasses: ["p1"],
     };
     const action = chooseBellotCpuAction(state, "p2", {
-      trumpChooseMinSuccessRate: Number.POSITIVE_INFINITY,
+      trumpMinSuccessRate: Number.POSITIVE_INFINITY,
       trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
     });
 
@@ -2061,7 +2061,7 @@ describe("Bellot", () => {
         },
         "p1",
         {
-          trumpChooseMinSuccessRate: Number.POSITIVE_INFINITY,
+          trumpMinSuccessRate: Number.POSITIVE_INFINITY,
           trumpMinExpectedValue: Number.POSITIVE_INFINITY,
         },
       )?.type,
