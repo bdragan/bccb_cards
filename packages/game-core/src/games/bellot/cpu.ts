@@ -1777,6 +1777,12 @@ export function bellotCpuOrderRootCardsForSearch(
       return statsDelta;
     }
 
+    const leadingCardDelta = compareLeadingRootCards(left, right, state);
+
+    if (leadingCardDelta !== 0) {
+      return leadingCardDelta;
+    }
+
     const heuristicDelta =
       cardSearchOrderingScore(right, state, true) -
       cardSearchOrderingScore(left, state, true);
@@ -1787,6 +1793,38 @@ export function bellotCpuOrderRootCardsForSearch(
 
     return left.id.localeCompare(right.id);
   });
+}
+
+function compareLeadingRootCards(left: Card, right: Card, state: BellotState) {
+  if (!state.trumpSuit || state.currentTrick.length > 0) {
+    return 0;
+  }
+
+  const leftTrump = left.suit === state.trumpSuit;
+  const rightTrump = right.suit === state.trumpSuit;
+
+  if (leftTrump !== rightTrump) {
+    return Number(leftTrump) - Number(rightTrump);
+  }
+
+  const pointDelta =
+    bellotCardPoints(right, state.trumpSuit) -
+    bellotCardPoints(left, state.trumpSuit);
+
+  if (pointDelta !== 0) {
+    return pointDelta;
+  }
+
+  const strengthDelta =
+    left.suit === right.suit
+      ? compareBellotCards(right, left, state.trumpSuit)
+      : 0;
+
+  if (strengthDelta !== 0) {
+    return strengthDelta;
+  }
+
+  return 0;
 }
 
 function createRootCardSampleStats(cards: Card[]) {
@@ -1853,7 +1891,7 @@ function compareRootCardSampleStats(
     return averageWinningValueDelta;
   }
 
-  return right.sampleCount - left.sampleCount;
+  return 0;
 }
 
 function averageRootCardWinningValue(stats: BellotCpuRootCardSampleStats) {

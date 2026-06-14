@@ -952,6 +952,61 @@ describe("Bellot", () => {
     ).toEqual(["X-acorns", "A-acorns", "VII-acorns"]);
   });
 
+  it("orders tied leading root CPU cards by non-trump value before trump value", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("U", "hearts"),
+            card("IX", "hearts"),
+            card("K", "leaves"),
+            card("X", "bells"),
+            card("A", "acorns"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const stats = new Map(
+      state.players[0].hand.map((handCard) => [
+        handCard.id,
+        {
+          sampleCount: 4,
+          successCount: 1,
+          totalWinningValue: 40,
+        },
+      ]),
+    );
+
+    expect(
+      bellotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["A-acorns", "X-bells", "K-leaves", "U-hearts", "IX-hearts"]);
+  });
+
   it("uses 50 percent more regular CPU Monte Carlo samples when selecting trump", () => {
     expect(bellotCpuTrumpMonteCarloSamples()).toBe(96);
     expect(bellotCpuTrumpMonteCarloSamples({ monteCarloSamples: 10 })).toBe(15);
