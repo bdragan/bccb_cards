@@ -185,7 +185,7 @@ function remainingSearchPlies(state: BellotState) {
 function shouldUseRawPointBounds(state: BellotState) {
   return (
     state.currentTrick.length === 0 &&
-    state.players.every((player) => player.hand.length <= 3)
+    state.players.every((player) => player.hand.length <= 4)
   );
 }
 
@@ -256,42 +256,77 @@ function rawGamePointDeltaBounds(
     return { lower: 0, upper: 0 };
   }
 
+  const trumpSuit = state.trumpSuit;
   let maximizingPlayerPoints = rawWonCardPoints(
     maximizingPlayer.wonCards,
-    state.trumpSuit,
+    trumpSuit,
   );
-  let opponentPoints = rawWonCardPoints(opponent.wonCards, state.trumpSuit);
+  let opponentPoints = rawWonCardPoints(opponent.wonCards, trumpSuit);
   let remainingPointMass = 10;
-  const remainingCards: Array<{ card: Card; playerId: string }> = [];
+  let highestTrump: { card: Card; playerId: string } | undefined;
+  let secondHighestTrump: { card: Card; playerId: string } | undefined;
+
+  const addRemainingCard = (card: Card, playerId: string) => {
+    remainingPointMass += bellotCardPoints(card, trumpSuit);
+
+    if (card.suit !== trumpSuit) {
+      return;
+    }
+
+    const entry = { card, playerId };
+
+    if (
+      !highestTrump ||
+      compareBellotCards(card, highestTrump.card, trumpSuit) > 0
+    ) {
+      secondHighestTrump = highestTrump;
+      highestTrump = entry;
+      return;
+    }
+
+    if (
+      !secondHighestTrump ||
+      compareBellotCards(card, secondHighestTrump.card, trumpSuit) > 0
+    ) {
+      secondHighestTrump = entry;
+    }
+  };
 
   for (const play of state.currentTrick) {
-    remainingCards.push({ card: play.card, playerId: play.playerId });
+    addRemainingCard(play.card, play.playerId);
   }
 
   for (const player of state.players) {
     for (const card of player.hand) {
-      remainingCards.push({ card, playerId: player.playerId });
+      addRemainingCard(card, player.playerId);
     }
   }
 
-  for (const entry of remainingCards) {
-    remainingPointMass += bellotCardPoints(entry.card, state.trumpSuit);
-  }
-
-  const highestTrump = highestRemainingTrump(remainingCards, state.trumpSuit);
-
   if (highestTrump) {
-    const guaranteedPoints = bellotCardPoints(
-      highestTrump.card,
-      state.trumpSuit,
-    );
+    const highestTrumpPoints = bellotCardPoints(highestTrump.card, trumpSuit);
 
-    remainingPointMass -= guaranteedPoints;
-
+    remainingPointMass -= highestTrumpPoints;
     if (highestTrump.playerId === maximizingPlayerId) {
-      maximizingPlayerPoints += guaranteedPoints;
+      maximizingPlayerPoints += highestTrumpPoints;
     } else {
-      opponentPoints += guaranteedPoints;
+      opponentPoints += highestTrumpPoints;
+    }
+
+    if (
+      secondHighestTrump &&
+      secondHighestTrump.playerId === highestTrump.playerId
+    ) {
+      const secondHighestTrumpPoints = bellotCardPoints(
+        secondHighestTrump.card,
+        trumpSuit,
+      );
+
+      remainingPointMass -= secondHighestTrumpPoints;
+      if (secondHighestTrump.playerId === maximizingPlayerId) {
+        maximizingPlayerPoints += secondHighestTrumpPoints;
+      } else {
+        opponentPoints += secondHighestTrumpPoints;
+      }
     }
   }
 
@@ -306,28 +341,6 @@ function rawWonCardPoints(cards: Card[], trumpSuit: Suit) {
     (sum, card) => sum + bellotCardPoints(card, trumpSuit),
     0,
   );
-}
-
-function highestRemainingTrump(
-  cards: Array<{ card: Card; playerId: string }>,
-  trumpSuit: Suit,
-) {
-  let highest: { card: Card; playerId: string } | undefined;
-
-  for (const entry of cards) {
-    if (entry.card.suit !== trumpSuit) {
-      continue;
-    }
-
-    if (
-      !highest ||
-      compareBellotCards(entry.card, highest.card, trumpSuit) > 0
-    ) {
-      highest = entry;
-    }
-  }
-
-  return highest;
 }
 
 function playerById(state: BellotState, playerId: string) {
