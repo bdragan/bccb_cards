@@ -74,7 +74,13 @@ type BellotSearchResult = {
 export type BellotCpuRootCardSampleStats = {
   sampleCount: number;
   successCount: number;
-  totalValue: number;
+  totalWinningValue: number;
+};
+
+type BellotRootSampleSearchResult = {
+  bestCardId: string;
+  bestValue: number;
+  searchedCardIds: string[];
 };
 
 type BellotSearchContext = {
@@ -540,52 +546,74 @@ function chooseCardForTrick(
     rng,
   );
   const searchCards = bellotCpuSearchCards(legalCards, state);
-  const scores = new Map(searchCards.map((card) => [card.id, 0]));
   const rootCardStats = createRootCardSampleStats(searchCards);
   const searchContext = createBellotSearchContext(maxSearchPlies);
 
   for (const sample of samples) {
     const sampleSearchCards = bellotCpuSearchCards(searchCards, sample);
-    const sampleResults: Array<{ cardId: string; value: number }> = [];
 
-    for (const card of bellotCpuOrderRootCardsForSearch(
-      sampleSearchCards,
-      sample,
+    updateRootCardSampleStats(
       rootCardStats,
-    )) {
-      const next = applyBellotAction(sample, {
-        type: "play-card",
-        playerId: cpuPlayerId,
-        cardId: card.id,
-      });
-      const value = alphaBeta(
-        next,
+      searchRootCardsForSample(
+        sample,
         cpuPlayerId,
-        maxSearchPlies - 1,
-        -maxUtility,
-        maxUtility,
+        sampleSearchCards,
+        rootCardStats,
+        maxSearchPlies,
         searchContext,
-      );
-
-      scores.set(card.id, (scores.get(card.id) ?? 0) + value);
-      sampleResults.push({ cardId: card.id, value });
-    }
-
-    updateRootCardSampleStats(rootCardStats, sampleResults);
+      ),
+    );
   }
 
-  return searchCards.slice().sort((left, right) => {
-    const scoreDelta = (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0);
+  return bellotCpuOrderRootCardsForSearch(searchCards, state, rootCardStats)[0];
+}
 
-    if (scoreDelta !== 0) {
-      return scoreDelta;
-    }
+function searchRootCardsForSample(
+  sample: BellotState,
+  cpuPlayerId: string,
+  rootCards: Card[],
+  rootCardStats: ReadonlyMap<string, BellotCpuRootCardSampleStats>,
+  maxSearchPlies: number,
+  searchContext: BellotSearchContext,
+): BellotRootSampleSearchResult {
+  let alpha = -maxUtility;
+  let bestCardId = rootCards[0]?.id;
+  let bestValue = -maxUtility;
+  const searchedCardIds: string[] = [];
 
-    return (
-      cardHeuristic(right, state.trumpSuit!) -
-      cardHeuristic(left, state.trumpSuit!)
+  if (!bestCardId) {
+    throw new Error("CPU has no root cards to search");
+  }
+
+  for (const card of bellotCpuOrderRootCardsForSearch(
+    rootCards,
+    sample,
+    rootCardStats,
+  )) {
+    const next = applyBellotAction(sample, {
+      type: "play-card",
+      playerId: cpuPlayerId,
+      cardId: card.id,
+    });
+    const value = alphaBeta(
+      next,
+      cpuPlayerId,
+      maxSearchPlies - 1,
+      alpha,
+      maxUtility,
+      searchContext,
     );
-  })[0];
+
+    searchedCardIds.push(card.id);
+
+    if (value > bestValue) {
+      bestCardId = card.id;
+      bestValue = value;
+      alpha = value;
+    }
+  }
+
+  return { bestCardId, bestValue, searchedCardIds };
 }
 
 function alphaBeta(
@@ -1709,7 +1737,7 @@ function createRootCardSampleStats(cards: Card[]) {
       {
         sampleCount: 0,
         successCount: 0,
-        totalValue: 0,
+        totalWinningValue: 0,
       },
     ]),
   );
@@ -1717,24 +1745,21 @@ function createRootCardSampleStats(cards: Card[]) {
 
 function updateRootCardSampleStats(
   stats: Map<string, BellotCpuRootCardSampleStats>,
-  sampleResults: Array<{ cardId: string; value: number }>,
+  sampleResult: BellotRootSampleSearchResult,
 ) {
-  const bestValue = Math.max(
-    Number.NEGATIVE_INFINITY,
-    ...sampleResults.map((result) => result.value),
-  );
-
-  for (const result of sampleResults) {
-    const current = stats.get(result.cardId) ?? {
+  for (const cardId of sampleResult.searchedCardIds) {
+    const current = stats.get(cardId) ?? {
       sampleCount: 0,
       successCount: 0,
-      totalValue: 0,
+      totalWinningValue: 0,
     };
+    const success = cardId === sampleResult.bestCardId;
 
-    stats.set(result.cardId, {
+    stats.set(cardId, {
       sampleCount: current.sampleCount + 1,
-      successCount: current.successCount + (result.value === bestValue ? 1 : 0),
-      totalValue: current.totalValue + result.value,
+      successCount: current.successCount + (success ? 1 : 0),
+      totalWinningValue:
+        current.totalWinningValue + (success ? sampleResult.bestValue : 0),
     });
   }
 }
@@ -1762,9 +1787,20 @@ function compareRootCardSampleStats(
     return successRateDelta;
   }
 
-  return (
-    right.totalValue / right.sampleCount - left.totalValue / left.sampleCount
-  );
+  const averageWinningValueDelta =
+    averageRootCardWinningValue(right) - averageRootCardWinningValue(left);
+
+  if (averageWinningValueDelta !== 0) {
+    return averageWinningValueDelta;
+  }
+
+  return right.sampleCount - left.sampleCount;
+}
+
+function averageRootCardWinningValue(stats: BellotCpuRootCardSampleStats) {
+  return stats.successCount > 0
+    ? stats.totalWinningValue / stats.successCount
+    : 0;
 }
 
 function cardSearchOrderingScore(

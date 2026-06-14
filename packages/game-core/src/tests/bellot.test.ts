@@ -924,7 +924,7 @@ describe("Bellot", () => {
         {
           sampleCount: 4,
           successCount: 1,
-          totalValue: 120,
+          totalWinningValue: 120,
         },
       ],
       [
@@ -932,7 +932,7 @@ describe("Bellot", () => {
         {
           sampleCount: 4,
           successCount: 3,
-          totalValue: 80,
+          totalWinningValue: 80,
         },
       ],
       [
@@ -940,7 +940,7 @@ describe("Bellot", () => {
         {
           sampleCount: 4,
           successCount: 1,
-          totalValue: 20,
+          totalWinningValue: 20,
         },
       ],
     ]);
