@@ -71,6 +71,12 @@ type BellotSearchResult = {
   callerFell?: boolean;
 };
 
+export type BellotCpuRootCardSampleStats = {
+  sampleCount: number;
+  successCount: number;
+  totalValue: number;
+};
+
 type BellotSearchContext = {
   closingSearchPlies: number;
 };
@@ -91,7 +97,9 @@ export function bellotCpuMonteCarloSampleLimit(
   );
 }
 
-export function bellotCpuTrumpMonteCarloSamples(options: BellotCpuOptions = {}) {
+export function bellotCpuTrumpMonteCarloSamples(
+  options: BellotCpuOptions = {},
+) {
   return (
     options.trumpMonteCarloSamples ??
     (options.monteCarloSamples ?? defaultMonteCarloSamples) *
@@ -365,7 +373,8 @@ function compareTrumpCandidates(
   left: TrumpSuitCandidate,
   right: TrumpSuitCandidate,
 ) {
-  const expectedValueDelta = right.score.expectedValue - left.score.expectedValue;
+  const expectedValueDelta =
+    right.score.expectedValue - left.score.expectedValue;
 
   if (expectedValueDelta !== 0) {
     return expectedValueDelta;
@@ -418,7 +427,9 @@ function averageTrumpRolloutScore(
 }
 
 function callerAvoidedFall(result: BellotSearchResult) {
-  return result.callerFell === undefined ? result.value >= 0 : !result.callerFell;
+  return result.callerFell === undefined
+    ? result.value >= 0
+    : !result.callerFell;
 }
 
 function createTrumpRolloutStates(
@@ -530,15 +541,17 @@ function chooseCardForTrick(
   );
   const searchCards = bellotCpuSearchCards(legalCards, state);
   const scores = new Map(searchCards.map((card) => [card.id, 0]));
+  const rootCardStats = createRootCardSampleStats(searchCards);
   const searchContext = createBellotSearchContext(maxSearchPlies);
 
   for (const sample of samples) {
     const sampleSearchCards = bellotCpuSearchCards(searchCards, sample);
+    const sampleResults: Array<{ cardId: string; value: number }> = [];
 
-    for (const card of orderCardsForSearch(
+    for (const card of bellotCpuOrderRootCardsForSearch(
       sampleSearchCards,
       sample,
-      true,
+      rootCardStats,
     )) {
       const next = applyBellotAction(sample, {
         type: "play-card",
@@ -555,7 +568,10 @@ function chooseCardForTrick(
       );
 
       scores.set(card.id, (scores.get(card.id) ?? 0) + value);
+      sampleResults.push({ cardId: card.id, value });
     }
+
+    updateRootCardSampleStats(rootCardStats, sampleResults);
   }
 
   return searchCards.slice().sort((left, right) => {
@@ -580,14 +596,7 @@ function alphaBeta(
   beta: number,
   context: BellotSearchContext = createBellotSearchContext(depth),
 ): number {
-  return alphaBetaResult(
-    state,
-    cpuPlayerId,
-    depth,
-    alpha,
-    beta,
-    context,
-  ).value;
+  return alphaBetaResult(state, cpuPlayerId, depth, alpha, beta, context).value;
 }
 
 function createBellotSearchContext(depth: number): BellotSearchContext {
@@ -604,10 +613,7 @@ function alphaBetaResult(
   beta: number,
   context: BellotSearchContext,
 ): BellotSearchResult {
-  if (
-    state.phase === "hand-complete" ||
-    state.phase === "finished"
-  ) {
+  if (state.phase === "hand-complete" || state.phase === "finished") {
     return evaluateSearchLeaf(state, cpuPlayerId);
   }
 
@@ -654,11 +660,7 @@ function alphaBetaResult(
     value: maximizing ? -maxUtility : maxUtility,
   };
 
-  for (const card of orderCardsForSearch(
-    searchCards,
-    state,
-    maximizing,
-  )) {
+  for (const card of orderCardsForSearch(searchCards, state, maximizing)) {
     const next = applyBellotAction(state, {
       type: "play-card",
       playerId: currentPlayer.playerId,
@@ -799,8 +801,10 @@ function cheapestLosingResponseCardsBySuit(cards: Card[], state: BellotState) {
 
   const keepCardIds = new Set<string>();
   const cheapestLosingCardsBySuit = new Map<Suit, Card>();
-  const preferredNonTrumpWinningResponseCard =
-    nonTrumpWinningResponseAceOrTen(cards, state);
+  const preferredNonTrumpWinningResponseCard = nonTrumpWinningResponseAceOrTen(
+    cards,
+    state,
+  );
 
   for (const card of cards) {
     if (wouldCurrentlyWin(card, state.currentTrick, state.trumpSuit)) {
@@ -1667,6 +1671,102 @@ export function bellotCpuOrderCardsForSearch(
 
 const orderCardsForSearch = bellotCpuOrderCardsForSearch;
 
+export function bellotCpuOrderRootCardsForSearch(
+  cards: Card[],
+  state: BellotState,
+  stats: ReadonlyMap<string, BellotCpuRootCardSampleStats>,
+) {
+  if (!state.trumpSuit) {
+    return cards;
+  }
+
+  return cards.slice().sort((left, right) => {
+    const statsDelta = compareRootCardSampleStats(
+      stats.get(left.id),
+      stats.get(right.id),
+    );
+
+    if (statsDelta !== 0) {
+      return statsDelta;
+    }
+
+    const heuristicDelta =
+      cardSearchOrderingScore(right, state, true) -
+      cardSearchOrderingScore(left, state, true);
+
+    if (heuristicDelta !== 0) {
+      return heuristicDelta;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+}
+
+function createRootCardSampleStats(cards: Card[]) {
+  return new Map<string, BellotCpuRootCardSampleStats>(
+    cards.map((card) => [
+      card.id,
+      {
+        sampleCount: 0,
+        successCount: 0,
+        totalValue: 0,
+      },
+    ]),
+  );
+}
+
+function updateRootCardSampleStats(
+  stats: Map<string, BellotCpuRootCardSampleStats>,
+  sampleResults: Array<{ cardId: string; value: number }>,
+) {
+  const bestValue = Math.max(
+    Number.NEGATIVE_INFINITY,
+    ...sampleResults.map((result) => result.value),
+  );
+
+  for (const result of sampleResults) {
+    const current = stats.get(result.cardId) ?? {
+      sampleCount: 0,
+      successCount: 0,
+      totalValue: 0,
+    };
+
+    stats.set(result.cardId, {
+      sampleCount: current.sampleCount + 1,
+      successCount: current.successCount + (result.value === bestValue ? 1 : 0),
+      totalValue: current.totalValue + result.value,
+    });
+  }
+}
+
+function compareRootCardSampleStats(
+  left: BellotCpuRootCardSampleStats | undefined,
+  right: BellotCpuRootCardSampleStats | undefined,
+) {
+  const leftObserved = Boolean(left?.sampleCount);
+  const rightObserved = Boolean(right?.sampleCount);
+
+  if (leftObserved !== rightObserved) {
+    return Number(rightObserved) - Number(leftObserved);
+  }
+
+  if (!left || !right || !leftObserved || !rightObserved) {
+    return 0;
+  }
+
+  const successRateDelta =
+    right.successCount / right.sampleCount -
+    left.successCount / left.sampleCount;
+
+  if (successRateDelta !== 0) {
+    return successRateDelta;
+  }
+
+  return (
+    right.totalValue / right.sampleCount - left.totalValue / left.sampleCount
+  );
+}
+
 function cardSearchOrderingScore(
   card: Card,
   state: BellotState,
@@ -1716,11 +1816,7 @@ function cardHeuristic(card: Card, trumpSuit: Suit) {
   );
 }
 
-function compareCardsByCheapValue(
-  left: Card,
-  right: Card,
-  trumpSuit: Suit,
-) {
+function compareCardsByCheapValue(left: Card, right: Card, trumpSuit: Suit) {
   const heuristicDelta =
     cardHeuristic(left, trumpSuit) - cardHeuristic(right, trumpSuit);
 

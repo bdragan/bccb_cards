@@ -9,6 +9,7 @@ import {
   bellotCpuCheapSearchCard,
   bellotCpuMonteCarloSampleLimit,
   bellotCpuOrderCardsForSearch,
+  bellotCpuOrderRootCardsForSearch,
   bellotCpuSearchCards,
   bellotCpuTrumpMonteCarloSamples,
   calculateBellotHandResult,
@@ -880,6 +881,75 @@ describe("Bellot", () => {
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-acorns", "X-acorns", "VII-acorns"]);
+  });
+
+  it("orders root CPU cards by previous Monte Carlo sample success", () => {
+    const state: BellotState = {
+      ...createBellotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("VII", "acorns"),
+            card("X", "acorns"),
+            card("A", "acorns"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const stats = new Map([
+      [
+        "A-acorns",
+        {
+          sampleCount: 4,
+          successCount: 1,
+          totalValue: 120,
+        },
+      ],
+      [
+        "X-acorns",
+        {
+          sampleCount: 4,
+          successCount: 3,
+          totalValue: 80,
+        },
+      ],
+      [
+        "VII-acorns",
+        {
+          sampleCount: 4,
+          successCount: 1,
+          totalValue: 20,
+        },
+      ],
+    ]);
+
+    expect(
+      bellotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["X-acorns", "A-acorns", "VII-acorns"]);
   });
 
   it("uses 50 percent more regular CPU Monte Carlo samples when selecting trump", () => {
