@@ -192,9 +192,13 @@ describe("BellotTable", () => {
       );
 
     expect(markedCards).toEqual(["IX of Bells", "A of Hearts"]);
-    expect(
-      screen.getAllByText("Hidden pickup card")[0].closest("button"),
-    ).toHaveClass("ring-4");
+    const markedButton = screen
+      .getAllByText("Hidden pickup card")[0]
+      .closest("button")!;
+    expect(markedButton).not.toHaveClass("ring-4");
+    expect(within(markedButton).getByRole("img").parentElement).toHaveClass(
+      "ring-4",
+    );
   });
 
   it("marks visible trump cards", () => {
@@ -362,6 +366,9 @@ describe("BellotTable", () => {
       expect(screen.getAllByText("Hidden pickup card")).toHaveLength(2);
       expect(
         screen.getAllByText("Hidden pickup card")[0].parentElement,
+      ).not.toHaveClass("ring-4");
+      expect(
+        within(cardRows[0]).getAllByRole("img")[1].parentElement,
       ).toHaveClass("ring-4");
     } finally {
       vi.useRealTimers();

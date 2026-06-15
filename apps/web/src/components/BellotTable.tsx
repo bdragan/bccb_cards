@@ -173,6 +173,24 @@ function TrumpMarkedCard({
   );
 }
 
+function PickupCardFrame({
+  pickedUp,
+  ringClassName = "ring-amber-400/90",
+  children,
+}: {
+  pickedUp: boolean;
+  ringClassName?: string;
+  children: ReactNode;
+}) {
+  const ringClass = pickedUp ? `ring-4 ${ringClassName}` : "";
+
+  return (
+    <span className={`inline-flex rounded-md ${ringClass}`}>
+      {children}
+    </span>
+  );
+}
+
 function trickStrengthMap(trick: BellotTrickPlay[], trumpSuit?: Suit) {
   if (!trick.length || !trumpSuit) {
     return new Map<string, boolean>();
@@ -325,12 +343,15 @@ function ResultCardRow({
               return (
                 <div
                   key={card.id}
-                  className={`relative shrink-0 rounded-md ${
-                    pickedUp ? "ring-4 ring-amber-500" : ""
-                  }`}
+                  className="relative shrink-0 rounded-md"
                 >
                   <TrumpMarkedCard card={card} trumpSuit={trumpSuit}>
-                    <PlayingCard card={card} compact />
+                    <PickupCardFrame
+                      pickedUp={pickedUp}
+                      ringClassName="ring-amber-600"
+                    >
+                      <PlayingCard card={card} compact />
+                    </PickupCardFrame>
                   </TrumpMarkedCard>
                   {pickedUp ? (
                     <span className="sr-only">Hidden pickup card</span>
@@ -901,15 +922,15 @@ export function BellotTable({
                     <button
                       key={card.id}
                       type="button"
-                      className={`relative rounded-md disabled:cursor-default disabled:opacity-100 ${
-                        pickedUp ? "ring-4 ring-amber-300/80" : ""
-                      }`}
+                      className="relative rounded-md disabled:cursor-default disabled:opacity-100"
                       data-testid="bellot-hand-card"
                       disabled={!canPlay}
                       onClick={() => onPlayCard(card.id)}
                     >
                       <TrumpMarkedCard card={card} trumpSuit={state.trumpSuit}>
-                        <PlayingCard card={card} native />
+                        <PickupCardFrame pickedUp={pickedUp}>
+                          <PlayingCard card={card} native />
+                        </PickupCardFrame>
                       </TrumpMarkedCard>
                       {pickedUp ? (
                         <span className="sr-only">Hidden pickup card</span>
