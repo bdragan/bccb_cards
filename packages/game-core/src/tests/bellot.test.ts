@@ -837,10 +837,10 @@ describe("Bellot", () => {
     });
   });
 
-  it("increases CPU Monte Carlo samples by 20 percent per missing trick card", () => {
+  it("increases CPU Monte Carlo samples by 30 percent per missing trick card", () => {
     expect(bellotCpuMonteCarloSampleLimit(64, 10)).toBe(64);
-    expect(bellotCpuMonteCarloSampleLimit(64, 9)).toBe(77);
-    expect(bellotCpuMonteCarloSampleLimit(64, 6)).toBe(116);
+    expect(bellotCpuMonteCarloSampleLimit(64, 9)).toBe(84);
+    expect(bellotCpuMonteCarloSampleLimit(64, 6)).toBe(141);
   });
 
   it("uses the same 14-ply default CPU search for trump and trick play", () => {

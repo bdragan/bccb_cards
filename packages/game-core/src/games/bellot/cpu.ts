@@ -47,7 +47,7 @@ const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
-const sampleIncreasePerMissingCard = 0.2;
+const sampleIncreasePerMissingCard = 0.3;
 const bellotDeck = createDeck();
 const trumpSearchRankGroups: Rank[][] = [
   ["VII", "VIII", "O", "K", "X", "A", "IX", "U"],
