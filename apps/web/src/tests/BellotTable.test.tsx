@@ -1,5 +1,5 @@
 import type { BellotPublicState, Card } from "@card-games/shared";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -363,6 +363,85 @@ describe("BellotTable", () => {
       expect(
         screen.getAllByText("Hidden pickup card")[0].parentElement,
       ).toHaveClass("ring-4");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows the finished game winner in the hand result subsection", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const onNextHand = vi.fn();
+      const onRestart = vi.fn();
+
+      render(
+        <BellotTable
+          state={{
+            ...baseState,
+            phase: "finished",
+            winnerPlayerId: "p2",
+            currentTurnPlayerId: undefined,
+            currentTrick: [],
+            players: baseState.players.map((player) =>
+              player.playerId === "p1"
+                ? { ...player, hand: [], handCount: 0 }
+                : { ...player, handCount: 0 },
+            ),
+            lastHandResult: {
+              callerPlayerId: "p1",
+              opponentPlayerId: "p2",
+              gamePointsByPlayer: { p1: 21, p2: 15 },
+              declarationPointsByPlayer: { p1: 0, p2: 0 },
+              totalPointsByPlayer: { p1: 21, p2: 15 },
+              handScoreByPlayer: { p1: 2, p2: 1 },
+              schusterPlayerIds: [],
+              callerFell: true,
+              callerFellOnGame: true,
+              isMus: false,
+              lastTrickWinnerPlayerId: "p2",
+            },
+          }}
+          currentPlayerId="p1"
+          onTrumpDecision={vi.fn()}
+          onDeclare={vi.fn()}
+          onPlayCard={vi.fn()}
+          onNextHand={onNextHand}
+          onRestart={onRestart}
+        />,
+      );
+
+      await act(async () => {
+        vi.advanceTimersByTime(2_000);
+      });
+
+      const winner = screen.getByTestId("bellot-winner");
+      const winnerText = within(winner).getByText("Winner: Bob");
+
+      expect(
+        screen.queryByTestId("bellot-hand-result"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Next hand" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "New game" }),
+      ).not.toBeInTheDocument();
+      expect(winner).toHaveClass(
+        "border-t",
+        "border-white/15",
+        "pt-3",
+        "text-center",
+      );
+      expect(winner).not.toHaveClass("bg-white", "text-ink");
+      expect(winnerText).toHaveClass("text-lg", "font-bold");
+
+      fireEvent.click(
+        within(winner).getByRole("button", { name: "Next game" }),
+      );
+
+      expect(onNextHand).not.toHaveBeenCalled();
+      expect(onRestart).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();
     }

@@ -586,6 +586,9 @@ export function BellotTable({
     state.players.find(
       (player) => player.playerId !== resultCurrentPlayer?.playerId,
     ) ?? state.players[1];
+  const winnerPlayer = state.players.find(
+    (player) => player.playerId === state.winnerPlayerId,
+  );
   const playerPanels = state.players.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
     const declarationGroups = visibleDeclarationGroups(declarations);
@@ -670,10 +673,8 @@ export function BellotTable({
             {state.isMus ? " · Mus" : ""}
           </p>
         </div>
-        {state.phase === "hand-complete" ? (
+        {state.phase === "hand-complete" && !state.winnerPlayerId ? (
           <Button onClick={onNextHand}>Next hand</Button>
-        ) : state.phase === "finished" ? (
-          <Button onClick={onRestart}>New game</Button>
         ) : state.phase === "error" ? (
           <Button onClick={onRestart}>New game</Button>
         ) : null}
@@ -707,7 +708,19 @@ export function BellotTable({
                 </TrumpMarkedCard>
               </div>
             ) : null}
-            {showHandResult && state.lastHandResult ? (
+            {showHandResult && winnerPlayer ? (
+              <div
+                className="w-full border-t border-white/15 pt-3 text-center"
+                data-testid="bellot-winner"
+              >
+                <p className="text-lg font-bold text-white">
+                  Winner: {winnerPlayer.displayName}
+                </p>
+                <div className="mt-3">
+                  <Button onClick={onRestart}>Next game</Button>
+                </div>
+              </div>
+            ) : showHandResult && state.lastHandResult ? (
               <div
                 className="w-full border-t border-white/15 pt-3 text-center"
                 data-testid="bellot-hand-result"
@@ -957,19 +970,6 @@ export function BellotTable({
               ))}
             </div>
           ) : null}
-        </div>
-      ) : null}
-
-      {state.winnerPlayerId ? (
-        <div className="mt-4 rounded-md bg-white p-3 text-ink">
-          <h3 className="font-bold">Winner</h3>
-          <p className="text-sm">
-            {
-              state.players.find(
-                (player) => player.playerId === state.winnerPlayerId,
-              )?.displayName
-            }
-          </p>
         </div>
       ) : null}
 
