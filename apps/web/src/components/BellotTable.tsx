@@ -126,6 +126,52 @@ function visibleDeclarationGroups(declarations: BellotDeclaration[]) {
   });
 }
 
+function declarationPoints(declarations: BellotDeclaration[]) {
+  return declarations.reduce(
+    (total, declaration) => total + declaration.points,
+    0,
+  );
+}
+
+function trumpSelectionPreviewSuits(state: BellotPublicState) {
+  if (!trumpSelectionPhases.includes(state.phase) || !state.upcard) {
+    return [];
+  }
+
+  if (state.phase === "trump-round-one") {
+    return [state.upcard.suit];
+  }
+
+  return suitOrder.filter((suit) => suit !== state.upcard?.suit);
+}
+
+function trumpSelectionBonusPreview(
+  hand: Card[],
+  state: BellotPublicState,
+) {
+  let bestDeclarations: BellotDeclaration[] = [];
+  let bestPoints = 0;
+
+  for (const suit of trumpSelectionPreviewSuits(state)) {
+    const declarations = autoSelectBellotDeclarations(hand, suit);
+    const points = declarationPoints(declarations);
+
+    if (points > bestPoints) {
+      bestDeclarations = declarations;
+      bestPoints = points;
+    }
+  }
+
+  return {
+    cardIds: new Set(
+      bestDeclarations.flatMap((declaration) =>
+        declaration.cards.map((card) => card.id),
+      ),
+    ),
+    points: bestPoints,
+  };
+}
+
 function SuitImage({
   suit,
   className = "h-10 w-10",
@@ -146,27 +192,53 @@ function SuitImage({
 function TrumpMarkedCard({
   card,
   trumpSuit,
+  bonusMarked = false,
+  reserveBonusMarker = false,
   children,
 }: {
   card: Card;
   trumpSuit?: Suit;
+  bonusMarked?: boolean;
+  reserveBonusMarker?: boolean;
   children: ReactNode;
 }) {
   const isTrump = card.suit === trumpSuit;
+  const reserveTrumpMarker = Boolean(trumpSuit);
+  const showMarkerRow = reserveTrumpMarker || reserveBonusMarker;
 
   return (
     <span
       className="flex flex-col items-center"
-      data-testid={isTrump ? "bellot-trump-card" : undefined}
+      data-testid={
+        isTrump
+          ? "bellot-trump-card"
+          : bonusMarked
+            ? "bellot-bonus-card"
+            : undefined
+      }
     >
-      {trumpSuit ? (
-        <span
-          className={`mb-1 grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
-            isTrump ? "bg-yellow-300 shadow-sm" : "invisible"
-          }`}
-          aria-hidden={!isTrump}
-        >
-          {isTrump ? "T" : ""}
+      {showMarkerRow ? (
+        <span className="mb-1 flex h-5 items-center justify-center gap-1">
+          {reserveTrumpMarker ? (
+            <span
+              className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
+                isTrump ? "bg-yellow-300 shadow-sm" : "invisible"
+              }`}
+              aria-hidden={!isTrump}
+            >
+              {isTrump ? "T" : ""}
+            </span>
+          ) : null}
+          {reserveBonusMarker ? (
+            <span
+              className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
+                bonusMarked ? "bg-emerald-300 shadow-sm" : "invisible"
+              }`}
+              aria-hidden={!bonusMarked}
+            >
+              {bonusMarked ? "B" : ""}
+            </span>
+          ) : null}
         </span>
       ) : null}
       {children}
@@ -540,6 +612,11 @@ export function BellotTable({
     () => new Set(currentPlayer?.pickupCardIds ?? []),
     [currentPlayer?.pickupCardIds],
   );
+  const bonusPreview = useMemo(
+    () => trumpSelectionBonusPreview(currentHand, state),
+    [currentHand, state],
+  );
+  const showBonusPreview = bonusPreview.points > 0;
   const declarationSubmissionKeys = useRef(new Set<string>());
   const [lingeringTrick, setLingeringTrick] = useState<{
     trickNumber: number;
@@ -1057,6 +1134,7 @@ export function BellotTable({
                 {group.cards.map((card) => {
                   const playable = legalCardIds.has(card.id);
                   const pickedUp = pickupCardIds.has(card.id);
+                  const bonusMarked = bonusPreview.cardIds.has(card.id);
                   const canPlay =
                     state.phase === "trick-play" &&
                     state.currentTurnPlayerId === currentPlayerId &&
@@ -1071,7 +1149,12 @@ export function BellotTable({
                       disabled={!canPlay}
                       onClick={() => onPlayCard(card.id)}
                     >
-                      <TrumpMarkedCard card={card} trumpSuit={state.trumpSuit}>
+                      <TrumpMarkedCard
+                        card={card}
+                        trumpSuit={state.trumpSuit}
+                        bonusMarked={bonusMarked}
+                        reserveBonusMarker={showBonusPreview}
+                      >
                         <PickupCardFrame pickedUp={pickedUp}>
                           <PlayingCard card={card} native />
                         </PickupCardFrame>
@@ -1089,6 +1172,16 @@ export function BellotTable({
                 })}
               </div>
             ))}
+            {showBonusPreview ? (
+              <div
+                className="flex h-[138px] items-center"
+                data-testid="bellot-hand-bonus-total"
+              >
+                <span className="rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
+                  {bonusPreview.points} bonus pts
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

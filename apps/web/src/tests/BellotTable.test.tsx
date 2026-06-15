@@ -220,7 +220,92 @@ describe("BellotTable", () => {
     }
   });
 
-  it("waits for the final trick linger before showing hand results", async () => {
+  it("marks cards that can participate in pre-pickup bonus points during trump selection", () => {
+    renderTable({
+      ...baseState,
+      phase: "trump-round-one",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p2",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+      declarationsByPlayer: {},
+      publicCardsByPlayer: { p1: [], p2: [] },
+      upcard: card("K", "leaves"),
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("VII", "acorns"),
+                card("VIII", "acorns"),
+                card("IX", "acorns"),
+                card("K", "leaves"),
+              ],
+              handCount: 4,
+            }
+          : player,
+      ),
+    });
+
+    const bonusCards = screen
+      .getAllByTestId("bellot-bonus-card")
+      .map((container) =>
+        within(container).getByRole("img").getAttribute("alt"),
+      );
+
+    expect(bonusCards).toEqual([
+      "VII of Acorns",
+      "VIII of Acorns",
+      "IX of Acorns",
+    ]);
+    for (const container of screen.getAllByTestId("bellot-bonus-card")) {
+      expect(within(container).getByText("B")).toBeInTheDocument();
+    }
+    expect(screen.getByTestId("bellot-hand-bonus-total")).toHaveTextContent(
+      "20 bonus pts",
+    );
+  });
+
+  it("removes the pre-pickup bonus indicators after trump selection", () => {
+    renderTable({
+      ...baseState,
+      phase: "declarations",
+      trumpSuit: "leaves",
+      callerPlayerId: "p2",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+      declarationsByPlayer: {},
+      publicCardsByPlayer: { p1: [], p2: [] },
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("VII", "acorns"),
+                card("VIII", "acorns"),
+                card("IX", "acorns"),
+                card("K", "leaves"),
+                card("O", "leaves"),
+              ],
+              pickupCardIds: ["O-leaves"],
+              handCount: 5,
+              declarationsSubmitted: false,
+            }
+          : player,
+      ),
+    });
+
+    expect(screen.queryByTestId("bellot-bonus-card")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("bellot-hand-bonus-total"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Hidden pickup card")).toBeInTheDocument();
+  });
+
+  it("waits for the final trick linger before showing hand results", () => {
     vi.useFakeTimers();
 
     try {
@@ -290,7 +375,7 @@ describe("BellotTable", () => {
         within(finalTrick).getByAltText("K of Hearts"),
       ).toBeInTheDocument();
 
-      await act(async () => {
+      act(() => {
         vi.advanceTimersByTime(2_000);
       });
 
@@ -375,7 +460,7 @@ describe("BellotTable", () => {
     }
   });
 
-  it("shows the finished game winner above starting cards while keeping the hand result", async () => {
+  it("shows the finished game winner above starting cards while keeping the hand result", () => {
     vi.useFakeTimers();
 
     try {
@@ -418,7 +503,7 @@ describe("BellotTable", () => {
         />,
       );
 
-      await act(async () => {
+      act(() => {
         vi.advanceTimersByTime(2_000);
       });
 
@@ -463,7 +548,7 @@ describe("BellotTable", () => {
     }
   });
 
-  it("sorts end-of-hand player rows by Bellot point value within suit groups", async () => {
+  it("sorts end-of-hand player rows by Bellot point value within suit groups", () => {
     vi.useFakeTimers();
 
     try {
@@ -509,7 +594,7 @@ describe("BellotTable", () => {
         },
       });
 
-      await act(async () => {
+      act(() => {
         vi.advanceTimersByTime(2_000);
       });
 
