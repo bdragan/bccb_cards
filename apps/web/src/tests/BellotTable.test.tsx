@@ -775,13 +775,20 @@ describe("BellotTable", () => {
         .getAllByRole("columnheader")
         .map((header) => header.textContent),
     ).toEqual(["Hand", "Bob", "Alice"]);
+    expect(
+      within(timeline).getByRole("columnheader", { name: "Bob" }),
+    ).toHaveClass("font-bold", "text-white");
+    expect(
+      within(timeline).getByRole("columnheader", { name: "Alice" }),
+    ).toHaveClass("font-bold", "text-white");
     expect(rows).toHaveLength(2);
     expect(within(timeline).getByAltText("Hearts")).toBeInTheDocument();
     expect(within(timeline).getByAltText("Leaves")).toBeInTheDocument();
     expect(within(timeline).getByText("50 bonus")).toBeInTheDocument();
     expect(within(timeline).getByText("20 bonus")).toBeInTheDocument();
     expect(rows[1]).toHaveClass("border-b", "border-white/15");
-    expect(within(rows[1]).getByText("Mus")).toHaveClass("font-bold");
+    expect(within(rows[1]).getByText("Mus")).not.toHaveClass("font-bold");
+    expect(within(rows[1]).getByText("Mus")).toHaveClass("text-white");
     expect(within(rows[1]).getByText("Mus")).not.toHaveClass("text-yellow-200");
     expect(
       within(rows[1])
