@@ -651,8 +651,6 @@ export function BellotTable({
     (state.phase === "trick-play" ||
       trumpSelectionPhases.includes(state.phase) ||
       Boolean(visibleTrick));
-  const showPlayedHandsButton =
-    state.phase === "trick-play" || state.completedTricks.length > 0;
   const displayedCompletedTricks = state.completedTricks
     .map((trick, index) => ({ index, trick }))
     .reverse();
@@ -1092,85 +1090,83 @@ export function BellotTable({
         </div>
       ) : null}
 
-      {showPlayedHandsButton ? (
-        <div className="mt-4">
-          <Button
-            type="button"
-            onClick={() => setShowPlayedHands((visible) => !visible)}
-          >
-            {showPlayedHands ? "Hide details" : "Show details"}
-          </Button>
-          {showPlayedHands ? (
-            <div className="mt-3 rounded-md bg-white/10 p-3">
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-                <section className="min-w-0" data-testid="bellot-played-tricks">
-                  <h3 className="text-sm font-semibold">Played tricks</h3>
-                  <div className="mt-2 space-y-3">
-                    {displayedCompletedTricks.length ? (
-                      displayedCompletedTricks.map(
-                        ({ index, trick }, itemIndex) => (
-                          <Fragment key={index}>
-                            {itemIndex > 0 ? (
-                              <div
-                                aria-hidden="true"
-                                className="h-px w-full bg-white/15"
-                                data-testid="bellot-played-trick-separator"
-                              />
-                            ) : null}
-                            <div>
-                              <p className="mb-2 text-sm font-semibold">
-                                Trick {index + 1} ·{" "}
-                                {
-                                  state.players.find(
-                                    (player) =>
-                                      player.playerId === trick.winnerPlayerId,
-                                  )?.displayName
-                                }
-                              </p>
-                              <div className="flex flex-wrap gap-3">
-                                {trick.cards.map((play) => (
-                                  <div
-                                    key={`${index}-${play.playerId}-${play.card.id}`}
-                                    className={
-                                      play.playerId === trick.winnerPlayerId
-                                        ? ""
-                                        : "opacity-45"
-                                    }
+      <div className="mt-4">
+        <Button
+          type="button"
+          onClick={() => setShowPlayedHands((visible) => !visible)}
+        >
+          {showPlayedHands ? "Hide details" : "Show details"}
+        </Button>
+        {showPlayedHands ? (
+          <div className="mt-3 rounded-md bg-white/10 p-3">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+              <section className="min-w-0" data-testid="bellot-played-tricks">
+                <h3 className="text-sm font-semibold">Played tricks</h3>
+                <div className="mt-2 space-y-3">
+                  {displayedCompletedTricks.length ? (
+                    displayedCompletedTricks.map(
+                      ({ index, trick }, itemIndex) => (
+                        <Fragment key={index}>
+                          {itemIndex > 0 ? (
+                            <div
+                              aria-hidden="true"
+                              className="h-px w-full bg-white/15"
+                              data-testid="bellot-played-trick-separator"
+                            />
+                          ) : null}
+                          <div>
+                            <p className="mb-2 text-sm font-semibold">
+                              Trick {index + 1} ·{" "}
+                              {
+                                state.players.find(
+                                  (player) =>
+                                    player.playerId === trick.winnerPlayerId,
+                                )?.displayName
+                              }
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                              {trick.cards.map((play) => (
+                                <div
+                                  key={`${index}-${play.playerId}-${play.card.id}`}
+                                  className={
+                                    play.playerId === trick.winnerPlayerId
+                                      ? ""
+                                      : "opacity-45"
+                                  }
+                                >
+                                  <TrumpMarkedCard
+                                    card={play.card}
+                                    trumpSuit={state.trumpSuit}
                                   >
-                                    <TrumpMarkedCard
-                                      card={play.card}
-                                      trumpSuit={state.trumpSuit}
-                                    >
-                                      <PlayingCard card={play.card} compact />
-                                    </TrumpMarkedCard>
-                                  </div>
-                                ))}
-                              </div>
+                                    <PlayingCard card={play.card} compact />
+                                  </TrumpMarkedCard>
+                                </div>
+                              ))}
                             </div>
-                          </Fragment>
-                        ),
-                      )
-                    ) : (
-                      <p className="text-sm text-white/60">
-                        No tricks completed yet.
-                      </p>
-                    )}
-                  </div>
-                </section>
-                <div
-                  aria-hidden="true"
-                  className="h-px w-full bg-white/15 md:h-auto md:w-px"
-                  data-testid="bellot-details-separator"
-                />
-                <BellotGameTimeline
-                  handResults={handResults}
-                  players={timelineOrderedPlayers}
-                />
-              </div>
+                          </div>
+                        </Fragment>
+                      ),
+                    )
+                  ) : (
+                    <p className="text-sm text-white/60">
+                      No tricks completed yet.
+                    </p>
+                  )}
+                </div>
+              </section>
+              <div
+                aria-hidden="true"
+                className="h-px w-full bg-white/15 md:h-auto md:w-px"
+                data-testid="bellot-details-separator"
+              />
+              <BellotGameTimeline
+                handResults={handResults}
+                players={timelineOrderedPlayers}
+              />
             </div>
-          ) : null}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {state.error ? (
         <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">

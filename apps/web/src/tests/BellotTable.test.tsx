@@ -608,6 +608,25 @@ describe("BellotTable", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows details during trump selection", async () => {
+    const user = userEvent.setup();
+    renderTable({
+      ...baseState,
+      phase: "trump-round-one",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p2",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Show details" }));
+
+    expect(screen.getByTestId("bellot-played-tricks")).toBeInTheDocument();
+    expect(screen.getByTestId("bellot-game-timeline")).toBeInTheDocument();
+  });
+
   it("shows mus logs in the current trick area", () => {
     renderTable({
       ...baseState,
