@@ -41,13 +41,26 @@ const trumpSelectionPhases: BellotPublicState["phase"][] = [
   "mus",
 ];
 
-function sortCards(cards: Card[]) {
+function compareCardsWithinSuit(left: Card, right: Card, trumpSuit?: Suit) {
+  if (trumpSuit) {
+    const pointComparison =
+      bellotCardPoints(left, trumpSuit) - bellotCardPoints(right, trumpSuit);
+
+    if (pointComparison !== 0) {
+      return pointComparison;
+    }
+  }
+
+  return rankOrder.indexOf(left.rank) - rankOrder.indexOf(right.rank);
+}
+
+function sortCards(cards: Card[], trumpSuit?: Suit) {
   return [...cards].sort((left, right) => {
     const suitComparison =
       suitOrder.indexOf(left.suit) - suitOrder.indexOf(right.suit);
 
     return suitComparison === 0
-      ? rankOrder.indexOf(left.rank) - rankOrder.indexOf(right.rank)
+      ? compareCardsWithinSuit(left, right, trumpSuit)
       : suitComparison;
   });
 }
@@ -278,7 +291,7 @@ function playedCardsByPlayer(state: BellotPublicState) {
   return Object.fromEntries(
     Object.entries(cardsByPlayer).map(([playerId, cards]) => [
       playerId,
-      sortCards(cards),
+      sortCards(cards, state.trumpSuit),
     ]),
   ) as Record<string, Card[]>;
 }
@@ -295,7 +308,7 @@ function ResultCardRow({
   trumpSuit?: Suit;
 }) {
   const hiddenPickupCardIds = new Set(pickupCardIds ?? []);
-  const suitGroups = groupCardsBySuit(sortCards(cards));
+  const suitGroups = groupCardsBySuit(sortCards(cards, trumpSuit));
 
   return (
     <div
@@ -362,8 +375,8 @@ export function BellotTable({
     [currentPlayer?.hand],
   );
   const sortedCurrentHand = useMemo(
-    () => sortCards(currentHand),
-    [currentHand],
+    () => sortCards(currentHand, state.trumpSuit),
+    [currentHand, state.trumpSuit],
   );
   const currentHandSuitGroups = useMemo(
     () => groupCardsBySuit(sortedCurrentHand),

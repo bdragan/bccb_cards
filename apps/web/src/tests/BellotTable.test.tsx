@@ -136,6 +136,45 @@ describe("BellotTable", () => {
     ]);
   });
 
+  it("sorts hand suit groups by Bellot point value after trump is selected", () => {
+    renderTable({
+      ...baseState,
+      trumpSuit: "acorns",
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("U", "acorns"),
+                card("IX", "acorns"),
+                card("A", "acorns"),
+                card("K", "hearts"),
+                card("X", "hearts"),
+                card("VII", "acorns"),
+                card("O", "hearts"),
+                card("U", "hearts"),
+              ],
+              handCount: 8,
+            }
+          : player,
+      ),
+      completedTricks: [],
+    });
+
+    const suitGroups = screen.getAllByTestId("bellot-hand-suit-group");
+
+    expect(
+      suitGroups.map((group) =>
+        within(group)
+          .getAllByTestId("bellot-hand-card")
+          .map((button) => within(button).getByRole("img").getAttribute("alt")),
+      ),
+    ).toEqual([
+      ["VII of Acorns", "A of Acorns", "IX of Acorns", "U of Acorns"],
+      ["U of Hearts", "O of Hearts", "K of Hearts", "X of Hearts"],
+    ]);
+  });
+
   it("marks hidden pickup cards after they enter the player's hand", () => {
     renderTable({
       ...baseState,
@@ -311,6 +350,77 @@ describe("BellotTable", () => {
       expect(
         screen.getAllByText("Hidden pickup card")[0].parentElement,
       ).toHaveClass("ring-4");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sorts end-of-hand player rows by Bellot point value within suit groups", async () => {
+    vi.useFakeTimers();
+
+    try {
+      renderTable({
+        ...baseState,
+        phase: "hand-complete",
+        trumpSuit: "acorns",
+        currentTurnPlayerId: undefined,
+        currentTrick: [],
+        players: baseState.players.map((player) =>
+          player.playerId === "p1"
+            ? { ...player, hand: [], handCount: 0 }
+            : { ...player, handCount: 0 },
+        ),
+        completedTricks: [
+          {
+            winnerPlayerId: "p1",
+            cards: [
+              { playerId: "p1", card: card("U", "acorns") },
+              { playerId: "p1", card: card("IX", "acorns") },
+              { playerId: "p1", card: card("A", "acorns") },
+              { playerId: "p1", card: card("VII", "acorns") },
+              { playerId: "p1", card: card("K", "hearts") },
+              { playerId: "p1", card: card("X", "hearts") },
+              { playerId: "p1", card: card("O", "hearts") },
+              { playerId: "p1", card: card("U", "hearts") },
+              { playerId: "p2", card: card("A", "hearts") },
+            ],
+          },
+        ],
+        lastHandResult: {
+          callerPlayerId: "p1",
+          opponentPlayerId: "p2",
+          gamePointsByPlayer: { p1: 60, p2: 11 },
+          declarationPointsByPlayer: { p1: 0, p2: 0 },
+          totalPointsByPlayer: { p1: 60, p2: 11 },
+          handScoreByPlayer: { p1: 6, p2: 1 },
+          schusterPlayerIds: [],
+          callerFell: false,
+          callerFellOnGame: false,
+          isMus: false,
+          lastTrickWinnerPlayerId: "p1",
+        },
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(2_000);
+      });
+
+      const firstCardRow = screen.getAllByTestId("bellot-result-card-row")[0];
+
+      expect(
+        within(firstCardRow)
+          .getAllByRole("img")
+          .map((img) => img.getAttribute("alt")),
+      ).toEqual([
+        "VII of Acorns",
+        "A of Acorns",
+        "IX of Acorns",
+        "U of Acorns",
+        "U of Hearts",
+        "O of Hearts",
+        "K of Hearts",
+        "X of Hearts",
+      ]);
     } finally {
       vi.useRealTimers();
     }
