@@ -368,7 +368,7 @@ describe("BellotTable", () => {
     }
   });
 
-  it("shows the finished game winner in the hand result subsection", async () => {
+  it("shows the finished game winner above starting cards while keeping the hand result", async () => {
     vi.useFakeTimers();
 
     try {
@@ -417,21 +417,30 @@ describe("BellotTable", () => {
 
       const winner = screen.getByTestId("bellot-winner");
       const winnerText = within(winner).getByText("Winner: Bob");
+      const handResult = screen.getByTestId("bellot-hand-result");
+      const startingCards = screen.getByTestId("bellot-starting-cards");
+      const scores = within(handResult).getAllByTestId("bellot-result-score");
 
-      expect(
-        screen.queryByTestId("bellot-hand-result"),
-      ).not.toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "Next hand" }),
       ).not.toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "New game" }),
       ).not.toBeInTheDocument();
+      expect(within(handResult).getByText("Hand result")).toBeInTheDocument();
+      expect(scores[0]).toHaveTextContent("2");
+      expect(scores[1]).toHaveTextContent("1");
+      expect(
+        winner.compareDocumentPosition(startingCards) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
       expect(winner).toHaveClass(
-        "border-t",
-        "border-white/15",
-        "pt-3",
+        "mt-4",
+        "rounded-md",
+        "bg-white/10",
+        "p-3",
         "text-center",
+        "text-white",
       );
       expect(winner).not.toHaveClass("bg-white", "text-ink");
       expect(winnerText).toHaveClass("text-lg", "font-bold");

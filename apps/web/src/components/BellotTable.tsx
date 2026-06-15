@@ -708,19 +708,7 @@ export function BellotTable({
                 </TrumpMarkedCard>
               </div>
             ) : null}
-            {showHandResult && winnerPlayer ? (
-              <div
-                className="w-full border-t border-white/15 pt-3 text-center"
-                data-testid="bellot-winner"
-              >
-                <p className="text-lg font-bold text-white">
-                  Winner: {winnerPlayer.displayName}
-                </p>
-                <div className="mt-3">
-                  <Button onClick={onRestart}>Next game</Button>
-                </div>
-              </div>
-            ) : showHandResult && state.lastHandResult ? (
+            {showHandResult && state.lastHandResult ? (
               <div
                 className="w-full border-t border-white/15 pt-3 text-center"
                 data-testid="bellot-hand-result"
@@ -839,6 +827,19 @@ export function BellotTable({
 
       {showHandResult ? (
         <>
+          {winnerPlayer ? (
+            <div
+              className="mt-4 rounded-md bg-white/10 p-3 text-center text-white"
+              data-testid="bellot-winner"
+            >
+              <p className="text-lg font-bold">
+                Winner: {winnerPlayer.displayName}
+              </p>
+              <div className="mt-3">
+                <Button onClick={onRestart}>Next game</Button>
+              </div>
+            </div>
+          ) : null}
           <div
             className="mt-4 rounded-md bg-white/10 p-3 text-white"
             data-testid="bellot-starting-cards"
