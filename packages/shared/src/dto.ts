@@ -183,8 +183,10 @@ export type BellotTrickPlay = {
 };
 
 export type BellotHandResult = {
+  dealerPlayerId?: string;
   callerPlayerId: string;
   opponentPlayerId: string;
+  trumpSuit?: z.infer<typeof suitSchema>;
   gamePointsByPlayer: Record<string, number>;
   declarationPointsByPlayer: Record<string, number>;
   totalPointsByPlayer: Record<string, number>;
@@ -218,6 +220,7 @@ export type BellotPublicState = {
   publicCardsByPlayer: Record<string, z.infer<typeof cardSchema>[]>;
   unusedCards?: z.infer<typeof cardSchema>[];
   lastHandResult?: BellotHandResult;
+  handResults?: BellotHandResult[];
   winnerPlayerId?: string;
   createdAt: string;
   finishedAt?: string;

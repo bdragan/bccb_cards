@@ -100,6 +100,7 @@ export function createBellotInitialState(players: PlayerRef[]): BellotState {
     completedTricks: [],
     declarationsByPlayer: {},
     publicCardsByPlayer: {},
+    handResults: [],
     createdAt: new Date().toISOString(),
   };
 }
@@ -1036,6 +1037,7 @@ function completeHand(state: BellotState): BellotState {
     phase: finished ? "finished" : "hand-complete",
     players,
     lastHandResult: result,
+    handResults: [...(state.handResults ?? []), result],
     winnerPlayerId,
     finishedAt: finished ? new Date().toISOString() : state.finishedAt,
   };
@@ -1128,8 +1130,10 @@ export function calculateBellotHandResult(
   }
 
   return {
+    dealerPlayerId: state.dealerPlayerId,
     callerPlayerId: state.callerPlayerId,
     opponentPlayerId: opponent.playerId,
+    trumpSuit: state.trumpSuit,
     gamePointsByPlayer,
     declarationPointsByPlayer,
     totalPointsByPlayer,
@@ -1275,6 +1279,7 @@ export function getBellotPublicState(
     publicCardsByPlayer: state.publicCardsByPlayer,
     unusedCards: revealHandResultCards ? state.unusedCards : undefined,
     lastHandResult: state.lastHandResult,
+    handResults: state.handResults ?? [],
     winnerPlayerId: state.winnerPlayerId,
     createdAt: state.createdAt,
     finishedAt: state.finishedAt,

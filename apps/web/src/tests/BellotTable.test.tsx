@@ -297,7 +297,7 @@ describe("BellotTable", () => {
       const result = screen.getByTestId("bellot-hand-result");
       const startingCards = screen.getByTestId("bellot-starting-cards");
       const playedTricksButton = screen.getByRole("button", {
-        name: "Show played tricks",
+        name: "Show details",
       });
 
       expect(
@@ -653,9 +653,7 @@ describe("BellotTable", () => {
     const user = userEvent.setup();
     renderTable();
 
-    await user.click(
-      screen.getByRole("button", { name: "Show played tricks" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Show details" }));
 
     const hand = screen.getByText("Trick 1 · Bob").parentElement!;
 
@@ -667,6 +665,115 @@ describe("BellotTable", () => {
     ).not.toBeNull();
   });
 
+  it("shows completed tricks from last to first with separators", async () => {
+    const user = userEvent.setup();
+    renderTable({
+      ...baseState,
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("VII", "acorns") },
+            { playerId: "p2", card: card("A", "acorns") },
+          ],
+        },
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p1", card: card("A", "hearts") },
+            { playerId: "p2", card: card("K", "hearts") },
+          ],
+        },
+      ],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Show details" }));
+
+    const trickTwo = screen.getByText("Trick 2 · Bob");
+    const trickOne = screen.getByText("Trick 1 · Alice");
+
+    expect(
+      trickTwo.compareDocumentPosition(trickOne) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    expect(screen.getAllByTestId("bellot-played-trick-separator")).toHaveLength(
+      1,
+    );
+    expect(screen.getByTestId("bellot-details-separator")).toBeInTheDocument();
+  });
+
+  it("shows the game timeline beside played tricks", async () => {
+    const user = userEvent.setup();
+    renderTable({
+      ...baseState,
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? { ...player, totalScore: 184 }
+          : { ...player, totalScore: 92 },
+      ),
+      dealerPlayerId: "p1",
+      handResults: [
+        {
+          dealerPlayerId: "p2",
+          callerPlayerId: "p1",
+          opponentPlayerId: "p2",
+          trumpSuit: "hearts",
+          gamePointsByPlayer: { p1: 84, p2: 78 },
+          declarationPointsByPlayer: { p1: 50, p2: 0 },
+          totalPointsByPlayer: { p1: 134, p2: 78 },
+          handScoreByPlayer: { p1: 84, p2: 20 },
+          schusterPlayerIds: [],
+          callerFell: false,
+          callerFellOnGame: false,
+          isMus: false,
+          lastTrickWinnerPlayerId: "p1",
+        },
+        {
+          dealerPlayerId: "p1",
+          callerPlayerId: "p2",
+          opponentPlayerId: "p1",
+          trumpSuit: "leaves",
+          gamePointsByPlayer: { p1: 10, p2: 152 },
+          declarationPointsByPlayer: { p1: 0, p2: 20 },
+          totalPointsByPlayer: { p1: 10, p2: 172 },
+          handScoreByPlayer: { p1: 10, p2: 91 },
+          schusterPlayerIds: [],
+          callerFell: false,
+          callerFellOnGame: false,
+          isMus: true,
+          lastTrickWinnerPlayerId: "p2",
+        },
+      ],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Show details" }));
+
+    const timeline = screen.getByTestId("bellot-game-timeline");
+    const rows = within(timeline).getAllByTestId("bellot-game-timeline-row");
+
+    expect(
+      within(timeline)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Hand", "Bob", "Alice"]);
+    expect(rows).toHaveLength(2);
+    expect(within(timeline).getByAltText("Hearts")).toBeInTheDocument();
+    expect(within(timeline).getByAltText("Leaves")).toBeInTheDocument();
+    expect(within(timeline).getByText("50 bonus")).toBeInTheDocument();
+    expect(within(timeline).getByText("20 bonus")).toBeInTheDocument();
+    expect(rows[1]).toHaveClass("border-b", "border-white/15");
+    expect(within(rows[1]).getByText("Mus")).toHaveClass("font-bold");
+    expect(within(rows[1]).getByText("Mus")).not.toHaveClass("text-yellow-200");
+    expect(
+      within(rows[1])
+        .getByText("Mus")
+        .compareDocumentPosition(within(rows[1]).getByAltText("Leaves")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    expect(within(timeline).getByText("184")).toBeInTheDocument();
+    expect(within(timeline).getByText("92")).toBeInTheDocument();
+  });
+
   it("shows played tricks before the first trick has completed", async () => {
     const user = userEvent.setup();
     renderTable({
@@ -675,12 +782,10 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    await user.click(
-      screen.getByRole("button", { name: "Show played tricks" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Show details" }));
 
     expect(
-      screen.getByRole("button", { name: "Hide played tricks" }),
+      screen.getByRole("button", { name: "Hide details" }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Trick 1/)).not.toBeInTheDocument();
   });
@@ -708,6 +813,18 @@ describe("BellotTable", () => {
 
     expect(screen.getByText("184")).toBeInTheDocument();
     expect(screen.getByText("92")).toBeInTheDocument();
+  });
+
+  it("bolds the caller label and shows mus in player sections", () => {
+    renderTable({
+      ...baseState,
+      isMus: true,
+    });
+
+    const callerLabel = screen.getByText("CALLER (MUS)");
+
+    expect(callerLabel).toHaveClass("font-bold");
+    expect(callerLabel).toHaveClass("text-yellow-300");
   });
 
   it("shows a progress indicator next to the player whose turn it is to play", () => {

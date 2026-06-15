@@ -226,25 +226,29 @@ describe("Bellot", () => {
       getBellotPublicState(afterPickup, opponent.playerId).unusedCards,
     ).toBeUndefined();
 
+    const handResult = {
+      dealerPlayerId: afterPickup.dealerPlayerId,
+      callerPlayerId: caller.playerId,
+      opponentPlayerId: opponent.playerId,
+      trumpSuit: afterPickup.trumpSuit,
+      gamePointsByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
+      declarationPointsByPlayer: {
+        [caller.playerId]: 0,
+        [opponent.playerId]: 0,
+      },
+      totalPointsByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
+      handScoreByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
+      schusterPlayerIds: [],
+      callerFell: false,
+      callerFellOnGame: false,
+      isMus: false,
+      lastTrickWinnerPlayerId: caller.playerId,
+    };
     const withHandResult: BellotState = {
       ...afterPickup,
       phase: "hand-complete",
-      lastHandResult: {
-        callerPlayerId: caller.playerId,
-        opponentPlayerId: opponent.playerId,
-        gamePointsByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
-        declarationPointsByPlayer: {
-          [caller.playerId]: 0,
-          [opponent.playerId]: 0,
-        },
-        totalPointsByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
-        handScoreByPlayer: { [caller.playerId]: 0, [opponent.playerId]: 0 },
-        schusterPlayerIds: [],
-        callerFell: false,
-        callerFellOnGame: false,
-        isMus: false,
-        lastTrickWinnerPlayerId: caller.playerId,
-      },
+      lastHandResult: handResult,
+      handResults: [handResult],
     };
     const publicHandResult = getBellotPublicState(
       withHandResult,
@@ -257,6 +261,7 @@ describe("Bellot", () => {
         (player) => player.playerId === caller.playerId,
       )?.pickupCardIds,
     ).toEqual(callerPickupCardIds);
+    expect(publicHandResult.handResults).toEqual([handResult]);
   });
 
   it("runs first round, second round, and mus trump selection rules", () => {

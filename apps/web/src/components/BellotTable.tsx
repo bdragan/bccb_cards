@@ -6,6 +6,7 @@ import {
 } from "@card-games/game-core";
 import type {
   BellotDeclaration,
+  BellotHandResult,
   BellotPublicState,
   BellotTrickPlay,
   Card,
@@ -13,7 +14,7 @@ import type {
   Suit,
 } from "@card-games/shared";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { PlayingCard } from "../game/cards";
 import { Button } from "./Button";
@@ -185,9 +186,7 @@ function PickupCardFrame({
   const ringClass = pickedUp ? `ring-4 ${ringClassName}` : "";
 
   return (
-    <span className={`inline-flex rounded-md ${ringClass}`}>
-      {children}
-    </span>
+    <span className={`inline-flex rounded-md ${ringClass}`}>{children}</span>
   );
 }
 
@@ -242,6 +241,140 @@ function playerName(state: BellotPublicState, playerId?: string) {
   return (
     state.players.find((player) => player.playerId === playerId)?.displayName ??
     "Unknown player"
+  );
+}
+
+function timelinePlayers(state: BellotPublicState) {
+  const handResults =
+    state.handResults ?? (state.lastHandResult ? [state.lastHandResult] : []);
+  const firstDealerPlayerId =
+    handResults[0]?.dealerPlayerId ??
+    state.dealerPlayerId ??
+    state.players[0]?.playerId;
+  const firstDealer = state.players.find(
+    (player) => player.playerId === firstDealerPlayerId,
+  );
+  const otherPlayer = state.players.find(
+    (player) => player.playerId !== firstDealerPlayerId,
+  );
+
+  return [firstDealer, otherPlayer].filter(
+    Boolean,
+  ) as BellotPublicState["players"];
+}
+
+function BellotGameTimeline({
+  handResults,
+  players,
+}: {
+  handResults: BellotHandResult[];
+  players: BellotPublicState["players"];
+}) {
+  return (
+    <section className="min-w-0" data-testid="bellot-game-timeline">
+      <h3 className="text-sm font-semibold">Game timeline</h3>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full min-w-[18rem] table-fixed border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-white/15 text-xs uppercase text-white/60">
+              <th className="w-12 py-1 pr-2 text-left font-medium" scope="col">
+                Hand
+              </th>
+              {players.map((player) => (
+                <th
+                  key={player.playerId}
+                  className="px-2 py-1 text-right font-medium"
+                  scope="col"
+                >
+                  {player.displayName}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {handResults.length ? (
+              handResults.map((result, index) => (
+                <tr
+                  key={`${index}-${result.callerPlayerId}-${result.lastTrickWinnerPlayerId}`}
+                  className={
+                    index % 2 === 1 ? "border-b border-white/15" : undefined
+                  }
+                  data-testid="bellot-game-timeline-row"
+                >
+                  <th
+                    className="py-2 pr-2 text-left align-top font-medium text-white/70"
+                    scope="row"
+                  >
+                    <span className="block">{index + 1}</span>
+                  </th>
+                  {players.map((player) => {
+                    const handScore =
+                      result.handScoreByPlayer[player.playerId] ?? 0;
+                    const bonusPoints =
+                      result.declarationPointsByPlayer[player.playerId] ?? 0;
+                    const isCaller = result.callerPlayerId === player.playerId;
+
+                    return (
+                      <td
+                        key={`${index}-${player.playerId}`}
+                        className="px-2 py-2 align-top"
+                      >
+                        <div className="grid grid-cols-[3ch_1.25rem_4ch] items-center justify-end gap-1">
+                          <span className="text-right text-[11px] font-bold uppercase leading-none text-white/60">
+                            {isCaller && result.isMus ? "Mus" : ""}
+                          </span>
+                          {isCaller && result.trumpSuit ? (
+                            <SuitImage
+                              suit={result.trumpSuit}
+                              className="h-5 w-5"
+                            />
+                          ) : (
+                            <span aria-hidden="true" />
+                          )}
+                          <span className="text-right text-base font-semibold leading-none tabular-nums">
+                            {handScore}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-right text-xs text-white/60">
+                          {bonusPoints} bonus
+                        </p>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={players.length + 1}
+                  className="py-3 text-sm text-white/60"
+                >
+                  No hands scored yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-white/15">
+              <th
+                className="py-2 pr-2 text-left text-xs uppercase text-white/60"
+                scope="row"
+              >
+                Total
+              </th>
+              {players.map((player) => (
+                <td
+                  key={player.playerId}
+                  className="px-2 py-2 text-right text-lg font-bold leading-none tabular-nums"
+                >
+                  {player.totalScore}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -341,10 +474,7 @@ function ResultCardRow({
               const pickedUp = hiddenPickupCardIds.has(card.id);
 
               return (
-                <div
-                  key={card.id}
-                  className="relative shrink-0 rounded-md"
-                >
+                <div key={card.id} className="relative shrink-0 rounded-md">
                   <TrumpMarkedCard card={card} trumpSuit={trumpSuit}>
                     <PickupCardFrame
                       pickedUp={pickedUp}
@@ -523,6 +653,12 @@ export function BellotTable({
       Boolean(visibleTrick));
   const showPlayedHandsButton =
     state.phase === "trick-play" || state.completedTricks.length > 0;
+  const displayedCompletedTricks = state.completedTricks
+    .map((trick, index) => ({ index, trick }))
+    .reverse();
+  const handResults =
+    state.handResults ?? (state.lastHandResult ? [state.lastHandResult] : []);
+  const timelineOrderedPlayers = timelinePlayers(state);
   const turnPlayerId =
     state.phase === "trick-play"
       ? state.currentTurnPlayerId
@@ -647,7 +783,14 @@ export function BellotTable({
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="text-xs uppercase text-white/60">
             {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
-            {state.callerPlayerId === player.playerId ? " - Caller" : ""}
+            {state.callerPlayerId === player.playerId ? (
+              <>
+                {" - "}
+                <span className="font-bold text-yellow-300">
+                  CALLER{state.isMus ? " (MUS)" : ""}
+                </span>
+              </>
+            ) : null}
           </p>
           <p className="text-xl font-bold leading-none text-yellow-300">
             {gamePoints}
@@ -955,41 +1098,75 @@ export function BellotTable({
             type="button"
             onClick={() => setShowPlayedHands((visible) => !visible)}
           >
-            {showPlayedHands ? "Hide played tricks" : "Show played tricks"}
+            {showPlayedHands ? "Hide details" : "Show details"}
           </Button>
           {showPlayedHands ? (
-            <div className="mt-3 space-y-3 rounded-md bg-white/10 p-3">
-              {state.completedTricks.map((trick, index) => (
-                <div key={index}>
-                  <p className="mb-2 text-sm font-semibold">
-                    Trick {index + 1} ·{" "}
-                    {
-                      state.players.find(
-                        (player) => player.playerId === trick.winnerPlayerId,
-                      )?.displayName
-                    }
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {trick.cards.map((play) => (
-                      <div
-                        key={`${index}-${play.playerId}-${play.card.id}`}
-                        className={
-                          play.playerId === trick.winnerPlayerId
-                            ? ""
-                            : "opacity-45"
-                        }
-                      >
-                        <TrumpMarkedCard
-                          card={play.card}
-                          trumpSuit={state.trumpSuit}
-                        >
-                          <PlayingCard card={play.card} compact />
-                        </TrumpMarkedCard>
-                      </div>
-                    ))}
+            <div className="mt-3 rounded-md bg-white/10 p-3">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+                <section className="min-w-0" data-testid="bellot-played-tricks">
+                  <h3 className="text-sm font-semibold">Played tricks</h3>
+                  <div className="mt-2 space-y-3">
+                    {displayedCompletedTricks.length ? (
+                      displayedCompletedTricks.map(
+                        ({ index, trick }, itemIndex) => (
+                          <Fragment key={index}>
+                            {itemIndex > 0 ? (
+                              <div
+                                aria-hidden="true"
+                                className="h-px w-full bg-white/15"
+                                data-testid="bellot-played-trick-separator"
+                              />
+                            ) : null}
+                            <div>
+                              <p className="mb-2 text-sm font-semibold">
+                                Trick {index + 1} ·{" "}
+                                {
+                                  state.players.find(
+                                    (player) =>
+                                      player.playerId === trick.winnerPlayerId,
+                                  )?.displayName
+                                }
+                              </p>
+                              <div className="flex flex-wrap gap-3">
+                                {trick.cards.map((play) => (
+                                  <div
+                                    key={`${index}-${play.playerId}-${play.card.id}`}
+                                    className={
+                                      play.playerId === trick.winnerPlayerId
+                                        ? ""
+                                        : "opacity-45"
+                                    }
+                                  >
+                                    <TrumpMarkedCard
+                                      card={play.card}
+                                      trumpSuit={state.trumpSuit}
+                                    >
+                                      <PlayingCard card={play.card} compact />
+                                    </TrumpMarkedCard>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </Fragment>
+                        ),
+                      )
+                    ) : (
+                      <p className="text-sm text-white/60">
+                        No tricks completed yet.
+                      </p>
+                    )}
                   </div>
-                </div>
-              ))}
+                </section>
+                <div
+                  aria-hidden="true"
+                  className="h-px w-full bg-white/15 md:h-auto md:w-px"
+                  data-testid="bellot-details-separator"
+                />
+                <BellotGameTimeline
+                  handResults={handResults}
+                  players={timelineOrderedPlayers}
+                />
+              </div>
             </div>
           ) : null}
         </div>

@@ -39,8 +39,10 @@ export type BellotCompletedTrick = {
 };
 
 export type BellotHandResult = {
+  dealerPlayerId?: string;
   callerPlayerId: string;
   opponentPlayerId: string;
+  trumpSuit?: Suit;
   gamePointsByPlayer: Record<string, number>;
   declarationPointsByPlayer: Record<string, number>;
   totalPointsByPlayer: Record<string, number>;
@@ -73,6 +75,7 @@ export type BellotState = {
   declarationsByPlayer: Record<string, BellotDeclaration[]>;
   publicCardsByPlayer: Record<string, Card[]>;
   lastHandResult?: BellotHandResult;
+  handResults?: BellotHandResult[];
   winnerPlayerId?: string;
   createdAt: string;
   finishedAt?: string;
