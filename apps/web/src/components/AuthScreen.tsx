@@ -21,7 +21,7 @@ export function AuthScreen() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-felt px-4">
+    <main className="app-background grid min-h-screen place-items-center px-4">
       <form
         onSubmit={submit}
         className="w-full max-w-sm rounded-md bg-white p-6 shadow-xl"

@@ -358,7 +358,7 @@ export function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f3ed]">
+    <main className="app-background min-h-screen">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>

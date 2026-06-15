@@ -4,7 +4,7 @@
 
 :root {
   color: #18212f;
-  background: #f6f3ed;
+  background: #2f423e;
   font-family:
     Inter,
     ui-sans-serif,
@@ -19,11 +19,16 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: #2f423e url("/images/backgrounds/background.png") repeat;
 }
 
 button,
 input {
   font: inherit;
+}
+
+.app-background {
+  background: #2f423e url("/images/backgrounds/background.png") repeat;
 }
 
 .card-face {
