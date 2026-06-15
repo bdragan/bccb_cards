@@ -351,9 +351,19 @@ export function Dashboard() {
               {user?.displayName ?? "Signed in"}
             </p>
           </div>
-          <Button type="button" onClick={logout}>
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            {offlineBellotState ? (
+              <Button
+                type="button"
+                onClick={() => setOfflineBellotState(undefined)}
+              >
+                Leave match
+              </Button>
+            ) : null}
+            <Button type="button" onClick={logout}>
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -416,44 +426,22 @@ export function Dashboard() {
           ) : null}
 
           {offlineBellotPublicState ? (
-            <>
-              <section className="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-base font-bold">Offline match</h2>
-                    <p className="text-sm text-slate-600">
-                      Bellot vs CPU runs entirely in this browser.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => setOfflineBellotState(undefined)}
-                  >
-                    Leave match
-                  </Button>
-                </div>
-              </section>
-              <BellotTable
-                state={offlineBellotPublicState}
-                currentPlayerId={offlineHumanPlayerId}
-                onTrumpDecision={applyOfflineTrumpDecision}
-                onDeclare={submitOfflineDeclarations}
-                onPlayCard={(cardId) =>
-                  offlineHumanPlayerId &&
-                  applyOfflineBellotAction({
-                    type: "play-card",
-                    playerId: offlineHumanPlayerId,
-                    cardId,
-                  })
-                }
-                onNextHand={() =>
-                  applyOfflineBellotAction({ type: "next-hand" })
-                }
-                onRestart={() =>
-                  setOfflineBellotState(createOfflineBellotState())
-                }
-              />
-            </>
+            <BellotTable
+              state={offlineBellotPublicState}
+              currentPlayerId={offlineHumanPlayerId}
+              onTrumpDecision={applyOfflineTrumpDecision}
+              onDeclare={submitOfflineDeclarations}
+              onPlayCard={(cardId) =>
+                offlineHumanPlayerId &&
+                applyOfflineBellotAction({
+                  type: "play-card",
+                  playerId: offlineHumanPlayerId,
+                  cardId,
+                })
+              }
+              onNextHand={() => applyOfflineBellotAction({ type: "next-hand" })}
+              onRestart={() => setOfflineBellotState(createOfflineBellotState())}
+            />
           ) : gameState && !inLobby && gameState.gameId === "bellot" ? (
             <BellotTable
               state={gameState}
