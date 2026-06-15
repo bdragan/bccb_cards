@@ -10,7 +10,7 @@ import {
 describe("shared schemas", () => {
   it("accept valid socket payloads", () => {
     expect(
-      createRoomPayloadSchema.safeParse({ gameId: "greater-card" }).success,
+      createRoomPayloadSchema.safeParse({ gameId: "bellot" }).success,
     ).toBe(true);
     expect(
       joinRoomPayloadSchema.safeParse({ roomCode: "ABCD12" }).success,
@@ -21,6 +21,9 @@ describe("shared schemas", () => {
   });
 
   it("reject invalid socket payloads", () => {
+    expect(
+      createRoomPayloadSchema.safeParse({ gameId: "greater-card" }).success,
+    ).toBe(false);
     expect(createRoomPayloadSchema.safeParse({ gameId: "poker" }).success).toBe(
       false,
     );
@@ -32,7 +35,7 @@ describe("shared schemas", () => {
     ).toBe(false);
   });
 
-  it("registers the GreaterCard game id", () => {
-    expect(gameIds).toContain("greater-card");
+  it("registers Bellot as the only game id", () => {
+    expect(gameIds).toEqual(["bellot"]);
   });
 });

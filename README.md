@@ -1,6 +1,6 @@
 # Multiplayer Card Games Platform
 
-A full-stack TypeScript multiplayer card-game platform. The first supported game is GreaterCard: every player draws one Hungarian card, and the highest poker-style rank and suit wins.
+A full-stack TypeScript multiplayer card-game platform. The currently supported game is Bellot for two players.
 
 ## Stack
 
@@ -68,10 +68,8 @@ Bellot game in two browser contexts.
 ## MVP Flow
 
 1. Register or log in.
-2. Select GreaterCard.
-3. Create a room or join by code.
-4. All joined players mark ready.
-5. Each player draws exactly once.
-6. Cards stay hidden from other players until everyone has drawn.
-7. The backend calculates the winner or tie and stores the completed match.
-8. Match history is available from the dashboard.
+2. Create a Bellot room or join by code.
+3. Both joined players mark ready.
+4. Play through trump selection, declarations, tricks, and scoring.
+5. The backend stores the completed match.
+6. Match history is available from the dashboard.

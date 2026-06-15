@@ -10,10 +10,7 @@ import {
 import type {
   BellotDeclaration,
   BellotPublicState,
-  GameId,
-  GameMetadata,
   GamePublicState,
-  GameResult,
   RoomPublicState,
   Suit,
 } from "@card-games/shared";
@@ -22,8 +19,6 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { BellotTable } from "../components/BellotTable";
 import { Button } from "../components/Button";
-import { GameList } from "../components/GameList";
-import { GreaterCardTable } from "../components/GreaterCardTable";
 import { Lobby } from "../components/Lobby";
 import { createGameSocket, type GameSocket } from "../socket/game-socket";
 import { useAuthStore } from "../stores/auth-store";
@@ -77,14 +72,11 @@ function isOfflineCpuTurn(state: BellotState) {
 
 export function Dashboard() {
   const { token, user, logout } = useAuthStore();
-  const [games, setGames] = useState<GameMetadata[]>([]);
   const [matches, setMatches] = useState<unknown[]>([]);
-  const [selectedGameId, setSelectedGameId] = useState<GameId>("greater-card");
   const [roomCode, setRoomCode] = useState("");
   const [room, setRoom] = useState<RoomPublicState>();
   const [gameState, setGameState] = useState<GamePublicState>();
   const [offlineBellotState, setOfflineBellotState] = useState<BellotState>();
-  const [result, setResult] = useState<GameResult>();
   const [error, setError] = useState<string>();
   const [socket, setSocket] = useState<GameSocket>();
   const offlineCpuWorkerRef = useRef<Worker | null>(null);
@@ -96,10 +88,6 @@ export function Dashboard() {
       return;
     }
 
-    void api
-      .games(token)
-      .then(setGames)
-      .catch((err: Error) => setError(err.message));
     void api
       .matches(token)
       .then(setMatches)
@@ -114,8 +102,7 @@ export function Dashboard() {
     const nextSocket = createGameSocket(token);
     nextSocket.on("room:state", setRoom);
     nextSocket.on("game:state", setGameState);
-    nextSocket.on("game:result", (payload) => {
-      setResult(payload);
+    nextSocket.on("game:result", () => {
       void api
         .matches(token)
         .then(setMatches)
@@ -259,8 +246,7 @@ export function Dashboard() {
 
   function createRoom() {
     setOfflineBellotState(undefined);
-    setResult(undefined);
-    socket?.emit("room:create", { gameId: selectedGameId }, (ack) => {
+    socket?.emit("room:create", { gameId: "bellot" }, (ack) => {
       if (!ack.ok) {
         setError(ack.error);
       }
@@ -270,7 +256,6 @@ export function Dashboard() {
   function joinRoom(event: FormEvent) {
     event.preventDefault();
     setOfflineBellotState(undefined);
-    setResult(undefined);
     socket?.emit("room:join", { roomCode }, (ack) => {
       if (!ack.ok) {
         setError(ack.error);
@@ -305,7 +290,6 @@ export function Dashboard() {
   function startOfflineBellot() {
     setRoom(undefined);
     setGameState(undefined);
-    setResult(undefined);
     setError(undefined);
     setOfflineBellotState(createOfflineBellotState());
   }
@@ -381,12 +365,6 @@ export function Dashboard() {
         <div className="space-y-5">
           {activeBellotGame ? null : (
             <>
-              <GameList
-                games={games}
-                selectedGameId={selectedGameId}
-                onSelect={setSelectedGameId}
-              />
-
               <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="text-lg font-bold">Room</h2>
                 <div className="mt-3 flex flex-wrap gap-3">
@@ -476,79 +454,52 @@ export function Dashboard() {
                 }
               />
             </>
-          ) : gameState && !inLobby ? (
-            gameState.gameId === "greater-card" ? (
-              <GreaterCardTable
-                state={gameState}
-                result={result?.gameId === "greater-card" ? result : undefined}
-                currentPlayerId={user?.id}
-                onDraw={() =>
-                  room &&
+          ) : gameState && !inLobby && gameState.gameId === "bellot" ? (
+            <BellotTable
+              state={gameState}
+              currentPlayerId={user?.id}
+              onTrumpDecision={(decision) =>
+                room &&
+                socket?.emit(
+                  "bellot:trump-decision",
+                  { roomId: room.id, ...decision },
+                  () => undefined,
+                )
+              }
+              onDeclare={(declarations) =>
+                room &&
+                socket?.emit(
+                  "bellot:declare",
+                  { roomId: room.id, declarations },
+                  () => undefined,
+                )
+              }
+              onPlayCard={(cardId) =>
+                room &&
+                socket?.emit(
+                  "bellot:play-card",
+                  { roomId: room.id, cardId },
+                  () => undefined,
+                )
+              }
+              onNextHand={() =>
+                room &&
+                socket?.emit(
+                  "bellot:next-hand",
+                  { roomId: room.id },
+                  () => undefined,
+                )
+              }
+              onRestart={() => {
+                if (room) {
                   socket?.emit(
-                    "game:draw-card",
+                    "game:restart",
                     { roomId: room.id },
                     () => undefined,
-                  )
+                  );
                 }
-                onRestart={() => {
-                  if (room) {
-                    setResult(undefined);
-                    socket?.emit(
-                      "game:restart",
-                      { roomId: room.id },
-                      () => undefined,
-                    );
-                  }
-                }}
-              />
-            ) : (
-              <BellotTable
-                state={gameState}
-                currentPlayerId={user?.id}
-                onTrumpDecision={(decision) =>
-                  room &&
-                  socket?.emit(
-                    "bellot:trump-decision",
-                    { roomId: room.id, ...decision },
-                    () => undefined,
-                  )
-                }
-                onDeclare={(declarations) =>
-                  room &&
-                  socket?.emit(
-                    "bellot:declare",
-                    { roomId: room.id, declarations },
-                    () => undefined,
-                  )
-                }
-                onPlayCard={(cardId) =>
-                  room &&
-                  socket?.emit(
-                    "bellot:play-card",
-                    { roomId: room.id, cardId },
-                    () => undefined,
-                  )
-                }
-                onNextHand={() =>
-                  room &&
-                  socket?.emit(
-                    "bellot:next-hand",
-                    { roomId: room.id },
-                    () => undefined,
-                  )
-                }
-                onRestart={() => {
-                  if (room) {
-                    setResult(undefined);
-                    socket?.emit(
-                      "game:restart",
-                      { roomId: room.id },
-                      () => undefined,
-                    );
-                  }
-                }}
-              />
-            )
+              }}
+            />
           ) : null}
         </div>
 

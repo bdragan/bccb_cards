@@ -17,10 +17,9 @@ test("plays a complete Bellot game through the browser", async ({
     displayName: "E2E Player Two",
   });
 
-  await register(playerOne, "bellot");
-  await register(playerTwo, "bellot");
+  await register(playerOne);
+  await register(playerTwo);
 
-  await selectBellot(playerOne);
   await playerOne.getByRole("button", { name: "Create room" }).click();
   await expect(playerOne.getByRole("heading", { name: "Lobby" })).toBeVisible();
 
@@ -69,7 +68,7 @@ async function newPlayer(
   return page;
 }
 
-async function register(page: Page, gameName: string) {
+async function register(page: Page) {
   const player = page as Page & { email: string; displayName: string };
 
   await page.goto("/");
@@ -82,18 +81,7 @@ async function register(page: Page, gameName: string) {
   await expect(
     page.getByRole("heading", { name: "Card Games Platform" }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: gameName })).toBeVisible();
-}
-
-async function selectBellot(page: Page) {
-  const bellotCard = page.locator("article").filter({
-    has: page.getByRole("heading", { name: "Bellot" }),
-  });
-
-  await bellotCard.getByRole("button", { name: "Select" }).click();
-  await expect(
-    bellotCard.getByRole("button", { name: "Selected" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create room" })).toBeVisible();
 }
 
 async function chooseTrump(players: Page[]) {

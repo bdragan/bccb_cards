@@ -1,7 +1,7 @@
-import type { GameId, PlayerRef } from "@card-games/shared";
+import type { PlayerRef } from "@card-games/shared";
 
-export type GameDefinition<State, Action> = {
-  id: GameId;
+export type GameDefinition<State extends { gameId: string }, Action> = {
+  id: State["gameId"];
   displayName: string;
   description: string;
   minPlayers: number;
