@@ -210,11 +210,7 @@ describe("BellotTable", () => {
         within(container).getByRole("img").getAttribute("alt"),
       );
 
-    expect(trumpCards).toEqual([
-      "IX of Hearts",
-      "K of Hearts",
-      "A of Hearts",
-    ]);
+    expect(trumpCards).toEqual(["IX of Hearts", "K of Hearts", "A of Hearts"]);
     for (const container of screen.getAllByTestId("bellot-trump-card")) {
       expect(within(container).getByText("T")).toBeInTheDocument();
     }
@@ -308,7 +304,6 @@ describe("BellotTable", () => {
         result.compareDocumentPosition(playedTricksButton) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
-      expect(result).toHaveClass("bg-white/10", "text-white");
       expect(startingCards).toHaveClass("bg-white/10", "text-white");
       expect(
         result.compareDocumentPosition(startingCards) &
@@ -319,11 +314,29 @@ describe("BellotTable", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
 
-      const scoreRows = screen.getAllByTestId("bellot-result-score-row");
-      expect(within(scoreRows[0]).getByText("Alice:")).toBeInTheDocument();
-      expect(within(scoreRows[0]).getByText("2")).toHaveClass("text-right");
-      expect(within(scoreRows[1]).getByText("Bob:")).toBeInTheDocument();
-      expect(within(scoreRows[1]).getByText("1")).toHaveClass("text-right");
+      expect(within(result).getByText("Hand result")).toBeInTheDocument();
+      expect(within(result).queryByText("Alice")).not.toBeInTheDocument();
+      expect(within(result).queryByText("Bob")).not.toBeInTheDocument();
+
+      const scores = within(result).getAllByTestId("bellot-result-score");
+      expect(scores).toHaveLength(2);
+      expect(scores[0]).toHaveTextContent("2");
+      expect(scores[0]).toHaveClass(
+        "text-xl",
+        "font-bold",
+        "text-left",
+        "text-white",
+      );
+      expect(scores[1]).toHaveTextContent("1");
+      expect(scores[1]).toHaveClass(
+        "text-xl",
+        "font-bold",
+        "text-right",
+        "text-white",
+      );
+      expect(
+        screen.getByTestId("bellot-trump-upcard-separator"),
+      ).toBeInTheDocument();
       expect(screen.queryByText("(fell)")).not.toBeInTheDocument();
       expect(screen.queryByText("Caller fell.")).not.toBeInTheDocument();
       expect(
@@ -451,8 +464,9 @@ describe("BellotTable", () => {
       "IX of Hearts",
       "IX of Leaves",
     ]);
-    expect(within(group).getByAltText("IX of Bells").closest(".opacity-45"))
-      .not.toBeNull();
+    expect(
+      within(group).getByAltText("IX of Bells").closest(".opacity-45"),
+    ).not.toBeNull();
   });
 
   it("keeps the current trick area mounted when trick play has no cards", () => {
@@ -465,9 +479,7 @@ describe("BellotTable", () => {
     const currentTrick = screen.getByTestId("bellot-current-trick");
 
     expect(within(currentTrick).getByText("Current trick")).toBeInTheDocument();
-    expect(
-      currentTrick.querySelector(".h-\\[138px\\]"),
-    ).toBeInTheDocument();
+    expect(currentTrick.querySelector(".h-\\[138px\\]")).toBeInTheDocument();
   });
 
   it("shows trump selection logs in the current trick area", () => {

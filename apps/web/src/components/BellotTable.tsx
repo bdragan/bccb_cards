@@ -689,6 +689,13 @@ export function BellotTable({
                 <SuitImage suit={state.trumpSuit} className="h-12 w-12" />
               </div>
             ) : null}
+            {state.trumpSuit && state.upcard ? (
+              <div
+                aria-hidden="true"
+                className="h-24 w-px bg-white/15 md:h-px md:w-full"
+                data-testid="bellot-trump-upcard-separator"
+              />
+            ) : null}
             {state.upcard ? (
               <div className="text-center">
                 <p className="mb-1 text-sm font-semibold">Upcard</p>
@@ -698,6 +705,32 @@ export function BellotTable({
                 >
                   <PlayingCard card={state.upcard} compact />
                 </TrumpMarkedCard>
+              </div>
+            ) : null}
+            {showHandResult && state.lastHandResult ? (
+              <div
+                className="w-full border-t border-white/15 pt-3 text-center"
+                data-testid="bellot-hand-result"
+              >
+                <p className="mb-2 text-sm font-semibold">Hand result</p>
+                <div className="grid grid-cols-2 items-center gap-4">
+                  {state.players.slice(0, 2).map((player, index) => (
+                    <p
+                      key={player.playerId}
+                      aria-label={
+                        index === 0 ? "Left hand result" : "Right hand result"
+                      }
+                      className={`text-xl font-bold leading-none text-white tabular-nums ${
+                        index === 0 ? "text-left" : "text-right"
+                      }`}
+                      data-testid="bellot-result-score"
+                    >
+                      {state.lastHandResult?.handScoreByPlayer[
+                        player.playerId
+                      ] ?? 0}
+                    </p>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>
@@ -781,10 +814,7 @@ export function BellotTable({
                       : ""
                   }
                 >
-                  <TrumpMarkedCard
-                    card={play.card}
-                    trumpSuit={state.trumpSuit}
-                  >
+                  <TrumpMarkedCard card={play.card} trumpSuit={state.trumpSuit}>
                     <PlayingCard card={play.card} native />
                   </TrumpMarkedCard>
                 </div>
@@ -796,30 +826,6 @@ export function BellotTable({
 
       {showHandResult ? (
         <>
-          <div
-            className="mt-4 rounded-md bg-white/10 p-3 text-white"
-            data-testid="bellot-hand-result"
-          >
-            <h3 className="font-bold">Hand score</h3>
-            <div className="mt-2 space-y-1 text-sm">
-              {[resultCurrentPlayer, resultOpponentPlayer].map((player) =>
-                player ? (
-                  <p
-                    key={player.playerId}
-                    className="grid w-fit grid-cols-[5rem_3rem] items-baseline gap-x-2"
-                    data-testid="bellot-result-score-row"
-                  >
-                    <span className="truncate">{player.displayName}:</span>
-                    <span className="text-right tabular-nums">
-                      {state.lastHandResult?.handScoreByPlayer[
-                        player.playerId
-                      ] ?? 0}
-                    </span>
-                  </p>
-                ) : null,
-              )}
-            </div>
-          </div>
           <div
             className="mt-4 rounded-md bg-white/10 p-3 text-white"
             data-testid="bellot-starting-cards"
@@ -888,10 +894,7 @@ export function BellotTable({
                       disabled={!canPlay}
                       onClick={() => onPlayCard(card.id)}
                     >
-                      <TrumpMarkedCard
-                        card={card}
-                        trumpSuit={state.trumpSuit}
-                      >
+                      <TrumpMarkedCard card={card} trumpSuit={state.trumpSuit}>
                         <PlayingCard card={card} native />
                       </TrumpMarkedCard>
                       {pickedUp ? (
