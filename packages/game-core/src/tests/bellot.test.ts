@@ -2767,4 +2767,60 @@ describe("Bellot", () => {
     expect(finished.phase).toBe("finished");
     expect(finished.winnerPlayerId).toBe("p1");
   });
+
+  it("continues with another hand when both players are tied after crossing 501", () => {
+    const state: BellotState = {
+      ...scoringState({
+        p1WonCards: [card("X", "acorns")],
+        p2WonCards: [card("A", "bells"), card("X", "bells")],
+        p1TricksWon: 8,
+        p2TricksWon: 1,
+        lastTrickWinnerPlayerId: "p1",
+      }),
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns")],
+          hiddenCards: [],
+          wonCards: [card("X", "acorns")],
+          tricksWon: 8,
+          totalScore: 490,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("VII", "bells")],
+          hiddenCards: [],
+          wonCards: [card("A", "bells"), card("X", "bells")],
+          tricksWon: 1,
+          totalScore: 500,
+        },
+      ],
+      phase: "trick-play",
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: Array.from({ length: 9 }, () => ({
+        winnerPlayerId: "p1",
+        cards: [],
+      })),
+      declarationsByPlayer: { p1: [], p2: [] },
+    };
+
+    const tiedAfterHand = applyBellotAction(
+      applyBellotAction(state, {
+        type: "play-card",
+        playerId: "p1",
+        cardId: "A-acorns",
+      }),
+      { type: "play-card", playerId: "p2", cardId: "VII-bells" },
+    );
+
+    expect(tiedAfterHand.phase).toBe("hand-complete");
+    expect(tiedAfterHand.winnerPlayerId).toBeUndefined();
+    expect(tiedAfterHand.players.map((player) => player.totalScore)).toEqual([
+      521, 521,
+    ]);
+  });
 });
