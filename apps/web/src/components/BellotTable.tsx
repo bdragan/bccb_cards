@@ -12,6 +12,7 @@ import type {
   Rank,
   Suit,
 } from "@card-games/shared";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PlayingCard } from "../game/cards";
@@ -125,6 +126,37 @@ function SuitImage({
       className={`${className} object-contain`}
       loading="lazy"
     />
+  );
+}
+
+function TrumpMarkedCard({
+  card,
+  trumpSuit,
+  children,
+}: {
+  card: Card;
+  trumpSuit?: Suit;
+  children: ReactNode;
+}) {
+  const isTrump = card.suit === trumpSuit;
+
+  return (
+    <span
+      className="flex flex-col items-center"
+      data-testid={isTrump ? "bellot-trump-card" : undefined}
+    >
+      {trumpSuit ? (
+        <span
+          className={`mb-1 grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
+            isTrump ? "bg-yellow-300 shadow-sm" : "invisible"
+          }`}
+          aria-hidden={!isTrump}
+        >
+          {isTrump ? "T" : ""}
+        </span>
+      ) : null}
+      {children}
+    </span>
   );
 }
 
@@ -255,10 +287,12 @@ function ResultCardRow({
   label,
   cards,
   pickupCardIds,
+  trumpSuit,
 }: {
   label: string;
   cards: Card[];
   pickupCardIds?: string[];
+  trumpSuit?: Suit;
 }) {
   const hiddenPickupCardIds = new Set(pickupCardIds ?? []);
   const suitGroups = groupCardsBySuit(sortCards(cards));
@@ -282,7 +316,9 @@ function ResultCardRow({
                     pickedUp ? "ring-4 ring-amber-500" : ""
                   }`}
                 >
-                  <PlayingCard card={card} compact />
+                  <TrumpMarkedCard card={card} trumpSuit={trumpSuit}>
+                    <PlayingCard card={card} compact />
+                  </TrumpMarkedCard>
                   {pickedUp ? (
                     <span className="sr-only">Hidden pickup card</span>
                   ) : null}
@@ -597,7 +633,9 @@ export function BellotTable({
                       key={card.id}
                       className={playedCardIds.has(card.id) ? "opacity-45" : ""}
                     >
-                      <PlayingCard card={card} compact />
+                      <TrumpMarkedCard card={card} trumpSuit={state.trumpSuit}>
+                        <PlayingCard card={card} compact />
+                      </TrumpMarkedCard>
                     </div>
                   ))}
                 </div>
@@ -641,7 +679,12 @@ export function BellotTable({
             {state.upcard ? (
               <div className="text-center">
                 <p className="mb-1 text-sm font-semibold">Upcard</p>
-                <PlayingCard card={state.upcard} compact />
+                <TrumpMarkedCard
+                  card={state.upcard}
+                  trumpSuit={state.trumpSuit}
+                >
+                  <PlayingCard card={state.upcard} compact />
+                </TrumpMarkedCard>
               </div>
             ) : null}
           </div>
@@ -714,7 +757,7 @@ export function BellotTable({
               ))}
             </ol>
           ) : (
-            <div className="grid min-h-[114px] grid-cols-[repeat(2,71px)] justify-center gap-3">
+            <div className="grid h-[138px] grid-cols-[repeat(2,71px)] items-start justify-center gap-3 overflow-visible">
               {visibleTrick?.cards.map((play) => (
                 <div
                   key={`${play.playerId}-${play.card.id}`}
@@ -725,7 +768,12 @@ export function BellotTable({
                       : ""
                   }
                 >
-                  <PlayingCard card={play.card} native />
+                  <TrumpMarkedCard
+                    card={play.card}
+                    trumpSuit={state.trumpSuit}
+                  >
+                    <PlayingCard card={play.card} native />
+                  </TrumpMarkedCard>
                 </div>
               ))}
             </div>
@@ -772,6 +820,7 @@ export function BellotTable({
                     resultCardsByPlayer[resultCurrentPlayer.playerId] ?? []
                   }
                   pickupCardIds={resultCurrentPlayer.pickupCardIds}
+                  trumpSuit={state.trumpSuit}
                 />
               ) : null}
               {resultOpponentPlayer ? (
@@ -781,9 +830,14 @@ export function BellotTable({
                     resultCardsByPlayer[resultOpponentPlayer.playerId] ?? []
                   }
                   pickupCardIds={resultOpponentPlayer.pickupCardIds}
+                  trumpSuit={state.trumpSuit}
                 />
               ) : null}
-              <ResultCardRow label="Tesla" cards={state.unusedCards ?? []} />
+              <ResultCardRow
+                label="Tesla"
+                cards={state.unusedCards ?? []}
+                trumpSuit={state.trumpSuit}
+              />
             </div>
           </div>
         </>
@@ -821,7 +875,12 @@ export function BellotTable({
                       disabled={!canPlay}
                       onClick={() => onPlayCard(card.id)}
                     >
-                      <PlayingCard card={card} native />
+                      <TrumpMarkedCard
+                        card={card}
+                        trumpSuit={state.trumpSuit}
+                      >
+                        <PlayingCard card={card} native />
+                      </TrumpMarkedCard>
                       {pickedUp ? (
                         <span className="sr-only">Hidden pickup card</span>
                       ) : null}
@@ -869,7 +928,12 @@ export function BellotTable({
                             : "opacity-45"
                         }
                       >
-                        <PlayingCard card={play.card} compact />
+                        <TrumpMarkedCard
+                          card={play.card}
+                          trumpSuit={state.trumpSuit}
+                        >
+                          <PlayingCard card={play.card} compact />
+                        </TrumpMarkedCard>
                       </div>
                     ))}
                   </div>

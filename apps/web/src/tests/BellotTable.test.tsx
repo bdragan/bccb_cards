@@ -158,6 +158,29 @@ describe("BellotTable", () => {
     ).toHaveClass("ring-4");
   });
 
+  it("marks visible trump cards", () => {
+    renderTable({
+      ...baseState,
+      currentTrick: [{ playerId: "p2", card: card("K", "hearts") }],
+      completedTricks: [],
+    });
+
+    const trumpCards = screen
+      .getAllByTestId("bellot-trump-card")
+      .map((container) =>
+        within(container).getByRole("img").getAttribute("alt"),
+      );
+
+    expect(trumpCards).toEqual([
+      "IX of Hearts",
+      "K of Hearts",
+      "A of Hearts",
+    ]);
+    for (const container of screen.getAllByTestId("bellot-trump-card")) {
+      expect(within(container).getByText("T")).toBeInTheDocument();
+    }
+  });
+
   it("waits for the final trick linger before showing hand results", async () => {
     vi.useFakeTimers();
 
@@ -318,9 +341,8 @@ describe("BellotTable", () => {
       "IX of Hearts",
       "IX of Leaves",
     ]);
-    expect(within(group).getByAltText("IX of Bells").parentElement).toHaveClass(
-      "opacity-45",
-    );
+    expect(within(group).getByAltText("IX of Bells").closest(".opacity-45"))
+      .not.toBeNull();
   });
 
   it("keeps the current trick area mounted when trick play has no cards", () => {
@@ -334,7 +356,7 @@ describe("BellotTable", () => {
 
     expect(within(currentTrick).getByText("Current trick")).toBeInTheDocument();
     expect(
-      currentTrick.querySelector(".min-h-\\[114px\\]"),
+      currentTrick.querySelector(".h-\\[138px\\]"),
     ).toBeInTheDocument();
   });
 
@@ -421,11 +443,11 @@ describe("BellotTable", () => {
     const hand = screen.getByText("Trick 1 · Bob").parentElement!;
 
     expect(
-      within(hand).getByAltText("A of Acorns").parentElement,
-    ).not.toHaveClass("opacity-45");
+      within(hand).getByAltText("A of Acorns").closest(".opacity-45"),
+    ).toBeNull();
     expect(
-      within(hand).getByAltText("VII of Acorns").parentElement,
-    ).toHaveClass("opacity-45");
+      within(hand).getByAltText("VII of Acorns").closest(".opacity-45"),
+    ).not.toBeNull();
   });
 
   it("shows played tricks before the first trick has completed", async () => {
