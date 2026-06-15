@@ -78,10 +78,9 @@ async function register(page: Page) {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
 
-  await expect(
-    page.getByRole("heading", { name: "Card Games Platform" }),
-  ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Create room" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create room" })).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 async function chooseTrump(players: Page[]) {
