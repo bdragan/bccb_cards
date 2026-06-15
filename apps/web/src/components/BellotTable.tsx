@@ -16,7 +16,7 @@ import type {
 import type { ReactNode } from "react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
-import { PlayingCard } from "../game/cards";
+import { PlayingCard, PlayingCardBack } from "../game/cards";
 import { Button } from "./Button";
 
 const suitLabels: Record<Suit, string> = {
@@ -571,6 +571,31 @@ function ResultCardRow({
   );
 }
 
+function HiddenPickupPlaceholder({
+  index,
+  reserveMarkerRow = false,
+}: {
+  index: number;
+  reserveMarkerRow?: boolean;
+}) {
+  return (
+    <div
+      className="relative shrink-0 rounded-md"
+      data-testid="bellot-hidden-pickup-placeholder"
+    >
+      {reserveMarkerRow ? (
+        <span
+          aria-hidden="true"
+          className="mb-1 flex h-5 items-center justify-center"
+          data-testid="bellot-hidden-pickup-marker-spacer"
+        />
+      ) : null}
+      <PlayingCardBack native alt={`Hidden pickup card ${index}`} />
+      <span className="sr-only">Hidden pickup card</span>
+    </div>
+  );
+}
+
 export function BellotTable({
   state,
   currentPlayerId,
@@ -731,6 +756,8 @@ export function BellotTable({
     (state.phase === "trick-play" ||
       trumpSelectionPhases.includes(state.phase) ||
       Boolean(visibleTrick));
+  const showHiddenPickupPlaceholders =
+    trumpSelectionPhases.includes(state.phase) && currentHand.length > 0;
   const displayedCompletedTricks = state.completedTricks
     .map((trick, index) => ({ index, trick }))
     .reverse();
@@ -1124,62 +1151,75 @@ export function BellotTable({
               ? " · play a legal card"
               : ""}
           </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {currentHandSuitGroups.map((group) => (
-              <div
-                key={group.suit}
-                className="flex flex-wrap gap-2"
-                data-testid="bellot-hand-suit-group"
-              >
-                {group.cards.map((card) => {
-                  const playable = legalCardIds.has(card.id);
-                  const pickedUp = pickupCardIds.has(card.id);
-                  const bonusMarked = bonusPreview.cardIds.has(card.id);
-                  const canPlay =
-                    state.phase === "trick-play" &&
-                    state.currentTurnPlayerId === currentPlayerId &&
-                    playable;
+          <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+            <div className="flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2">
+              {currentHandSuitGroups.map((group) => (
+                <div
+                  key={group.suit}
+                  className="flex flex-wrap gap-2"
+                  data-testid="bellot-hand-suit-group"
+                >
+                  {group.cards.map((card) => {
+                    const playable = legalCardIds.has(card.id);
+                    const pickedUp = pickupCardIds.has(card.id);
+                    const bonusMarked = bonusPreview.cardIds.has(card.id);
+                    const canPlay =
+                      state.phase === "trick-play" &&
+                      state.currentTurnPlayerId === currentPlayerId &&
+                      playable;
 
-                  return (
-                    <button
-                      key={card.id}
-                      type="button"
-                      className="relative rounded-md disabled:cursor-default disabled:opacity-100"
-                      data-testid="bellot-hand-card"
-                      disabled={!canPlay}
-                      onClick={() => onPlayCard(card.id)}
-                    >
-                      <TrumpMarkedCard
-                        card={card}
-                        trumpSuit={state.trumpSuit}
-                        bonusMarked={bonusMarked}
-                        reserveBonusMarker={showBonusPreview}
+                    return (
+                      <button
+                        key={card.id}
+                        type="button"
+                        className="relative rounded-md disabled:cursor-default disabled:opacity-100"
+                        data-testid="bellot-hand-card"
+                        disabled={!canPlay}
+                        onClick={() => onPlayCard(card.id)}
                       >
-                        <PickupCardFrame pickedUp={pickedUp}>
-                          <PlayingCard card={card} native />
-                        </PickupCardFrame>
-                      </TrumpMarkedCard>
-                      {pickedUp ? (
-                        <span className="sr-only">Hidden pickup card</span>
-                      ) : null}
-                      {state.trumpSuit ? (
-                        <span className="mt-1 block text-xs text-white/70">
-                          {bellotCardPoints(card, state.trumpSuit)} pts
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-            {showBonusPreview ? (
-              <div
-                className="flex h-[138px] items-center"
-                data-testid="bellot-hand-bonus-total"
-              >
-                <span className="rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
-                  {bonusPreview.points} bonus pts
-                </span>
+                        <TrumpMarkedCard
+                          card={card}
+                          trumpSuit={state.trumpSuit}
+                          bonusMarked={bonusMarked}
+                          reserveBonusMarker={showBonusPreview}
+                        >
+                          <PickupCardFrame pickedUp={pickedUp}>
+                            <PlayingCard card={card} native />
+                          </PickupCardFrame>
+                        </TrumpMarkedCard>
+                        {pickedUp ? (
+                          <span className="sr-only">Hidden pickup card</span>
+                        ) : null}
+                        {state.trumpSuit ? (
+                          <span className="mt-1 block text-xs text-white/70">
+                            {bellotCardPoints(card, state.trumpSuit)} pts
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+              {showBonusPreview ? (
+                <div
+                  className="flex h-[138px] items-center"
+                  data-testid="bellot-hand-bonus-total"
+                >
+                  <span className="rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
+                    {bonusPreview.points} bonus pts
+                  </span>
+                </div>
+              ) : null}
+            </div>
+            {showHiddenPickupPlaceholders ? (
+              <div className="ml-auto flex shrink-0 gap-2">
+                {[1, 2].map((index) => (
+                  <HiddenPickupPlaceholder
+                    key={index}
+                    index={index}
+                    reserveMarkerRow={showBonusPreview}
+                  />
+                ))}
               </div>
             ) : null}
           </div>

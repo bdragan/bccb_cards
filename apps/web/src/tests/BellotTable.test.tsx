@@ -201,6 +201,55 @@ describe("BellotTable", () => {
     );
   });
 
+  it("shows two face-down pickup placeholders during trump selection", () => {
+    renderTable({
+      ...baseState,
+      phase: "trump-round-one",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p2",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+      declarationsByPlayer: {},
+      publicCardsByPlayer: { p1: [], p2: [] },
+      upcard: card("K", "leaves"),
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("VII", "acorns"),
+                card("VIII", "acorns"),
+                card("IX", "acorns"),
+                card("K", "leaves"),
+              ],
+              handCount: 4,
+            }
+          : player,
+      ),
+    });
+
+    const placeholders = screen.getAllByTestId(
+      "bellot-hidden-pickup-placeholder",
+    );
+
+    expect(placeholders).toHaveLength(2);
+    expect(placeholders[0].parentElement).toHaveClass("ml-auto");
+    expect(
+      placeholders.map((placeholder) =>
+        within(placeholder).getByRole("img").getAttribute("src"),
+      ),
+    ).toEqual(["/cards/card-back.svg", "/cards/card-back.svg"]);
+    for (const placeholder of placeholders) {
+      expect(within(placeholder).getByRole("img")).not.toHaveClass("border");
+      expect(placeholder.querySelector(".ring-4")).not.toBeInTheDocument();
+    }
+    expect(
+      screen.getAllByTestId("bellot-hidden-pickup-marker-spacer"),
+    ).toHaveLength(2);
+  });
+
   it("marks visible trump cards", () => {
     renderTable({
       ...baseState,
@@ -301,6 +350,9 @@ describe("BellotTable", () => {
     expect(screen.queryByTestId("bellot-bonus-card")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("bellot-hand-bonus-total"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("bellot-hidden-pickup-placeholder"),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Hidden pickup card")).toBeInTheDocument();
   });
