@@ -172,16 +172,16 @@ export const messages: Record<Locale, Messages> = {
     toPlay: (playerName) => `${playerName} je na potezu`,
     suits: {
       acorns: "Žir",
-      bells: "Zvona",
-      hearts: "Srca",
+      bells: "Tikva",
+      hearts: "Srce",
       leaves: "List",
     },
     cardLabel: (rank, suit) =>
       `${rank} ${
         {
           acorns: "žir",
-          bells: "zvona",
-          hearts: "srca",
+          bells: "tikva",
+          hearts: "srce",
           leaves: "list",
         }[suit]
       }`,
