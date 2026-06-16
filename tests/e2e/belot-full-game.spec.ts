@@ -2,9 +2,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 
 const password = "password123";
 
-test("plays a complete Belot game through the browser", async ({
-  browser,
-}) => {
+test("plays a complete Belot game through the browser", async ({ browser }) => {
   test.setTimeout(180_000);
 
   const runId = `${Date.now()}-${test.info().workerIndex}`;
@@ -33,18 +31,16 @@ test("plays a complete Belot game through the browser", async ({
 
   await playerOne.getByRole("button", { name: "Ready" }).click();
   await playerTwo.getByRole("button", { name: "Ready" }).click();
-  await expect(playerOne.getByTestId("belot-status")).toBeVisible();
-  await expect(playerTwo.getByTestId("belot-status")).toBeVisible();
 
   await chooseTrump([playerOne, playerTwo]);
   await playUntilFinished([playerOne, playerTwo]);
 
-  await expect(playerOne.getByTestId("belot-status")).toContainText(
-    "Status: finished",
-  );
-  await expect(playerTwo.getByTestId("belot-status")).toContainText(
-    "Status: finished",
-  );
+  await expect(
+    playerOne.getByRole("button", { name: "Next game" }),
+  ).toBeVisible();
+  await expect(
+    playerTwo.getByRole("button", { name: "Next game" }),
+  ).toBeVisible();
   await expect(
     playerOne.getByText("Declarations are not currently open"),
   ).toHaveCount(0);
@@ -90,9 +86,6 @@ async function chooseTrump(players: Page[]) {
 
       if (await acceptButton.isVisible().catch(() => false)) {
         await acceptButton.click();
-        await expect(player.getByTestId("belot-status")).toContainText(
-          /Status: (declarations|trick play)/,
-        );
         return;
       }
     }
@@ -107,56 +100,44 @@ async function playUntilFinished(players: Page[]) {
   for (let action = 0; action < 500; action += 1) {
     await assertNoDeclarationError(players);
 
-    const status = await players[0].getByTestId("belot-status").innerText();
-
-    if (status.includes("finished")) {
+    if (
+      await players[0]
+        .getByRole("button", { name: "Next game" })
+        .isVisible()
+        .catch(() => false)
+    ) {
       return;
     }
 
-    if (status.includes("hand complete")) {
+    if (
+      await players[0]
+        .getByRole("button", { name: "Next hand" })
+        .isVisible()
+        .catch(() => false)
+    ) {
       await players[0].getByRole("button", { name: "Next hand" }).click();
       await chooseTrump(players);
       continue;
     }
 
-    if (status.includes("declarations")) {
-      await expect(players[0].getByTestId("belot-status")).toContainText(
-        "Status: trick play",
-        { timeout: 10_000 },
-      );
-      continue;
-    }
-
-    if (status.includes("trick play")) {
-      const currentPlayer = await playerWithPlayableCard(players);
-
-      if (!currentPlayer) {
-        continue;
-      }
-
-      const playableCard = currentPlayer
-        .locator('[data-testid="belot-hand-card"]:not([disabled])')
-        .first();
-
-      await expect(playableCard).toBeVisible({ timeout: 10_000 });
-      if (
-        !(await players[0].getByTestId("belot-status").innerText()).includes(
-          "trick play",
-        )
-      ) {
-        continue;
-      }
-
-      await playableCard.dispatchEvent("click");
-      continue;
-    }
-
-    if (status.includes("trump")) {
+    if (await hasAcceptButton(players)) {
       await chooseTrump(players);
       continue;
     }
 
-    throw new Error(`Unexpected Belot status: ${status}`);
+    const currentPlayer = await playerWithPlayableCard(players);
+
+    if (!currentPlayer) {
+      await players[0].waitForTimeout(100);
+      continue;
+    }
+
+    const playableCard = currentPlayer
+      .locator('[data-testid="belot-hand-card"]:not([disabled])')
+      .first();
+
+    await expect(playableCard).toBeVisible({ timeout: 10_000 });
+    await playableCard.dispatchEvent("click");
   }
 
   throw new Error("Belot game did not finish within 500 player actions");
@@ -164,9 +145,11 @@ async function playUntilFinished(players: Page[]) {
 
 async function playerWithPlayableCard(players: Page[]) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const status = await players[0].getByTestId("belot-status").innerText();
-
-    if (!status.includes("trick play")) {
+    if (
+      (await hasButton(players[0], "Next hand")) ||
+      (await hasButton(players[0], "Next game")) ||
+      (await hasAcceptButton(players))
+    ) {
       return undefined;
     }
 
@@ -183,7 +166,22 @@ async function playerWithPlayableCard(players: Page[]) {
     await players[0].waitForTimeout(100);
   }
 
-  throw new Error("No playable card was available");
+  return undefined;
+}
+
+async function hasAcceptButton(players: Page[]) {
+  for (const player of players) {
+    if (
+      await player
+        .getByRole("button", { name: /^Accept / })
+        .isVisible()
+        .catch(() => false)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function assertNoDeclarationError(players: Page[]) {
@@ -192,4 +190,11 @@ async function assertNoDeclarationError(players: Page[]) {
       player.getByText("Declarations are not currently open"),
     ).toHaveCount(0);
   }
+}
+
+async function hasButton(player: Page, name: string) {
+  return player
+    .getByRole("button", { name })
+    .isVisible()
+    .catch(() => false);
 }

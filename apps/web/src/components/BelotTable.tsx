@@ -944,22 +944,7 @@ export function BelotTable({
 
   return (
     <section className="rounded-md bg-felt p-4 text-white shadow-lg">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold">{messages.belotName}</h2>
-          <p className="text-sm text-white/80" data-testid="belot-status">
-            {messages.status}: {messages.phase[state.phase]}
-            {state.isMus ? ` · ${messages.mus}` : ""}
-          </p>
-        </div>
-        {state.phase === "hand-complete" && !state.winnerPlayerId ? (
-          <Button onClick={onNextHand}>{messages.nextHand}</Button>
-        ) : state.phase === "error" ? (
-          <Button onClick={onRestart}>{messages.newGame}</Button>
-        ) : null}
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]">
         {playerPanels[0]}
         <div className="rounded-md bg-white/10 p-3">
           <div className="flex flex-wrap items-start justify-center gap-4 md:flex-col md:items-center">
@@ -1015,6 +1000,11 @@ export function BelotTable({
                     </p>
                   ))}
                 </div>
+                {state.phase === "hand-complete" && !state.winnerPlayerId ? (
+                  <div className="mt-3">
+                    <Button onClick={onNextHand}>{messages.nextHand}</Button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -414,9 +414,7 @@ describe("BelotTable", () => {
 
       const finalTrick = screen.getByTestId("belot-current-trick");
 
-      expect(
-        screen.queryByTestId("belot-hand-result"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("belot-hand-result")).not.toBeInTheDocument();
       expect(
         within(finalTrick).getByText("Completed trick 2"),
       ).toBeInTheDocument();
@@ -458,8 +456,15 @@ describe("BelotTable", () => {
       expect(within(result).getByText("Hand result")).toBeInTheDocument();
       expect(within(result).queryByText("Alice")).not.toBeInTheDocument();
       expect(within(result).queryByText("Bob")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("belot-status")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Belot" }),
+      ).not.toBeInTheDocument();
 
       const scores = within(result).getAllByTestId("belot-result-score");
+      const nextHandButton = within(result).getByRole("button", {
+        name: "Next hand",
+      });
       expect(scores).toHaveLength(2);
       expect(scores[0]).toHaveTextContent("2");
       expect(scores[0]).toHaveClass(
@@ -475,6 +480,10 @@ describe("BelotTable", () => {
         "text-right",
         "text-white",
       );
+      expect(
+        scores[1].compareDocumentPosition(nextHandButton) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
       expect(
         screen.getByTestId("belot-trump-upcard-separator"),
       ).toBeInTheDocument();
