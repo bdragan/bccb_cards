@@ -187,14 +187,14 @@ describe("BelotTable", () => {
       handButtons.find((button) => within(button).queryByAltText(label))!;
 
     expect(
-      handButton("VII of Acorns").closest(".opacity-75"),
+      handButton("VII of Acorns").closest(".opacity-70"),
     ).toBeNull();
-    expect(handButton("X of Acorns").closest(".opacity-75")).toBeNull();
+    expect(handButton("X of Acorns").closest(".opacity-70")).toBeNull();
     expect(
-      handButton("IX of Bells").closest(".opacity-75"),
+      handButton("IX of Bells").closest(".opacity-70"),
     ).not.toBeNull();
     expect(
-      handButton("A of Hearts").closest(".opacity-75"),
+      handButton("A of Hearts").closest(".opacity-70"),
     ).not.toBeNull();
   });
 
@@ -207,7 +207,7 @@ describe("BelotTable", () => {
     });
 
     for (const button of screen.getAllByTestId("belot-hand-card")) {
-      expect(button).toHaveClass("opacity-75");
+      expect(button).toHaveClass("opacity-70");
     }
   });
 

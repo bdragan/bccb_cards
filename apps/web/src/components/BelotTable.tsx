@@ -1330,7 +1330,7 @@ export function BelotTable({
                         key={card.id}
                         type="button"
                         className={`relative rounded-md disabled:cursor-default ${
-                          shadowed ? "opacity-75" : ""
+                          shadowed ? "opacity-70" : ""
                         }`}
                         data-testid="belot-hand-card"
                         disabled={!canPlay}
