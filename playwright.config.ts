@@ -36,6 +36,7 @@ export default defineConfig({
       env: {
         ...process.env,
         VITE_API_URL: apiUrl,
+        VITE_BELOT_RESULT_DELAY_MS: "0",
       },
       url: webUrl,
       reuseExistingServer: !process.env.CI,

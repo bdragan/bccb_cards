@@ -29,7 +29,12 @@ const suitImagePaths: Record<Suit, string> = {
 
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
 const rankOrder: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
-const completedTrickLingerMs = 2_000;
+const configuredCompletedTrickLingerMs = Number(
+  import.meta.env.VITE_BELOT_RESULT_DELAY_MS,
+);
+const completedTrickLingerMs = Number.isFinite(configuredCompletedTrickLingerMs)
+  ? Math.max(0, configuredCompletedTrickLingerMs)
+  : 2_000;
 const trumpSelectionPhases: BelotPublicState["phase"][] = [
   "trump-round-one",
   "trump-round-two",

@@ -1,6 +1,8 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 const password = "password123";
+const localeStorageKey = "card-games-locale";
+const newGameButtonName = "New game";
 
 test("plays a complete Belot game through the browser", async ({ browser }) => {
   test.setTimeout(180_000);
@@ -36,10 +38,10 @@ test("plays a complete Belot game through the browser", async ({ browser }) => {
   await playUntilFinished([playerOne, playerTwo]);
 
   await expect(
-    playerOne.getByRole("button", { name: "Next game" }),
+    playerOne.getByRole("button", { name: newGameButtonName }),
   ).toBeVisible();
   await expect(
-    playerTwo.getByRole("button", { name: "Next game" }),
+    playerTwo.getByRole("button", { name: newGameButtonName }),
   ).toBeVisible();
   await expect(
     playerOne.getByText("Declarations are not currently open"),
@@ -59,6 +61,12 @@ async function newPlayer(
   const context = await browser.newContext();
   const page = await context.newPage();
 
+  await page.addInitScript(
+    ([key, locale]) => {
+      localStorage.setItem(key, locale);
+    },
+    [localeStorageKey, "en"],
+  );
   Object.assign(page, player);
 
   return page;
@@ -81,12 +89,28 @@ async function register(page: Page) {
 
 async function chooseTrump(players: Page[]) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (
+      (await hasButton(players[0], "Next hand")) ||
+      (await hasButton(players[0], newGameButtonName)) ||
+      (await hasPlayableCard(players))
+    ) {
+      return;
+    }
+
     for (const player of players) {
-      const acceptButton = player.getByRole("button", { name: /^Accept / });
+      const acceptButton = player
+        .getByRole("button", { name: /^Accept / })
+        .first();
 
       if (await acceptButton.isVisible().catch(() => false)) {
-        await acceptButton.click();
-        return;
+        const clicked = await acceptButton
+          .click({ timeout: 500 })
+          .then(() => true)
+          .catch(() => false);
+
+        if (clicked) {
+          return;
+        }
       }
     }
 
@@ -102,7 +126,7 @@ async function playUntilFinished(players: Page[]) {
 
     if (
       await players[0]
-        .getByRole("button", { name: "Next game" })
+        .getByRole("button", { name: newGameButtonName })
         .isVisible()
         .catch(() => false)
     ) {
@@ -115,8 +139,12 @@ async function playUntilFinished(players: Page[]) {
         .isVisible()
         .catch(() => false)
     ) {
-      await players[0].getByRole("button", { name: "Next hand" }).click();
-      await chooseTrump(players);
+      const clicked = await clickButton(players[0], "Next hand");
+
+      if (clicked) {
+        await chooseTrump(players);
+      }
+
       continue;
     }
 
@@ -147,18 +175,14 @@ async function playerWithPlayableCard(players: Page[]) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     if (
       (await hasButton(players[0], "Next hand")) ||
-      (await hasButton(players[0], "Next game")) ||
+      (await hasButton(players[0], newGameButtonName)) ||
       (await hasAcceptButton(players))
     ) {
       return undefined;
     }
 
     for (const player of players) {
-      const playableCards = player.locator(
-        '[data-testid="belot-hand-card"]:not([disabled])',
-      );
-
-      if ((await playableCards.count()) > 0) {
+      if (await hasPlayableCard([player])) {
         return player;
       }
     }
@@ -167,6 +191,20 @@ async function playerWithPlayableCard(players: Page[]) {
   }
 
   return undefined;
+}
+
+async function hasPlayableCard(players: Page[]) {
+  for (const player of players) {
+    const playableCards = player.locator(
+      '[data-testid="belot-hand-card"]:not([disabled])',
+    );
+
+    if ((await playableCards.count()) > 0) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function hasAcceptButton(players: Page[]) {
@@ -196,5 +234,13 @@ async function hasButton(player: Page, name: string) {
   return player
     .getByRole("button", { name })
     .isVisible()
+    .catch(() => false);
+}
+
+async function clickButton(player: Page, name: string) {
+  return player
+    .getByRole("button", { name })
+    .click({ timeout: 500 })
+    .then(() => true)
     .catch(() => false);
 }
