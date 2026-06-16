@@ -1,10 +1,7 @@
 import type { RoomPublicState } from "@card-games/shared";
 
+import { useI18n } from "../i18n";
 import { Button } from "./Button";
-
-const gameNames: Record<RoomPublicState["gameId"], string> = {
-  belot: "Belot",
-};
 
 export function Lobby({
   room,
@@ -15,17 +12,21 @@ export function Lobby({
   currentPlayerId?: string;
   onReady: (ready: boolean) => void;
 }) {
+  const { messages } = useI18n();
   const currentPlayer = room.players.find(
     (player) => player.playerId === currentPlayerId,
   );
+  const gameName: Record<RoomPublicState["gameId"], string> = {
+    belot: messages.belotName,
+  };
 
   return (
     <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold">Lobby</h2>
+          <h2 className="text-lg font-bold">{messages.lobby}</h2>
           <p className="text-sm text-slate-600">
-            Room code{" "}
+            {messages.roomCode}{" "}
             <span
               className="font-mono font-bold text-ink"
               data-testid="room-code"
@@ -34,9 +35,9 @@ export function Lobby({
             </span>
           </p>
           <p className="text-sm text-slate-600">
-            Game{" "}
+            {messages.game}{" "}
             <span className="font-semibold text-ink">
-              {gameNames[room.gameId]}
+              {gameName[room.gameId]}
             </span>
           </p>
         </div>
@@ -44,7 +45,7 @@ export function Lobby({
           onClick={() => onReady(!currentPlayer?.ready)}
           disabled={!currentPlayer}
         >
-          {currentPlayer?.ready ? "Unready" : "Ready"}
+          {currentPlayer?.ready ? messages.unready : messages.ready}
         </Button>
       </div>
 
@@ -58,15 +59,14 @@ export function Lobby({
             <span
               className={`text-sm font-semibold ${player.ready ? "text-felt" : "text-slate-500"}`}
             >
-              {player.ready ? "Ready" : "Waiting"}
+              {player.ready ? messages.ready : messages.waiting}
             </span>
           </li>
         ))}
       </ul>
 
       <p className="mt-4 text-sm text-slate-600">
-        The server starts {gameNames[room.gameId]} automatically when at least
-        two players have joined and everyone is ready.
+        {messages.lobbyAutoStart(gameName[room.gameId])}
       </p>
     </section>
   );

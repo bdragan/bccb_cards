@@ -6,6 +6,8 @@ import type {
   RegisterDto,
 } from "@card-games/shared";
 
+import { getMessages } from "../i18n";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 async function request<T>(
@@ -24,7 +26,7 @@ async function request<T>(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "Request failed");
+    throw new Error(text || getMessages().requestFailed);
   }
 
   return response.json() as Promise<T>;

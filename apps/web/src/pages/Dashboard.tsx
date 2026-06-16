@@ -19,7 +19,9 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { BelotTable } from "../components/BelotTable";
 import { Button } from "../components/Button";
+import { LanguageToggle } from "../components/LanguageToggle";
 import { Lobby } from "../components/Lobby";
+import { useI18n } from "../i18n";
 import { createGameSocket, type GameSocket } from "../socket/game-socket";
 import { useAuthStore } from "../stores/auth-store";
 import type {
@@ -71,6 +73,7 @@ function isOfflineCpuTurn(state: BelotState) {
 }
 
 export function Dashboard() {
+  const { messages } = useI18n();
   const { token, user, logout } = useAuthStore();
   const [matches, setMatches] = useState<unknown[]>([]);
   const [roomCode, setRoomCode] = useState("");
@@ -168,7 +171,7 @@ export function Dashboard() {
           ? {
               ...current,
               phase: "error",
-              error: event.message || "CPU action failed",
+              error: event.message || messages.cpuActionFailed,
             }
           : current,
       );
@@ -180,7 +183,7 @@ export function Dashboard() {
       offlineCpuRequestIdRef.current += 1;
       worker.terminate();
     };
-  }, []);
+  }, [messages.cpuActionFailed]);
 
   const inLobby =
     room &&
@@ -223,7 +226,7 @@ export function Dashboard() {
             ? {
                 ...current,
                 phase: "error",
-                error: "CPU worker is not available",
+                error: messages.cpuWorkerUnavailable,
               }
             : current,
         );
@@ -242,7 +245,7 @@ export function Dashboard() {
     }, offlineCpuActionDelay(offlineBelotState));
 
     return () => window.clearTimeout(timeout);
-  }, [offlineBelotState]);
+  }, [messages.cpuWorkerUnavailable, offlineBelotState]);
 
   function createRoom() {
     setOfflineBelotState(undefined);
@@ -268,9 +271,9 @@ export function Dashboard() {
     let nextState = createBelotInitialState([
       {
         playerId: humanPlayerId,
-        displayName: user?.displayName ?? "You",
+        displayName: user?.displayName ?? messages.offlineYou,
       },
-      { playerId: offlineCpuPlayerId, displayName: "CPU" },
+      { playerId: offlineCpuPlayerId, displayName: messages.cpu },
     ]);
 
     nextState = applyBelotAction(nextState, {
@@ -346,22 +349,23 @@ export function Dashboard() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
-            <h1 className="text-xl font-bold">Card Games Platform</h1>
+            <h1 className="text-xl font-bold">{messages.appTitle}</h1>
             <p className="text-sm text-slate-600">
-              {user?.displayName ?? "Signed in"}
+              {user?.displayName ?? messages.signedIn}
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageToggle />
             {offlineBelotState ? (
               <Button
                 type="button"
                 onClick={() => setOfflineBelotState(undefined)}
               >
-                Leave match
+                {messages.leaveMatch}
               </Button>
             ) : null}
             <Button type="button" onClick={logout}>
-              Logout
+              {messages.logout}
             </Button>
           </div>
         </div>
@@ -376,13 +380,13 @@ export function Dashboard() {
           {activeBelotGame ? null : (
             <>
               <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="text-lg font-bold">Room</h2>
+                <h2 className="text-lg font-bold">{messages.room}</h2>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <Button type="button" onClick={createRoom} disabled={!socket}>
-                    Create room
+                    {messages.createRoom}
                   </Button>
                   <Button type="button" onClick={startOfflineBelot}>
-                    Play Belot vs CPU
+                    {messages.playBelotVsCpu}
                   </Button>
                   <form
                     onSubmit={joinRoom}
@@ -390,7 +394,7 @@ export function Dashboard() {
                   >
                     <input
                       className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase"
-                      placeholder="Room code"
+                      placeholder={messages.roomCode}
                       value={roomCode}
                       onChange={(event) => setRoomCode(event.target.value)}
                     />
@@ -398,7 +402,7 @@ export function Dashboard() {
                       type="submit"
                       disabled={!socket || roomCode.length < 4}
                     >
-                      Join
+                      {messages.join}
                     </Button>
                   </form>
                 </div>
@@ -493,9 +497,9 @@ export function Dashboard() {
 
         {activeBelotGame ? null : (
           <aside className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-lg font-bold">Match history</h2>
+            <h2 className="text-lg font-bold">{messages.matchHistory}</h2>
             <p className="mt-2 text-sm text-slate-600">
-              {matchCount} completed matches
+              {messages.completedMatches(matchCount)}
             </p>
           </aside>
         )}

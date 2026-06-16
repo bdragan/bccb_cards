@@ -1,9 +1,12 @@
 import { FormEvent, useState } from "react";
 
+import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/auth-store";
 import { Button } from "./Button";
+import { LanguageToggle } from "./LanguageToggle";
 
 export function AuthScreen() {
+  const { messages } = useI18n();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -26,26 +29,29 @@ export function AuthScreen() {
         onSubmit={submit}
         className="w-full max-w-sm rounded-md bg-white p-6 shadow-xl"
       >
-        <h1 className="text-2xl font-bold text-ink">Card Games</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-ink">{messages.authTitle}</h1>
+          <LanguageToggle />
+        </div>
         <div className="mt-5 grid grid-cols-2 rounded-md bg-slate-100 p-1">
           <button
             type="button"
             className={`rounded px-3 py-2 text-sm font-semibold ${mode === "login" ? "bg-white shadow" : ""}`}
             onClick={() => setMode("login")}
           >
-            Login
+            {messages.login}
           </button>
           <button
             type="button"
             className={`rounded px-3 py-2 text-sm font-semibold ${mode === "register" ? "bg-white shadow" : ""}`}
             onClick={() => setMode("register")}
           >
-            Register
+            {messages.register}
           </button>
         </div>
 
         <label className="mt-5 block text-sm font-medium">
-          Email
+          {messages.email}
           <input
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
             value={email}
@@ -57,7 +63,7 @@ export function AuthScreen() {
 
         {mode === "register" ? (
           <label className="mt-4 block text-sm font-medium">
-            Display name
+            {messages.displayName}
             <input
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
               value={displayName}
@@ -68,7 +74,7 @@ export function AuthScreen() {
         ) : null}
 
         <label className="mt-4 block text-sm font-medium">
-          Password
+          {messages.password}
           <input
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
             value={password}
@@ -86,7 +92,7 @@ export function AuthScreen() {
         ) : null}
 
         <Button className="mt-5 w-full" disabled={loading}>
-          {mode === "login" ? "Login" : "Create account"}
+          {mode === "login" ? messages.login : messages.createAccount}
         </Button>
       </form>
     </main>

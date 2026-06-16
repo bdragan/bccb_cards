@@ -2,6 +2,7 @@ import type { AuthUser } from "@card-games/shared";
 import { create } from "zustand";
 
 import { api } from "../api/client";
+import { getMessages } from "../i18n";
 
 type AuthState = {
   token?: string;
@@ -26,7 +27,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ token: response.accessToken, user: response.user, loading: false });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Registration failed",
+        error:
+          error instanceof Error
+            ? error.message
+            : getMessages().registrationFailed,
         loading: false,
       });
     }
@@ -39,7 +43,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ token: response.accessToken, user: response.user, loading: false });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Login failed",
+        error:
+          error instanceof Error ? error.message : getMessages().loginFailed,
         loading: false,
       });
     }

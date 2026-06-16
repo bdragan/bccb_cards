@@ -17,14 +17,8 @@ import type { ReactNode } from "react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { PlayingCard, PlayingCardBack } from "../game/cards";
+import { type Messages, useI18n } from "../i18n";
 import { Button } from "./Button";
-
-const suitLabels: Record<Suit, string> = {
-  acorns: "Acorns",
-  bells: "Bells",
-  hearts: "Hearts",
-  leaves: "Leaves",
-};
 
 const suitImagePaths: Record<Suit, string> = {
   acorns: "/suits/s.png",
@@ -145,10 +139,7 @@ function trumpSelectionPreviewSuits(state: BelotPublicState) {
   return suitOrder.filter((suit) => suit !== state.upcard?.suit);
 }
 
-function trumpSelectionBonusPreview(
-  hand: Card[],
-  state: BelotPublicState,
-) {
+function trumpSelectionBonusPreview(hand: Card[], state: BelotPublicState) {
   let bestDeclarations: BelotDeclaration[] = [];
   let bestPoints = 0;
 
@@ -179,10 +170,12 @@ function SuitImage({
   suit: Suit;
   className?: string;
 }) {
+  const { messages } = useI18n();
+
   return (
     <img
       src={suitImagePaths[suit]}
-      alt={suitLabels[suit]}
+      alt={messages.suits[suit]}
       className={`${className} object-contain`}
       loading="lazy"
     />
@@ -202,6 +195,7 @@ function TrumpMarkedCard({
   reserveBonusMarker?: boolean;
   children: ReactNode;
 }) {
+  const { messages } = useI18n();
   const isTrump = card.suit === trumpSuit;
   const reserveTrumpMarker = Boolean(trumpSuit);
   const showMarkerRow = reserveTrumpMarker || reserveBonusMarker;
@@ -226,7 +220,7 @@ function TrumpMarkedCard({
               }`}
               aria-hidden={!isTrump}
             >
-              {isTrump ? "T" : ""}
+              {isTrump ? messages.trumpMarker : ""}
             </span>
           ) : null}
           {reserveBonusMarker ? (
@@ -236,7 +230,7 @@ function TrumpMarkedCard({
               }`}
               aria-hidden={!bonusMarked}
             >
-              {bonusMarked ? "B" : ""}
+              {bonusMarked ? messages.bonusMarker : ""}
             </span>
           ) : null}
         </span>
@@ -309,10 +303,14 @@ function visibleGamePointsByPlayer(state: BelotPublicState) {
   return points;
 }
 
-function playerName(state: BelotPublicState, playerId?: string) {
+function playerName(
+  state: BelotPublicState,
+  messages: Messages,
+  playerId?: string,
+) {
   return (
     state.players.find((player) => player.playerId === playerId)?.displayName ??
-    "Unknown player"
+    messages.unknownPlayer
   );
 }
 
@@ -342,9 +340,11 @@ function BelotGameTimeline({
   handResults: BelotHandResult[];
   players: BelotPublicState["players"];
 }) {
+  const { messages } = useI18n();
+
   return (
     <section className="min-w-0" data-testid="belot-game-timeline">
-      <h3 className="text-sm font-semibold">Game timeline</h3>
+      <h3 className="text-sm font-semibold">{messages.gameTimeline}</h3>
       <div className="mt-2 overflow-x-auto">
         <table className="w-full min-w-[18rem] table-fixed border-collapse text-sm">
           <thead>
@@ -353,7 +353,7 @@ function BelotGameTimeline({
                 className="w-12 py-1 pr-2 text-left font-medium uppercase text-white/60"
                 scope="col"
               >
-                Hand
+                {messages.hand}
               </th>
               {players.map((player) => (
                 <th
@@ -396,7 +396,7 @@ function BelotGameTimeline({
                       >
                         <div className="grid grid-cols-[3ch_1.25rem_4ch] items-center justify-end gap-1">
                           <span className="text-right text-[11px] uppercase leading-none text-white">
-                            {isCaller && result.isMus ? "Mus" : ""}
+                            {isCaller && result.isMus ? messages.mus : ""}
                           </span>
                           {isCaller && result.trumpSuit ? (
                             <SuitImage
@@ -411,7 +411,7 @@ function BelotGameTimeline({
                           </span>
                         </div>
                         <p className="mt-1 text-right text-xs text-white/60">
-                          {bonusPoints} bonus
+                          {bonusPoints} {messages.bonus}
                         </p>
                       </td>
                     );
@@ -424,7 +424,7 @@ function BelotGameTimeline({
                   colSpan={players.length + 1}
                   className="py-3 text-sm text-white/60"
                 >
-                  No hands scored yet.
+                  {messages.noHandsScored}
                 </td>
               </tr>
             )}
@@ -435,7 +435,7 @@ function BelotGameTimeline({
                 className="py-2 pr-2 text-left text-xs uppercase text-white/60"
                 scope="row"
               >
-                Total
+                {messages.total}
               </th>
               {players.map((player) => (
                 <td
@@ -453,49 +453,59 @@ function BelotGameTimeline({
   );
 }
 
-function trumpSelectionLogs(state: BelotPublicState) {
+function trumpSelectionLogs(state: BelotPublicState, messages: Messages) {
   if (!trumpSelectionPhases.includes(state.phase)) {
     return [];
   }
 
   const logs: string[] = [];
   const upcardSuit = state.upcard?.suit;
-  const upcardSuitLabel = upcardSuit ? suitLabels[upcardSuit] : undefined;
-  const turnPlayer = playerName(state, state.trumpTurnPlayerId);
+  const upcardSuitLabel = upcardSuit ? messages.suits[upcardSuit] : undefined;
+  const turnPlayer = playerName(state, messages, state.trumpTurnPlayerId);
   const passedPlayers = state.trumpPasses ?? [];
 
   if (state.upcard && upcardSuitLabel) {
-    logs.push(`Upcard is ${state.upcard.rank} of ${upcardSuitLabel}.`);
+    logs.push(messages.upcardIs(state.upcard.rank, upcardSuitLabel));
   }
 
   if (state.phase === "trump-round-one") {
     for (const playerId of passedPlayers) {
       logs.push(
-        `${playerName(state, playerId)} passed on ${upcardSuitLabel ?? "the upcard suit"}.`,
+        messages.playerPassedOnSuit(
+          playerName(state, messages, playerId),
+          upcardSuitLabel ?? messages.upcardSuit,
+        ),
       );
     }
 
-    logs.push(`${turnPlayer} is deciding whether to accept the upcard suit.`);
+    logs.push(messages.playerDecidingUpcard(turnPlayer));
     return logs;
   }
 
   if (upcardSuitLabel) {
-    logs.push(`Both players passed ${upcardSuitLabel}.`);
+    logs.push(messages.bothPlayersPassedSuit(upcardSuitLabel));
   }
 
   if (state.phase === "trump-round-two") {
     for (const playerId of passedPlayers) {
-      logs.push(`${playerName(state, playerId)} passed choosing another suit.`);
+      logs.push(
+        messages.playerPassedChoosingAnotherSuit(
+          playerName(state, messages, playerId),
+        ),
+      );
     }
 
     logs.push(
-      `${turnPlayer} is choosing a suit other than ${upcardSuitLabel ?? "the upcard suit"}.`,
+      messages.playerChoosingOtherSuit(
+        turnPlayer,
+        upcardSuitLabel ?? messages.upcardSuit,
+      ),
     );
     return logs;
   }
 
-  logs.push("Both players passed twice.");
-  logs.push(`${turnPlayer} is on mus and must choose trump.`);
+  logs.push(messages.bothPlayersPassedTwice);
+  logs.push(messages.playerMustChooseTrumpOnMus(turnPlayer));
   return logs;
 }
 
@@ -533,14 +543,12 @@ function ResultCardRow({
   pickupCardIds?: string[];
   trumpSuit?: Suit;
 }) {
+  const { messages } = useI18n();
   const hiddenPickupCardIds = new Set(pickupCardIds ?? []);
   const suitGroups = groupCardsBySuit(sortCards(cards, trumpSuit));
 
   return (
-    <div
-      className="flex items-start gap-3"
-      data-testid="belot-result-card-row"
-    >
+    <div className="flex items-start gap-3" data-testid="belot-result-card-row">
       <p className="w-24 shrink-0 pt-8 text-sm font-semibold">{label}:</p>
       <div className="flex min-h-24 min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2 overflow-x-auto px-1 py-1">
         {suitGroups.map((group) => (
@@ -559,7 +567,7 @@ function ResultCardRow({
                     </PickupCardFrame>
                   </TrumpMarkedCard>
                   {pickedUp ? (
-                    <span className="sr-only">Hidden pickup card</span>
+                    <span className="sr-only">{messages.hiddenPickupCard}</span>
                   ) : null}
                 </div>
               );
@@ -578,6 +586,8 @@ function HiddenPickupPlaceholder({
   index: number;
   reserveMarkerRow?: boolean;
 }) {
+  const { messages } = useI18n();
+
   return (
     <div
       className="relative shrink-0 rounded-md"
@@ -590,8 +600,8 @@ function HiddenPickupPlaceholder({
           data-testid="belot-hidden-pickup-marker-spacer"
         />
       ) : null}
-      <PlayingCardBack native alt={`Hidden pickup card ${index}`} />
-      <span className="sr-only">Hidden pickup card</span>
+      <PlayingCardBack native alt={messages.hiddenPickupCardNumber(index)} />
+      <span className="sr-only">{messages.hiddenPickupCard}</span>
     </div>
   );
 }
@@ -618,6 +628,7 @@ export function BelotTable({
   onNextHand: () => void;
   onRestart: () => void;
 }) {
+  const { messages } = useI18n();
   const currentPlayer = state.players.find(
     (player) => player.playerId === currentPlayerId,
   );
@@ -702,7 +713,7 @@ export function BelotTable({
     () => playedCardsByPlayer(state),
     [state],
   );
-  const selectionLogs = trumpSelectionLogs(state);
+  const selectionLogs = trumpSelectionLogs(state, messages);
   const handResultKey = state.lastHandResult
     ? [
         state.completedTricks.length,
@@ -724,13 +735,13 @@ export function BelotTable({
     : undefined;
   const visibleTrick = state.currentTrick.length
     ? {
-        label: "Current trick",
+        label: messages.currentTrick,
         cards: state.currentTrick,
         strengthByCardId: trickStrengthMap(state.currentTrick, state.trumpSuit),
       }
     : lingeringTrick
       ? {
-          label: `Completed trick ${lingeringTrick.trickNumber}`,
+          label: messages.completedTrick(lingeringTrick.trickNumber),
           cards: lingeringTrick.cards,
           strengthByCardId: new Map(
             lingeringTrick.cards.map((play) => [
@@ -741,7 +752,7 @@ export function BelotTable({
         }
       : resultDelayTrick
         ? {
-            label: `Completed trick ${state.completedTricks.length}`,
+            label: messages.completedTrick(state.completedTricks.length),
             cards: resultDelayTrick.cards,
             strengthByCardId: new Map(
               resultDelayTrick.cards.map((play) => [
@@ -833,15 +844,11 @@ export function BelotTable({
     }
 
     declarationSubmissionKeys.current.add(submissionKey);
-    onDeclare(
-      autoSelectBelotDeclarations(currentPlayer.hand, state.trumpSuit),
-    );
+    onDeclare(autoSelectBelotDeclarations(currentPlayer.hand, state.trumpSuit));
   }, [currentPlayer, currentPlayerId, onDeclare, state.phase, state.trumpSuit]);
 
   const selectableSuits = state.upcard
-    ? (Object.keys(suitLabels) as Suit[]).filter(
-        (suit) => suit !== state.upcard?.suit,
-      )
+    ? suitOrder.filter((suit) => suit !== state.upcard?.suit)
     : [];
   const resultCurrentPlayer = currentPlayer ?? state.players[0];
   const resultOpponentPlayer =
@@ -872,7 +879,7 @@ export function BelotTable({
             <span className="truncate">{player.displayName}</span>
             {isTurnToPlay ? (
               <span
-                aria-label={`${player.displayName} to play`}
+                aria-label={messages.toPlay(player.displayName)}
                 className="relative inline-flex h-4 w-4 shrink-0"
                 role="progressbar"
               >
@@ -887,12 +894,15 @@ export function BelotTable({
         </div>
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="text-xs uppercase text-white/60">
-            {state.dealerPlayerId === player.playerId ? "Dealer" : "First"}
+            {state.dealerPlayerId === player.playerId
+              ? messages.dealer
+              : messages.first}
             {state.callerPlayerId === player.playerId ? (
               <>
                 {" - "}
                 <span className="font-bold text-yellow-300">
-                  CALLER{state.isMus ? " (MUS)" : ""}
+                  {messages.caller}
+                  {state.isMus ? ` (${messages.mus.toUpperCase()})` : ""}
                 </span>
               </>
             ) : null}
@@ -904,7 +914,7 @@ export function BelotTable({
         {declarations.length ? (
           <div className="mt-3 min-w-0">
             <p className="mb-1 text-xs font-semibold text-white/70">
-              {bonusPoints} bonus pts
+              {messages.bonusPts(bonusPoints)}
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {declarationGroups.map((declaration, declarationIndex) => (
@@ -936,16 +946,16 @@ export function BelotTable({
     <section className="rounded-md bg-felt p-4 text-white shadow-lg">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold">Belot</h2>
+          <h2 className="text-lg font-bold">{messages.belotName}</h2>
           <p className="text-sm text-white/80" data-testid="belot-status">
-            Status: {state.phase.replaceAll("-", " ")}
-            {state.isMus ? " · Mus" : ""}
+            {messages.status}: {messages.phase[state.phase]}
+            {state.isMus ? ` · ${messages.mus}` : ""}
           </p>
         </div>
         {state.phase === "hand-complete" && !state.winnerPlayerId ? (
-          <Button onClick={onNextHand}>Next hand</Button>
+          <Button onClick={onNextHand}>{messages.nextHand}</Button>
         ) : state.phase === "error" ? (
-          <Button onClick={onRestart}>New game</Button>
+          <Button onClick={onRestart}>{messages.newGame}</Button>
         ) : null}
       </div>
 
@@ -955,7 +965,7 @@ export function BelotTable({
           <div className="flex flex-wrap items-start justify-center gap-4 md:flex-col md:items-center">
             {state.trumpSuit ? (
               <div className="text-center">
-                <p className="mb-1 text-sm font-semibold">Trump</p>
+                <p className="mb-1 text-sm font-semibold">{messages.trump}</p>
                 <SuitImage suit={state.trumpSuit} className="h-12 w-12" />
               </div>
             ) : null}
@@ -968,7 +978,7 @@ export function BelotTable({
             ) : null}
             {state.upcard ? (
               <div className="text-center">
-                <p className="mb-1 text-sm font-semibold">Upcard</p>
+                <p className="mb-1 text-sm font-semibold">{messages.upcard}</p>
                 <TrumpMarkedCard
                   card={state.upcard}
                   trumpSuit={state.trumpSuit}
@@ -982,13 +992,17 @@ export function BelotTable({
                 className="w-full border-t border-white/15 pt-3 text-center"
                 data-testid="belot-hand-result"
               >
-                <p className="mb-2 text-sm font-semibold">Hand result</p>
+                <p className="mb-2 text-sm font-semibold">
+                  {messages.handResult}
+                </p>
                 <div className="grid grid-cols-2 items-center gap-4">
                   {state.players.slice(0, 2).map((player, index) => (
                     <p
                       key={player.playerId}
                       aria-label={
-                        index === 0 ? "Left hand result" : "Right hand result"
+                        index === 0
+                          ? messages.leftHandResult
+                          : messages.rightHandResult
                       }
                       className={`text-xl font-bold leading-none text-white tabular-nums ${
                         index === 0 ? "text-left" : "text-right"
@@ -1010,19 +1024,19 @@ export function BelotTable({
 
       {state.trumpTurnPlayerId === currentPlayerId ? (
         <div className="mt-4 rounded-md bg-white/10 p-3 text-white">
-          <p className="text-sm font-semibold">Choose trump</p>
+          <p className="text-sm font-semibold">{messages.chooseTrump}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {state.phase === "trump-round-one" ? (
               <Button
                 onClick={() => onTrumpDecision({ kind: "accept-upcard" })}
                 aria-label={
                   state.upcard
-                    ? `Accept ${suitLabels[state.upcard.suit]}`
-                    : "Accept upcard"
+                    ? messages.acceptSuit(messages.suits[state.upcard.suit])
+                    : messages.acceptUpcard
                 }
               >
                 <span className="inline-flex items-center gap-2">
-                  Accept
+                  {messages.accept}
                   {state.upcard ? (
                     <SuitImage suit={state.upcard.suit} className="h-7 w-7" />
                   ) : null}
@@ -1031,7 +1045,7 @@ export function BelotTable({
             ) : null}
             {state.phase !== "mus" ? (
               <Button onClick={() => onTrumpDecision({ kind: "pass" })}>
-                Pass
+                {messages.pass}
               </Button>
             ) : null}
             {state.phase === "trump-round-two" || state.phase === "mus"
@@ -1041,7 +1055,7 @@ export function BelotTable({
                     onClick={() =>
                       onTrumpDecision({ kind: "choose-suit", suit })
                     }
-                    aria-label={`Choose ${suitLabels[suit]}`}
+                    aria-label={messages.chooseSuit(messages.suits[suit])}
                   >
                     <SuitImage suit={suit} className="h-9 w-9" />
                   </Button>
@@ -1058,8 +1072,8 @@ export function BelotTable({
         >
           <p className="mb-2 text-sm font-semibold">
             {selectionLogs.length
-              ? "Trump selection"
-              : (visibleTrick?.label ?? "Current trick")}
+              ? messages.trumpSelection
+              : (visibleTrick?.label ?? messages.currentTrick)}
           </p>
           {selectionLogs.length ? (
             <ol className="min-h-[114px] space-y-2 text-sm text-white/85">
@@ -1102,10 +1116,10 @@ export function BelotTable({
               data-testid="belot-winner"
             >
               <p className="text-lg font-bold">
-                Winner: {winnerPlayer.displayName}
+                {messages.winner(winnerPlayer.displayName)}
               </p>
               <div className="mt-3">
-                <Button onClick={onRestart}>Next game</Button>
+                <Button onClick={onRestart}>{messages.nextGame}</Button>
               </div>
             </div>
           ) : null}
@@ -1113,7 +1127,7 @@ export function BelotTable({
             className="mt-4 rounded-md bg-white/10 p-3 text-white"
             data-testid="belot-starting-cards"
           >
-            <h3 className="font-bold">Starting cards</h3>
+            <h3 className="font-bold">{messages.startingCards}</h3>
             <div className="mt-2 space-y-4">
               {resultCurrentPlayer ? (
                 <ResultCardRow
@@ -1136,7 +1150,7 @@ export function BelotTable({
                 />
               ) : null}
               <ResultCardRow
-                label="Tesla"
+                label={messages.remainingCards}
                 cards={state.unusedCards ?? []}
                 trumpSuit={state.trumpSuit}
               />
@@ -1146,9 +1160,9 @@ export function BelotTable({
       ) : currentHand.length ? (
         <div className="mt-4">
           <p className="mb-2 text-sm font-semibold">
-            Your hand
+            {messages.yourHand}
             {state.currentTurnPlayerId === currentPlayerId
-              ? " · play a legal card"
+              ? ` · ${messages.playLegalCard}`
               : ""}
           </p>
           <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
@@ -1188,11 +1202,15 @@ export function BelotTable({
                           </PickupCardFrame>
                         </TrumpMarkedCard>
                         {pickedUp ? (
-                          <span className="sr-only">Hidden pickup card</span>
+                          <span className="sr-only">
+                            {messages.hiddenPickupCard}
+                          </span>
                         ) : null}
                         {state.trumpSuit ? (
                           <span className="mt-1 block text-xs text-white/70">
-                            {belotCardPoints(card, state.trumpSuit)} pts
+                            {messages.points(
+                              belotCardPoints(card, state.trumpSuit),
+                            )}
                           </span>
                         ) : null}
                       </button>
@@ -1206,7 +1224,7 @@ export function BelotTable({
                   data-testid="belot-hand-bonus-total"
                 >
                   <span className="rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
-                    {bonusPreview.points} bonus pts
+                    {messages.bonusPts(bonusPreview.points)}
                   </span>
                 </div>
               ) : null}
@@ -1231,13 +1249,15 @@ export function BelotTable({
           type="button"
           onClick={() => setShowPlayedHands((visible) => !visible)}
         >
-          {showPlayedHands ? "Hide details" : "Show details"}
+          {showPlayedHands ? messages.hideDetails : messages.showDetails}
         </Button>
         {showPlayedHands ? (
           <div className="mt-3 rounded-md bg-white/10 p-3">
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
               <section className="min-w-0" data-testid="belot-played-tricks">
-                <h3 className="text-sm font-semibold">Played tricks</h3>
+                <h3 className="text-sm font-semibold">
+                  {messages.playedTricks}
+                </h3>
                 <div className="mt-2 space-y-3">
                   {displayedCompletedTricks.length ? (
                     displayedCompletedTricks.map(
@@ -1252,13 +1272,13 @@ export function BelotTable({
                           ) : null}
                           <div>
                             <p className="mb-2 text-sm font-semibold">
-                              Trick {index + 1} ·{" "}
-                              {
+                              {messages.trickWinner(
+                                index + 1,
                                 state.players.find(
                                   (player) =>
                                     player.playerId === trick.winnerPlayerId,
-                                )?.displayName
-                              }
+                                )?.displayName,
+                              )}
                             </p>
                             <div className="flex flex-wrap gap-3">
                               {trick.cards.map((play) => (
@@ -1285,7 +1305,7 @@ export function BelotTable({
                     )
                   ) : (
                     <p className="text-sm text-white/60">
-                      No tricks completed yet.
+                      {messages.noTricksCompleted}
                     </p>
                   )}
                 </div>

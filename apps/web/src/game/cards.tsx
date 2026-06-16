@@ -1,11 +1,6 @@
 import type { Card } from "@card-games/shared";
 
-const suitLabels = {
-  acorns: "Acorns",
-  bells: "Bells",
-  hearts: "Hearts",
-  leaves: "Leaves",
-} as const;
+import { useI18n } from "../i18n";
 
 function cardSizeClass({
   compact = false,
@@ -20,16 +15,18 @@ function cardSizeClass({
 export function PlayingCardBack({
   compact = false,
   native = false,
-  alt = "Card back",
+  alt,
 }: {
   compact?: boolean;
   native?: boolean;
   alt?: string;
 }) {
+  const { messages } = useI18n();
+
   return (
     <img
       src="/cards/card-back.svg"
-      alt={alt}
+      alt={alt ?? messages.cardBack}
       className={`card-face ${cardSizeClass({
         compact,
         native,
@@ -50,6 +47,7 @@ export function PlayingCard({
   compact?: boolean;
   native?: boolean;
 }) {
+  const { messages } = useI18n();
   const sizeClass = cardSizeClass({ compact, native });
 
   if (hidden || !card) {
@@ -57,13 +55,13 @@ export function PlayingCard({
       <div
         className={`card-face grid ${sizeClass} place-items-center rounded-md border border-ink/10 bg-ink text-sm font-semibold text-white`}
       >
-        Drawn
+        {messages.drawn}
       </div>
     );
   }
 
   const imageUrl = `/cards/hungarian/${card.id}.jpg`;
-  const label = `${card.rank} of ${suitLabels[card.suit]}`;
+  const label = messages.cardLabel(card.rank, card.suit);
 
   return (
     <img
