@@ -891,6 +891,26 @@ describe("BelotTable", () => {
     ).toHaveClass("h-[114px]", "w-[71px]");
   });
 
+  it("lightly shadows losing played cards in the current trick area", () => {
+    renderTable({
+      ...baseState,
+      currentTrick: [
+        { playerId: "p1", card: card("VII", "acorns") },
+        { playerId: "p2", card: card("A", "acorns") },
+      ],
+      completedTricks: [],
+    });
+
+    const currentTrick = screen.getByTestId("belot-current-trick");
+
+    expect(
+      within(currentTrick).getByAltText("VII of Acorns").closest(".opacity-75"),
+    ).not.toBeNull();
+    expect(
+      within(currentTrick).getByAltText("A of Acorns").closest(".opacity-75"),
+    ).toBeNull();
+  });
+
   it("shows played tricks and highlights the trick winner's card", async () => {
     const user = userEvent.setup();
     renderTable();

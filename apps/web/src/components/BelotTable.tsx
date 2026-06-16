@@ -1119,7 +1119,7 @@ export function BelotTable({
                   className={
                     visibleTrick.strengthByCardId.size &&
                     !visibleTrick.strengthByCardId.get(play.card.id)
-                      ? "opacity-45"
+                      ? "opacity-75"
                       : ""
                   }
                 >
