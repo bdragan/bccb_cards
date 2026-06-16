@@ -1,7 +1,7 @@
 import type {
-  BellotDeclaration,
-  BellotPublicState,
-  BellotResult,
+  BelotDeclaration,
+  BelotPublicState,
+  BelotResult,
   Card,
   PlayerRef,
   Rank,
@@ -12,12 +12,12 @@ import { ranks, suits } from "@card-games/shared";
 import { createDeck, shuffleDeck } from "../../cards/deck";
 import type { GameDefinition } from "../../engine/types";
 import type {
-  BellotAction,
-  BellotDeclarationCandidate,
-  BellotHandResult,
-  BellotPlayerState,
-  BellotState,
-  BellotTrickPlay,
+  BelotAction,
+  BelotDeclarationCandidate,
+  BelotHandResult,
+  BelotPlayerState,
+  BelotState,
+  BelotTrickPlay,
 } from "./types";
 
 const minPlayers = 2;
@@ -59,7 +59,7 @@ const fourOfKindPoints: Partial<Record<Rank, number>> = {
   O: 100,
 };
 
-const fourOfKindTypes: Partial<Record<Rank, BellotDeclaration["type"]>> = {
+const fourOfKindTypes: Partial<Record<Rank, BelotDeclaration["type"]>> = {
   U: "FOUR_JACKS",
   IX: "FOUR_NINES",
   A: "FOUR_ACES",
@@ -68,11 +68,11 @@ const fourOfKindTypes: Partial<Record<Rank, BellotDeclaration["type"]>> = {
   O: "FOUR_QUEENS",
 };
 
-function phaseForPlayerCount(playerCount: number): BellotState["phase"] {
+function phaseForPlayerCount(playerCount: number): BelotState["phase"] {
   return playerCount === maxPlayers ? "ready-check" : "waiting-for-players";
 }
 
-function normalizePlayers(players: PlayerRef[]): BellotPlayerState[] {
+function normalizePlayers(players: PlayerRef[]): BelotPlayerState[] {
   return players.map((player) => ({
     playerId: player.playerId,
     displayName: player.displayName,
@@ -86,9 +86,9 @@ function normalizePlayers(players: PlayerRef[]): BellotPlayerState[] {
   }));
 }
 
-export function createBellotInitialState(players: PlayerRef[]): BellotState {
+export function createBelotInitialState(players: PlayerRef[]): BelotState {
   return {
-    gameId: "bellot",
+    gameId: "belot",
     phase: phaseForPlayerCount(players.length),
     deck: [],
     unusedCards: [],
@@ -105,7 +105,7 @@ export function createBellotInitialState(players: PlayerRef[]): BellotState {
   };
 }
 
-function ensurePlayer(state: BellotState, playerId: string): BellotPlayerState {
+function ensurePlayer(state: BelotState, playerId: string): BelotPlayerState {
   const player = state.players.find(
     (candidate) => candidate.playerId === playerId,
   );
@@ -117,7 +117,7 @@ function ensurePlayer(state: BellotState, playerId: string): BellotPlayerState {
   return player;
 }
 
-function opponentOf(state: BellotState, playerId: string) {
+function opponentOf(state: BelotState, playerId: string) {
   const opponent = state.players.find((player) => player.playerId !== playerId);
 
   if (!opponent) {
@@ -127,19 +127,19 @@ function opponentOf(state: BellotState, playerId: string) {
   return opponent;
 }
 
-function nextPlayerId(state: BellotState, playerId: string) {
+function nextPlayerId(state: BelotState, playerId: string) {
   return opponentOf(state, playerId).playerId;
 }
 
-function firstPlayerForDealer(state: BellotState, dealerPlayerId: string) {
+function firstPlayerForDealer(state: BelotState, dealerPlayerId: string) {
   return nextPlayerId(state, dealerPlayerId);
 }
 
-function chooseInitialDealer(players: BellotPlayerState[]) {
+function chooseInitialDealer(players: BelotPlayerState[]) {
   return players[Math.floor(Math.random() * players.length)]?.playerId;
 }
 
-function resetHandPlayer(player: BellotPlayerState): BellotPlayerState {
+function resetHandPlayer(player: BelotPlayerState): BelotPlayerState {
   return {
     ...player,
     ready: true,
@@ -152,9 +152,9 @@ function resetHandPlayer(player: BellotPlayerState): BellotPlayerState {
 }
 
 function startHand(
-  state: BellotState,
+  state: BelotState,
   dealerPlayerId = state.dealerPlayerId ?? chooseInitialDealer(state.players),
-): BellotState {
+): BelotState {
   if (state.players.length !== maxPlayers || !dealerPlayerId) {
     return { ...state, phase: phaseForPlayerCount(state.players.length) };
   }
@@ -204,7 +204,7 @@ function startHand(
   };
 }
 
-function maybeStartHand(state: BellotState): BellotState {
+function maybeStartHand(state: BelotState): BelotState {
   const canStart =
     state.players.length === maxPlayers &&
     state.players.every((player) => player.ready);
@@ -215,9 +215,9 @@ function maybeStartHand(state: BellotState): BellotState {
 }
 
 function applySyncPlayers(
-  state: BellotState,
+  state: BelotState,
   players: PlayerRef[],
-): BellotState {
+): BelotState {
   if (state.phase !== "waiting-for-players" && state.phase !== "ready-check") {
     return state;
   }
@@ -241,10 +241,10 @@ function applySyncPlayers(
 }
 
 function applyReady(
-  state: BellotState,
+  state: BelotState,
   playerId: string,
   ready: boolean,
-): BellotState {
+): BelotState {
   if (state.phase !== "waiting-for-players" && state.phase !== "ready-check") {
     throw new Error("Ready status cannot be changed after the game starts");
   }
@@ -260,11 +260,11 @@ function applyReady(
 }
 
 function finishTrumpSelection(
-  state: BellotState,
+  state: BelotState,
   playerId: string,
   suit: Suit,
   isMus: boolean,
-): BellotState {
+): BelotState {
   const players = state.players.map((player) => ({
     ...player,
     hand: [...player.hand, ...player.hiddenCards],
@@ -284,7 +284,7 @@ function finishTrumpSelection(
   };
 }
 
-function ensureTrumpTurn(state: BellotState, playerId: string) {
+function ensureTrumpTurn(state: BelotState, playerId: string) {
   ensurePlayer(state, playerId);
 
   if (state.trumpTurnPlayerId !== playerId) {
@@ -292,7 +292,7 @@ function ensureTrumpTurn(state: BellotState, playerId: string) {
   }
 }
 
-function applyTrumpPass(state: BellotState, playerId: string): BellotState {
+function applyTrumpPass(state: BelotState, playerId: string): BelotState {
   ensureTrumpTurn(state, playerId);
 
   if (state.phase !== "trump-round-one" && state.phase !== "trump-round-two") {
@@ -338,9 +338,9 @@ function applyTrumpPass(state: BellotState, playerId: string): BellotState {
 }
 
 function applyTrumpAcceptUpcard(
-  state: BellotState,
+  state: BelotState,
   playerId: string,
-): BellotState {
+): BelotState {
   ensureTrumpTurn(state, playerId);
 
   if (state.phase !== "trump-round-one" || !state.upcard) {
@@ -351,10 +351,10 @@ function applyTrumpAcceptUpcard(
 }
 
 function applyTrumpChooseSuit(
-  state: BellotState,
+  state: BelotState,
   playerId: string,
   suit: Suit,
-): BellotState {
+): BelotState {
   ensureTrumpTurn(state, playerId);
 
   if (state.phase !== "trump-round-two" && state.phase !== "mus") {
@@ -403,7 +403,7 @@ function sequencePoints(length: number) {
   return 100;
 }
 
-function sequenceType(length: number): BellotDeclaration["type"] {
+function sequenceType(length: number): BelotDeclaration["type"] {
   if (length === 3) {
     return "SEQUENCE_3";
   }
@@ -416,7 +416,7 @@ function sequenceType(length: number): BellotDeclaration["type"] {
 }
 
 function declarationPublicCardCount(
-  declarations: BellotDeclarationCandidate[],
+  declarations: BelotDeclarationCandidate[],
 ) {
   return new Set(
     declarations.flatMap((declaration) => declaration.cards.map(cardKey)),
@@ -424,14 +424,14 @@ function declarationPublicCardCount(
 }
 
 function declarationStrength(
-  declaration: Pick<BellotDeclaration, "type" | "points">,
+  declaration: Pick<BelotDeclaration, "type" | "points">,
 ) {
   return declaration.points * 10 + declarationTypeStrength[declaration.type];
 }
 
 function deterministicDeclarationOrder(
-  left: BellotDeclarationCandidate,
-  right: BellotDeclarationCandidate,
+  left: BelotDeclarationCandidate,
+  right: BelotDeclarationCandidate,
 ) {
   const pointDelta = right.points - left.points;
 
@@ -463,11 +463,11 @@ function deterministicDeclarationOrder(
   return rankIndex(leftFirst.rank) - rankIndex(rightFirst.rank);
 }
 
-export function generateBellotDeclarationCandidates(
+export function generateBelotDeclarationCandidates(
   hand: Card[],
   trumpSuit: Suit,
-): BellotDeclarationCandidate[] {
-  const candidates: BellotDeclarationCandidate[] = [];
+): BelotDeclarationCandidate[] {
+  const candidates: BelotDeclarationCandidate[] = [];
 
   for (const suit of suits) {
     const suitCards = sequenceRanks
@@ -531,7 +531,7 @@ export function generateBellotDeclarationCandidates(
 }
 
 function addSequenceCandidates(
-  candidates: BellotDeclarationCandidate[],
+  candidates: BelotDeclarationCandidate[],
   run: Card[],
 ) {
   if (run.length < 3) {
@@ -550,7 +550,7 @@ function addSequenceCandidates(
   }
 }
 
-function canCombineDeclarations(declarations: BellotDeclarationCandidate[]) {
+function canCombineDeclarations(declarations: BelotDeclarationCandidate[]) {
   const ordinaryCards = new Set<string>();
 
   for (const declaration of declarations) {
@@ -576,8 +576,8 @@ function canCombineDeclarations(declarations: BellotDeclarationCandidate[]) {
 }
 
 function declarationSetBetter(
-  candidate: BellotDeclarationCandidate[],
-  current: BellotDeclarationCandidate[],
+  candidate: BelotDeclarationCandidate[],
+  current: BelotDeclarationCandidate[],
 ) {
   const candidatePoints = sumDeclarationPoints(candidate);
   const currentPoints = sumDeclarationPoints(current);
@@ -626,14 +626,14 @@ function declarationSetBetter(
   return candidateSignature < currentSignature;
 }
 
-export function autoSelectBellotDeclarations(
+export function autoSelectBelotDeclarations(
   hand: Card[],
   trumpSuit: Suit,
-): BellotDeclaration[] {
-  const candidates = generateBellotDeclarationCandidates(hand, trumpSuit);
-  let best: BellotDeclarationCandidate[] = [];
+): BelotDeclaration[] {
+  const candidates = generateBelotDeclarationCandidates(hand, trumpSuit);
+  let best: BelotDeclarationCandidate[] = [];
 
-  function visit(index: number, selected: BellotDeclarationCandidate[]) {
+  function visit(index: number, selected: BelotDeclarationCandidate[]) {
     if (index >= candidates.length) {
       if (
         canCombineDeclarations(selected) &&
@@ -666,13 +666,13 @@ export function autoSelectBellotDeclarations(
 }
 
 function sumDeclarationPoints(
-  declarations: Array<Pick<BellotDeclaration, "points">>,
+  declarations: Array<Pick<BelotDeclaration, "points">>,
 ) {
   return declarations.reduce((sum, declaration) => sum + declaration.points, 0);
 }
 
 function validateDeclarationShape(
-  declaration: BellotDeclaration,
+  declaration: BelotDeclaration,
   trumpSuit: Suit,
 ) {
   const cards = sortCardsDeterministically(declaration.cards);
@@ -736,10 +736,10 @@ function validateDeclarationShape(
   }
 }
 
-export function validateBellotDeclarations(input: {
+export function validateBelotDeclarations(input: {
   hand: Card[];
   trumpSuit: Suit;
-  declarations: BellotDeclaration[];
+  declarations: BelotDeclaration[];
 }) {
   const handById = new Map(input.hand.map((card) => [card.id, card]));
   const ordinaryCards = new Set<string>();
@@ -780,10 +780,10 @@ export function validateBellotDeclarations(input: {
 }
 
 function applyDeclare(
-  state: BellotState,
+  state: BelotState,
   playerId: string,
-  declarations: BellotDeclaration[],
-): BellotState {
+  declarations: BelotDeclaration[],
+): BelotState {
   const player = ensurePlayer(state, playerId);
 
   if (
@@ -796,7 +796,7 @@ function applyDeclare(
     throw new Error("Declarations are not currently open");
   }
 
-  validateBellotDeclarations({
+  validateBelotDeclarations({
     hand: player.hand,
     trumpSuit: state.trumpSuit,
     declarations,
@@ -840,7 +840,7 @@ function uniqueCards(cards: Card[]) {
   );
 }
 
-export function bellotCardPoints(card: Card, trumpSuit: Suit) {
+export function belotCardPoints(card: Card, trumpSuit: Suit) {
   if (card.suit === trumpSuit) {
     return (
       {
@@ -871,8 +871,8 @@ export function bellotCardPoints(card: Card, trumpSuit: Suit) {
 }
 
 function currentGamePointsForPlayer(
-  state: BellotState,
-  player: BellotPlayerState,
+  state: BelotState,
+  player: BelotPlayerState,
 ) {
   if (state.lastHandResult) {
     return state.lastHandResult.gamePointsByPlayer[player.playerId] ?? 0;
@@ -883,7 +883,7 @@ function currentGamePointsForPlayer(
   }
 
   return player.wonCards.reduce(
-    (sum, card) => sum + bellotCardPoints(card, state.trumpSuit!),
+    (sum, card) => sum + belotCardPoints(card, state.trumpSuit!),
     0,
   );
 }
@@ -894,7 +894,7 @@ function cardPower(card: Card, trumpSuit: Suit) {
   );
 }
 
-export function compareBellotCards(left: Card, right: Card, trumpSuit: Suit) {
+export function compareBelotCards(left: Card, right: Card, trumpSuit: Suit) {
   if (left.suit !== right.suit) {
     throw new Error("Cannot directly compare different suits");
   }
@@ -902,20 +902,20 @@ export function compareBellotCards(left: Card, right: Card, trumpSuit: Suit) {
   return cardPower(left, trumpSuit) - cardPower(right, trumpSuit);
 }
 
-function trickWinner(plays: BellotTrickPlay[], trumpSuit: Suit) {
+function trickWinner(plays: BelotTrickPlay[], trumpSuit: Suit) {
   const trumpPlays = plays.filter((play) => play.card.suit === trumpSuit);
   const relevantPlays = trumpPlays.length
     ? trumpPlays
     : plays.filter((play) => play.card.suit === plays[0]?.card.suit);
 
   return relevantPlays.reduce((winner, play) =>
-    compareBellotCards(play.card, winner.card, trumpSuit) > 0 ? play : winner,
+    compareBelotCards(play.card, winner.card, trumpSuit) > 0 ? play : winner,
   );
 }
 
-export function legalBellotCards(
+export function legalBelotCards(
   hand: Card[],
-  currentTrick: BellotTrickPlay[],
+  currentTrick: BelotTrickPlay[],
   trumpSuit: Suit,
 ): Card[] {
   if (currentTrick.length === 0) {
@@ -935,10 +935,10 @@ export function legalBellotCards(
 }
 
 function applyPlayCard(
-  state: BellotState,
+  state: BelotState,
   playerId: string,
   cardId: string,
-): BellotState {
+): BelotState {
   if (state.phase !== "trick-play" || !state.trumpSuit) {
     throw new Error("Cards can only be played during trick play");
   }
@@ -954,7 +954,7 @@ function applyPlayCard(
     throw new Error("Card is not in the player's hand");
   }
 
-  const legalCards = legalBellotCards(
+  const legalCards = legalBelotCards(
     player.hand,
     state.currentTrick,
     state.trumpSuit,
@@ -1019,12 +1019,12 @@ function applyPlayCard(
   });
 }
 
-function completeHand(state: BellotState): BellotState {
+function completeHand(state: BelotState): BelotState {
   if (!state.trumpSuit || !state.callerPlayerId) {
     throw new Error("Cannot score a hand before trump is selected");
   }
 
-  const result = calculateBellotHandResult(state);
+  const result = calculateBelotHandResult(state);
   const players = state.players.map((player) => ({
     ...player,
     totalScore: player.totalScore + result.handScoreByPlayer[player.playerId],
@@ -1043,9 +1043,9 @@ function completeHand(state: BellotState): BellotState {
   };
 }
 
-export function calculateBellotHandResult(
-  state: BellotState,
-): BellotHandResult {
+export function calculateBelotHandResult(
+  state: BelotState,
+): BelotHandResult {
   if (!state.trumpSuit || !state.callerPlayerId) {
     throw new Error("Cannot score without trump and caller");
   }
@@ -1060,7 +1060,7 @@ export function calculateBellotHandResult(
     state.players.map((player) => [
       player.playerId,
       player.wonCards.reduce(
-        (sum, card) => sum + bellotCardPoints(card, state.trumpSuit!),
+        (sum, card) => sum + belotCardPoints(card, state.trumpSuit!),
         player.playerId === lastTrickWinnerPlayerId ? 10 : 0,
       ),
     ]),
@@ -1146,7 +1146,7 @@ export function calculateBellotHandResult(
   };
 }
 
-function calculateGameWinner(players: BellotPlayerState[]) {
+function calculateGameWinner(players: BelotPlayerState[]) {
   const reached = players.filter((player) => player.totalScore >= targetScore);
 
   if (reached.length === 0) {
@@ -1166,7 +1166,7 @@ function calculateGameWinner(players: BellotPlayerState[]) {
     : reached[1].playerId;
 }
 
-function applyNextHand(state: BellotState): BellotState {
+function applyNextHand(state: BelotState): BelotState {
   if (state.phase !== "hand-complete") {
     throw new Error("The next hand can only start after a completed hand");
   }
@@ -1178,8 +1178,8 @@ function applyNextHand(state: BellotState): BellotState {
   return startHand({ ...state, dealerPlayerId: nextDealer }, nextDealer);
 }
 
-function restart(state: BellotState): BellotState {
-  return createBellotInitialState(
+function restart(state: BelotState): BelotState {
+  return createBelotInitialState(
     state.players.map((player) => ({
       playerId: player.playerId,
       displayName: player.displayName,
@@ -1187,10 +1187,10 @@ function restart(state: BellotState): BellotState {
   );
 }
 
-export function applyBellotAction(
-  state: BellotState,
-  action: BellotAction,
-): BellotState {
+export function applyBelotAction(
+  state: BelotState,
+  action: BelotAction,
+): BelotState {
   try {
     switch (action.type) {
       case "sync-players":
@@ -1216,7 +1216,7 @@ export function applyBellotAction(
     }
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Bellot action failed";
+      error instanceof Error ? error.message : "Belot action failed";
 
     if (action.type === "declare") {
       return { ...state, phase: "error", error: message };
@@ -1226,10 +1226,10 @@ export function applyBellotAction(
   }
 }
 
-export function getBellotPublicState(
-  state: BellotState,
+export function getBelotPublicState(
+  state: BelotState,
   viewerPlayerId: string,
-): BellotPublicState {
+): BelotPublicState {
   const viewerHasPlayedCard =
     state.currentTrick.some((play) => play.playerId === viewerPlayerId) ||
     state.completedTricks.some((trick) =>
@@ -1239,7 +1239,7 @@ export function getBellotPublicState(
   const revealHandResultCards = Boolean(state.lastHandResult);
 
   return {
-    gameId: "bellot",
+    gameId: "belot",
     phase: state.phase,
     players: state.players.map((player) => ({
       playerId: player.playerId,
@@ -1287,7 +1287,7 @@ export function getBellotPublicState(
   };
 }
 
-export function bellotResult(state: BellotState): Omit<BellotResult, "roomId"> {
+export function belotResult(state: BelotState): Omit<BelotResult, "roomId"> {
   const highScore = Math.max(
     ...state.players.map((player) => player.totalScore),
   );
@@ -1295,7 +1295,7 @@ export function bellotResult(state: BellotState): Omit<BellotResult, "roomId"> {
   const tied = winnerPlayerIds.length === 0 && highScore >= targetScore;
 
   return {
-    gameId: "bellot",
+    gameId: "belot",
     winnerPlayerIds,
     tied,
     players: state.players.map((player) => ({
@@ -1312,15 +1312,15 @@ export function bellotResult(state: BellotState): Omit<BellotResult, "roomId"> {
   };
 }
 
-export const bellotDefinition: GameDefinition<BellotState, BellotAction> = {
-  id: "bellot",
-  displayName: "Bellot",
+export const belotDefinition: GameDefinition<BelotState, BelotAction> = {
+  id: "belot",
+  displayName: "Belot",
   description:
     "Two-player Belot with hidden pickup cards, client-submitted declarations, mus, fall scoring, and schuster penalties.",
   minPlayers,
   maxPlayers,
-  createInitialState: createBellotInitialState,
-  applyAction: applyBellotAction,
-  getPublicState: getBellotPublicState,
+  createInitialState: createBelotInitialState,
+  applyAction: applyBelotAction,
+  getPublicState: getBelotPublicState,
   isFinished: (state) => state.phase === "finished",
 };

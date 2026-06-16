@@ -1,4 +1,4 @@
-# Bellot for Two Players
+# Belot for Two Players
 
 This implementation is a two-player digital adaptation of Belot using the existing 32-card Hungarian deck:
 

@@ -1,7 +1,7 @@
-import { bellotDefinition } from "./games/bellot";
+import { belotDefinition } from "./games/belot";
 
 export const gameRegistry = {
-  bellot: bellotDefinition,
+  belot: belotDefinition,
 } as const;
 
 export function listGames() {

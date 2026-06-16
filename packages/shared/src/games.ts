@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const gameIds = ["bellot"] as const;
+export const gameIds = ["belot"] as const;
 
 export type GameId = (typeof gameIds)[number];
 

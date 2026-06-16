@@ -8,7 +8,7 @@ describe("RoomsService", () => {
   it("creates and joins a room", () => {
     const service = new RoomsService(matchesService as never);
     const room = service.createRoom({
-      gameId: "bellot",
+      gameId: "belot",
       playerId: "p1",
       displayName: "Player One",
       socketId: "s1",
@@ -24,10 +24,10 @@ describe("RoomsService", () => {
     expect(service.getRoom(room.id).players).toHaveLength(2);
   });
 
-  it("ignores stale Bellot declaration submissions", async () => {
+  it("ignores stale Belot declaration submissions", async () => {
     const service = new RoomsService(matchesService as never);
     const room = service.createRoom({
-      gameId: "bellot",
+      gameId: "belot",
       playerId: "p1",
       displayName: "Player One",
       socketId: "s1",
@@ -43,20 +43,20 @@ describe("RoomsService", () => {
 
     const readyState = service.getRoom(room.id).state;
 
-    if (readyState.gameId !== "bellot") {
-      throw new Error("Expected a Bellot room");
+    if (readyState.gameId !== "belot") {
+      throw new Error("Expected a Belot room");
     }
 
-    await service.bellotTrumpDecision(room.id, readyState.trumpTurnPlayerId!, {
+    await service.belotTrumpDecision(room.id, readyState.trumpTurnPlayerId!, {
       kind: "accept-upcard",
     });
-    await service.bellotDeclare(room.id, "p1", []);
-    await service.bellotDeclare(room.id, "p2", []);
-    await service.bellotDeclare(room.id, "p1", []);
+    await service.belotDeclare(room.id, "p1", []);
+    await service.belotDeclare(room.id, "p2", []);
+    await service.belotDeclare(room.id, "p1", []);
 
     const state = service.getRoom(room.id).state;
 
-    expect(state.gameId).toBe("bellot");
+    expect(state.gameId).toBe("belot");
     expect(state.phase).toBe("trick-play");
   });
 });

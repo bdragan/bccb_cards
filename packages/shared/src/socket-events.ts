@@ -1,8 +1,8 @@
 import type {
   Ack,
-  BellotDeclaration,
-  BellotPublicState,
-  BellotResult,
+  BelotDeclaration,
+  BelotPublicState,
+  BelotResult,
   GreaterCardPublicState,
   GreaterCardResult,
   RoomPublicState,
@@ -30,22 +30,22 @@ export type ClientToServerEvents = {
     payload: { roomId: string },
     ack: (response: Ack<{ ok: true }>) => void,
   ) => void;
-  "bellot:trump-decision": (
+  "belot:trump-decision": (
     payload:
       | { roomId: string; kind: "pass" }
       | { roomId: string; kind: "accept-upcard" }
       | { roomId: string; kind: "choose-suit"; suit: Suit },
     ack: (response: Ack<{ ok: true }>) => void,
   ) => void;
-  "bellot:declare": (
-    payload: { roomId: string; declarations: BellotDeclaration[] },
+  "belot:declare": (
+    payload: { roomId: string; declarations: BelotDeclaration[] },
     ack: (response: Ack<{ ok: true }>) => void,
   ) => void;
-  "bellot:play-card": (
+  "belot:play-card": (
     payload: { roomId: string; cardId: string },
     ack: (response: Ack<{ ok: true }>) => void,
   ) => void;
-  "bellot:next-hand": (
+  "belot:next-hand": (
     payload: { roomId: string },
     ack: (response: Ack<{ ok: true }>) => void,
   ) => void;
@@ -57,7 +57,7 @@ export type ClientToServerEvents = {
 
 export type ServerToClientEvents = {
   "room:state": (payload: RoomPublicState) => void;
-  "game:state": (payload: GreaterCardPublicState | BellotPublicState) => void;
-  "game:result": (payload: GreaterCardResult | BellotResult) => void;
+  "game:state": (payload: GreaterCardPublicState | BelotPublicState) => void;
+  "game:result": (payload: GreaterCardResult | BelotResult) => void;
   "room:error": (payload: { message: string }) => void;
 };

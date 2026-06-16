@@ -1,6 +1,6 @@
 # Multiplayer Card Games Platform
 
-A full-stack TypeScript multiplayer card-game platform. The currently supported game is Bellot for two players.
+A full-stack TypeScript multiplayer card-game platform. The currently supported game is Belot for two players.
 
 ## Stack
 
@@ -63,12 +63,12 @@ pnpm format:check
 `pnpm test:e2e` runs Playwright against the real web and API servers. Start
 PostgreSQL first with `docker compose up -d`; the script applies Prisma
 migrations, builds the workspace, launches both dev servers, and plays a full
-Bellot game in two browser contexts.
+Belot game in two browser contexts.
 
 ## MVP Flow
 
 1. Register or log in.
-2. Create a Bellot room or join by code.
+2. Create a Belot room or join by code.
 3. Both joined players mark ready.
 4. Play through trump selection, declarations, tricks, and scoring.
 5. The backend stores the completed match.

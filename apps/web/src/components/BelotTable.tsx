@@ -1,14 +1,14 @@
 import {
-  autoSelectBellotDeclarations,
-  bellotCardPoints,
-  compareBellotCards,
-  legalBellotCards,
+  autoSelectBelotDeclarations,
+  belotCardPoints,
+  compareBelotCards,
+  legalBelotCards,
 } from "@card-games/game-core";
 import type {
-  BellotDeclaration,
-  BellotHandResult,
-  BellotPublicState,
-  BellotTrickPlay,
+  BelotDeclaration,
+  BelotHandResult,
+  BelotPublicState,
+  BelotTrickPlay,
   Card,
   Rank,
   Suit,
@@ -36,7 +36,7 @@ const suitImagePaths: Record<Suit, string> = {
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
 const rankOrder: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
 const completedTrickLingerMs = 2_000;
-const trumpSelectionPhases: BellotPublicState["phase"][] = [
+const trumpSelectionPhases: BelotPublicState["phase"][] = [
   "trump-round-one",
   "trump-round-two",
   "mus",
@@ -45,7 +45,7 @@ const trumpSelectionPhases: BellotPublicState["phase"][] = [
 function compareCardsWithinSuit(left: Card, right: Card, trumpSuit?: Suit) {
   if (trumpSuit) {
     const pointComparison =
-      bellotCardPoints(left, trumpSuit) - bellotCardPoints(right, trumpSuit);
+      belotCardPoints(left, trumpSuit) - belotCardPoints(right, trumpSuit);
 
     if (pointComparison !== 0) {
       return pointComparison;
@@ -86,7 +86,7 @@ function sortDeclarationCards(cards: Card[]) {
   });
 }
 
-function sortDeclarations(declarations: BellotDeclaration[]) {
+function sortDeclarations(declarations: BelotDeclaration[]) {
   return [...declarations].sort((left, right) => {
     const leftCards = sortDeclarationCards(left.cards);
     const rightCards = sortDeclarationCards(right.cards);
@@ -108,7 +108,7 @@ function sortDeclarations(declarations: BellotDeclaration[]) {
   });
 }
 
-function visibleDeclarationGroups(declarations: BellotDeclaration[]) {
+function visibleDeclarationGroups(declarations: BelotDeclaration[]) {
   const ordinaryDeclarationCardIds = new Set(
     declarations
       .filter((declaration) => declaration.type !== "BELOTE")
@@ -126,14 +126,14 @@ function visibleDeclarationGroups(declarations: BellotDeclaration[]) {
   });
 }
 
-function declarationPoints(declarations: BellotDeclaration[]) {
+function declarationPoints(declarations: BelotDeclaration[]) {
   return declarations.reduce(
     (total, declaration) => total + declaration.points,
     0,
   );
 }
 
-function trumpSelectionPreviewSuits(state: BellotPublicState) {
+function trumpSelectionPreviewSuits(state: BelotPublicState) {
   if (!trumpSelectionPhases.includes(state.phase) || !state.upcard) {
     return [];
   }
@@ -147,13 +147,13 @@ function trumpSelectionPreviewSuits(state: BellotPublicState) {
 
 function trumpSelectionBonusPreview(
   hand: Card[],
-  state: BellotPublicState,
+  state: BelotPublicState,
 ) {
-  let bestDeclarations: BellotDeclaration[] = [];
+  let bestDeclarations: BelotDeclaration[] = [];
   let bestPoints = 0;
 
   for (const suit of trumpSelectionPreviewSuits(state)) {
-    const declarations = autoSelectBellotDeclarations(hand, suit);
+    const declarations = autoSelectBelotDeclarations(hand, suit);
     const points = declarationPoints(declarations);
 
     if (points > bestPoints) {
@@ -211,9 +211,9 @@ function TrumpMarkedCard({
       className="flex flex-col items-center"
       data-testid={
         isTrump
-          ? "bellot-trump-card"
+          ? "belot-trump-card"
           : bonusMarked
-            ? "bellot-bonus-card"
+            ? "belot-bonus-card"
             : undefined
       }
     >
@@ -262,7 +262,7 @@ function PickupCardFrame({
   );
 }
 
-function trickStrengthMap(trick: BellotTrickPlay[], trumpSuit?: Suit) {
+function trickStrengthMap(trick: BelotTrickPlay[], trumpSuit?: Suit) {
   if (!trick.length || !trumpSuit) {
     return new Map<string, boolean>();
   }
@@ -276,7 +276,7 @@ function trickStrengthMap(trick: BellotTrickPlay[], trumpSuit?: Suit) {
       return winner;
     }
 
-    return compareBellotCards(play.card, winner.card, trumpSuit) > 0
+    return compareBelotCards(play.card, winner.card, trumpSuit) > 0
       ? play
       : winner;
   });
@@ -284,7 +284,7 @@ function trickStrengthMap(trick: BellotTrickPlay[], trumpSuit?: Suit) {
   return new Map(trick.map((play) => [play.card.id, play === strongest]));
 }
 
-function visibleGamePointsByPlayer(state: BellotPublicState) {
+function visibleGamePointsByPlayer(state: BelotPublicState) {
   const points = Object.fromEntries(
     state.players.map((player) => [player.playerId, 0]),
   ) as Record<string, number>;
@@ -301,7 +301,7 @@ function visibleGamePointsByPlayer(state: BellotPublicState) {
     points[trick.winnerPlayerId] =
       (points[trick.winnerPlayerId] ?? 0) +
       trick.cards.reduce(
-        (sum, play) => sum + bellotCardPoints(play.card, state.trumpSuit!),
+        (sum, play) => sum + belotCardPoints(play.card, state.trumpSuit!),
         0,
       );
   }
@@ -309,14 +309,14 @@ function visibleGamePointsByPlayer(state: BellotPublicState) {
   return points;
 }
 
-function playerName(state: BellotPublicState, playerId?: string) {
+function playerName(state: BelotPublicState, playerId?: string) {
   return (
     state.players.find((player) => player.playerId === playerId)?.displayName ??
     "Unknown player"
   );
 }
 
-function timelinePlayers(state: BellotPublicState) {
+function timelinePlayers(state: BelotPublicState) {
   const handResults =
     state.handResults ?? (state.lastHandResult ? [state.lastHandResult] : []);
   const firstDealerPlayerId =
@@ -332,18 +332,18 @@ function timelinePlayers(state: BellotPublicState) {
 
   return [firstDealer, otherPlayer].filter(
     Boolean,
-  ) as BellotPublicState["players"];
+  ) as BelotPublicState["players"];
 }
 
-function BellotGameTimeline({
+function BelotGameTimeline({
   handResults,
   players,
 }: {
-  handResults: BellotHandResult[];
-  players: BellotPublicState["players"];
+  handResults: BelotHandResult[];
+  players: BelotPublicState["players"];
 }) {
   return (
-    <section className="min-w-0" data-testid="bellot-game-timeline">
+    <section className="min-w-0" data-testid="belot-game-timeline">
       <h3 className="text-sm font-semibold">Game timeline</h3>
       <div className="mt-2 overflow-x-auto">
         <table className="w-full min-w-[18rem] table-fixed border-collapse text-sm">
@@ -374,7 +374,7 @@ function BellotGameTimeline({
                   className={
                     index % 2 === 1 ? "border-b border-white/15" : undefined
                   }
-                  data-testid="bellot-game-timeline-row"
+                  data-testid="belot-game-timeline-row"
                 >
                   <th
                     className="py-2 pr-2 text-left align-top font-medium text-white/70"
@@ -453,7 +453,7 @@ function BellotGameTimeline({
   );
 }
 
-function trumpSelectionLogs(state: BellotPublicState) {
+function trumpSelectionLogs(state: BelotPublicState) {
   if (!trumpSelectionPhases.includes(state.phase)) {
     return [];
   }
@@ -499,7 +499,7 @@ function trumpSelectionLogs(state: BellotPublicState) {
   return logs;
 }
 
-function playedCardsByPlayer(state: BellotPublicState) {
+function playedCardsByPlayer(state: BelotPublicState) {
   const cardsByPlayer = Object.fromEntries(
     state.players.map((player) => [player.playerId, [] as Card[]]),
   ) as Record<string, Card[]>;
@@ -539,7 +539,7 @@ function ResultCardRow({
   return (
     <div
       className="flex items-start gap-3"
-      data-testid="bellot-result-card-row"
+      data-testid="belot-result-card-row"
     >
       <p className="w-24 shrink-0 pt-8 text-sm font-semibold">{label}:</p>
       <div className="flex min-h-24 min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2 overflow-x-auto px-1 py-1">
@@ -581,13 +581,13 @@ function HiddenPickupPlaceholder({
   return (
     <div
       className="relative shrink-0 rounded-md"
-      data-testid="bellot-hidden-pickup-placeholder"
+      data-testid="belot-hidden-pickup-placeholder"
     >
       {reserveMarkerRow ? (
         <span
           aria-hidden="true"
           className="mb-1 flex h-5 items-center justify-center"
-          data-testid="bellot-hidden-pickup-marker-spacer"
+          data-testid="belot-hidden-pickup-marker-spacer"
         />
       ) : null}
       <PlayingCardBack native alt={`Hidden pickup card ${index}`} />
@@ -596,7 +596,7 @@ function HiddenPickupPlaceholder({
   );
 }
 
-export function BellotTable({
+export function BelotTable({
   state,
   currentPlayerId,
   onTrumpDecision,
@@ -605,7 +605,7 @@ export function BellotTable({
   onNextHand,
   onRestart,
 }: {
-  state: BellotPublicState;
+  state: BelotPublicState;
   currentPlayerId?: string;
   onTrumpDecision: (
     decision:
@@ -613,7 +613,7 @@ export function BellotTable({
       | { kind: "accept-upcard" }
       | { kind: "choose-suit"; suit: Suit },
   ) => void;
-  onDeclare: (declarations: BellotDeclaration[]) => void;
+  onDeclare: (declarations: BelotDeclaration[]) => void;
   onPlayCard: (cardId: string) => void;
   onNextHand: () => void;
   onRestart: () => void;
@@ -646,7 +646,7 @@ export function BellotTable({
   const [lingeringTrick, setLingeringTrick] = useState<{
     trickNumber: number;
     winnerPlayerId: string;
-    cards: BellotTrickPlay[];
+    cards: BelotTrickPlay[];
   }>();
   const [showPlayedHands, setShowPlayedHands] = useState(false);
   const [revealedHandResultKey, setRevealedHandResultKey] = useState<string>();
@@ -661,7 +661,7 @@ export function BellotTable({
     }
 
     return new Set(
-      legalBellotCards(currentHand, state.currentTrick, state.trumpSuit).map(
+      legalBelotCards(currentHand, state.currentTrick, state.trumpSuit).map(
         (card) => card.id,
       ),
     );
@@ -691,7 +691,7 @@ export function BellotTable({
           player.playerId,
           sortDeclarations(state.declarationsByPlayer[player.playerId] ?? []),
         ]),
-      ) as Record<string, BellotDeclaration[]>,
+      ) as Record<string, BelotDeclaration[]>,
     [state.declarationsByPlayer, state.players],
   );
   const visibleGamePoints = useMemo(
@@ -834,7 +834,7 @@ export function BellotTable({
 
     declarationSubmissionKeys.current.add(submissionKey);
     onDeclare(
-      autoSelectBellotDeclarations(currentPlayer.hand, state.trumpSuit),
+      autoSelectBelotDeclarations(currentPlayer.hand, state.trumpSuit),
     );
   }, [currentPlayer, currentPlayerId, onDeclare, state.phase, state.trumpSuit]);
 
@@ -911,7 +911,7 @@ export function BellotTable({
                 <div
                   key={`${declaration.type}-${declarationIndex}`}
                   className="flex flex-wrap gap-2"
-                  data-testid="bellot-declaration-group"
+                  data-testid="belot-declaration-group"
                 >
                   {sortDeclarationCards(declaration.cards).map((card) => (
                     <div
@@ -936,8 +936,8 @@ export function BellotTable({
     <section className="rounded-md bg-felt p-4 text-white shadow-lg">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold">Bellot</h2>
-          <p className="text-sm text-white/80" data-testid="bellot-status">
+          <h2 className="text-lg font-bold">Belot</h2>
+          <p className="text-sm text-white/80" data-testid="belot-status">
             Status: {state.phase.replaceAll("-", " ")}
             {state.isMus ? " · Mus" : ""}
           </p>
@@ -963,7 +963,7 @@ export function BellotTable({
               <div
                 aria-hidden="true"
                 className="h-24 w-px bg-white/15 md:h-px md:w-full"
-                data-testid="bellot-trump-upcard-separator"
+                data-testid="belot-trump-upcard-separator"
               />
             ) : null}
             {state.upcard ? (
@@ -980,7 +980,7 @@ export function BellotTable({
             {showHandResult && state.lastHandResult ? (
               <div
                 className="w-full border-t border-white/15 pt-3 text-center"
-                data-testid="bellot-hand-result"
+                data-testid="belot-hand-result"
               >
                 <p className="mb-2 text-sm font-semibold">Hand result</p>
                 <div className="grid grid-cols-2 items-center gap-4">
@@ -993,7 +993,7 @@ export function BellotTable({
                       className={`text-xl font-bold leading-none text-white tabular-nums ${
                         index === 0 ? "text-left" : "text-right"
                       }`}
-                      data-testid="bellot-result-score"
+                      data-testid="belot-result-score"
                     >
                       {state.lastHandResult?.handScoreByPlayer[
                         player.playerId
@@ -1054,7 +1054,7 @@ export function BellotTable({
       {showTrickArea ? (
         <div
           className="mt-4 rounded-md bg-white/10 p-3"
-          data-testid="bellot-current-trick"
+          data-testid="belot-current-trick"
         >
           <p className="mb-2 text-sm font-semibold">
             {selectionLogs.length
@@ -1099,7 +1099,7 @@ export function BellotTable({
           {winnerPlayer ? (
             <div
               className="mt-4 rounded-md bg-white/10 p-3 text-center text-white"
-              data-testid="bellot-winner"
+              data-testid="belot-winner"
             >
               <p className="text-lg font-bold">
                 Winner: {winnerPlayer.displayName}
@@ -1111,7 +1111,7 @@ export function BellotTable({
           ) : null}
           <div
             className="mt-4 rounded-md bg-white/10 p-3 text-white"
-            data-testid="bellot-starting-cards"
+            data-testid="belot-starting-cards"
           >
             <h3 className="font-bold">Starting cards</h3>
             <div className="mt-2 space-y-4">
@@ -1157,7 +1157,7 @@ export function BellotTable({
                 <div
                   key={group.suit}
                   className="flex flex-wrap gap-2"
-                  data-testid="bellot-hand-suit-group"
+                  data-testid="belot-hand-suit-group"
                 >
                   {group.cards.map((card) => {
                     const playable = legalCardIds.has(card.id);
@@ -1173,7 +1173,7 @@ export function BellotTable({
                         key={card.id}
                         type="button"
                         className="relative rounded-md disabled:cursor-default disabled:opacity-100"
-                        data-testid="bellot-hand-card"
+                        data-testid="belot-hand-card"
                         disabled={!canPlay}
                         onClick={() => onPlayCard(card.id)}
                       >
@@ -1192,7 +1192,7 @@ export function BellotTable({
                         ) : null}
                         {state.trumpSuit ? (
                           <span className="mt-1 block text-xs text-white/70">
-                            {bellotCardPoints(card, state.trumpSuit)} pts
+                            {belotCardPoints(card, state.trumpSuit)} pts
                           </span>
                         ) : null}
                       </button>
@@ -1203,7 +1203,7 @@ export function BellotTable({
               {showBonusPreview ? (
                 <div
                   className="flex h-[138px] items-center"
-                  data-testid="bellot-hand-bonus-total"
+                  data-testid="belot-hand-bonus-total"
                 >
                   <span className="rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
                     {bonusPreview.points} bonus pts
@@ -1236,7 +1236,7 @@ export function BellotTable({
         {showPlayedHands ? (
           <div className="mt-3 rounded-md bg-white/10 p-3">
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-              <section className="min-w-0" data-testid="bellot-played-tricks">
+              <section className="min-w-0" data-testid="belot-played-tricks">
                 <h3 className="text-sm font-semibold">Played tricks</h3>
                 <div className="mt-2 space-y-3">
                   {displayedCompletedTricks.length ? (
@@ -1247,7 +1247,7 @@ export function BellotTable({
                             <div
                               aria-hidden="true"
                               className="h-px w-full bg-white/15"
-                              data-testid="bellot-played-trick-separator"
+                              data-testid="belot-played-trick-separator"
                             />
                           ) : null}
                           <div>
@@ -1293,9 +1293,9 @@ export function BellotTable({
               <div
                 aria-hidden="true"
                 className="h-px w-full bg-white/15 md:h-auto md:w-px"
-                data-testid="bellot-details-separator"
+                data-testid="belot-details-separator"
               />
-              <BellotGameTimeline
+              <BelotGameTimeline
                 handResults={handResults}
                 players={timelineOrderedPlayers}
               />

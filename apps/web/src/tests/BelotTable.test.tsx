@@ -1,16 +1,16 @@
-import type { BellotPublicState, Card } from "@card-games/shared";
+import type { BelotPublicState, Card } from "@card-games/shared";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { BellotTable } from "../components/BellotTable";
+import { BelotTable } from "../components/BelotTable";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
   return { id: `${rank}-${suit}`, rank, suit };
 }
 
-const baseState: BellotPublicState = {
-  gameId: "bellot",
+const baseState: BelotPublicState = {
+  gameId: "belot",
   phase: "trick-play",
   players: [
     {
@@ -87,9 +87,9 @@ const baseState: BellotPublicState = {
   createdAt: new Date().toISOString(),
 };
 
-function renderTable(state: BellotPublicState = baseState) {
+function renderTable(state: BelotPublicState = baseState) {
   return render(
-    <BellotTable
+    <BelotTable
       state={state}
       currentPlayerId="p1"
       onTrumpDecision={vi.fn()}
@@ -101,12 +101,12 @@ function renderTable(state: BellotPublicState = baseState) {
   );
 }
 
-describe("BellotTable", () => {
+describe("BelotTable", () => {
   it("sorts the player's hand by suit and rank and keeps the upcard visible", () => {
     renderTable();
 
     const handCards = screen
-      .getAllByTestId("bellot-hand-card")
+      .getAllByTestId("belot-hand-card")
       .map((button) => within(button).getByRole("img").getAttribute("alt"));
 
     expect(handCards).toEqual([
@@ -121,12 +121,12 @@ describe("BellotTable", () => {
   it("separates the player's hand into suit groups horizontally", () => {
     renderTable();
 
-    const suitGroups = screen.getAllByTestId("bellot-hand-suit-group");
+    const suitGroups = screen.getAllByTestId("belot-hand-suit-group");
 
     expect(
       suitGroups.map((group) =>
         within(group)
-          .getAllByTestId("bellot-hand-card")
+          .getAllByTestId("belot-hand-card")
           .map((button) => within(button).getByRole("img").getAttribute("alt")),
       ),
     ).toEqual([
@@ -136,7 +136,7 @@ describe("BellotTable", () => {
     ]);
   });
 
-  it("sorts hand suit groups by Bellot point value after trump is selected", () => {
+  it("sorts hand suit groups by Belot point value after trump is selected", () => {
     renderTable({
       ...baseState,
       trumpSuit: "acorns",
@@ -161,12 +161,12 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    const suitGroups = screen.getAllByTestId("bellot-hand-suit-group");
+    const suitGroups = screen.getAllByTestId("belot-hand-suit-group");
 
     expect(
       suitGroups.map((group) =>
         within(group)
-          .getAllByTestId("bellot-hand-card")
+          .getAllByTestId("belot-hand-card")
           .map((button) => within(button).getByRole("img").getAttribute("alt")),
       ),
     ).toEqual([
@@ -231,7 +231,7 @@ describe("BellotTable", () => {
     });
 
     const placeholders = screen.getAllByTestId(
-      "bellot-hidden-pickup-placeholder",
+      "belot-hidden-pickup-placeholder",
     );
 
     expect(placeholders).toHaveLength(2);
@@ -246,7 +246,7 @@ describe("BellotTable", () => {
       expect(placeholder.querySelector(".ring-4")).not.toBeInTheDocument();
     }
     expect(
-      screen.getAllByTestId("bellot-hidden-pickup-marker-spacer"),
+      screen.getAllByTestId("belot-hidden-pickup-marker-spacer"),
     ).toHaveLength(2);
   });
 
@@ -258,13 +258,13 @@ describe("BellotTable", () => {
     });
 
     const trumpCards = screen
-      .getAllByTestId("bellot-trump-card")
+      .getAllByTestId("belot-trump-card")
       .map((container) =>
         within(container).getByRole("img").getAttribute("alt"),
       );
 
     expect(trumpCards).toEqual(["IX of Hearts", "K of Hearts", "A of Hearts"]);
-    for (const container of screen.getAllByTestId("bellot-trump-card")) {
+    for (const container of screen.getAllByTestId("belot-trump-card")) {
       expect(within(container).getByText("T")).toBeInTheDocument();
     }
   });
@@ -299,7 +299,7 @@ describe("BellotTable", () => {
     });
 
     const bonusCards = screen
-      .getAllByTestId("bellot-bonus-card")
+      .getAllByTestId("belot-bonus-card")
       .map((container) =>
         within(container).getByRole("img").getAttribute("alt"),
       );
@@ -309,10 +309,10 @@ describe("BellotTable", () => {
       "VIII of Acorns",
       "IX of Acorns",
     ]);
-    for (const container of screen.getAllByTestId("bellot-bonus-card")) {
+    for (const container of screen.getAllByTestId("belot-bonus-card")) {
       expect(within(container).getByText("B")).toBeInTheDocument();
     }
-    expect(screen.getByTestId("bellot-hand-bonus-total")).toHaveTextContent(
+    expect(screen.getByTestId("belot-hand-bonus-total")).toHaveTextContent(
       "20 bonus pts",
     );
   });
@@ -347,12 +347,12 @@ describe("BellotTable", () => {
       ),
     });
 
-    expect(screen.queryByTestId("bellot-bonus-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("belot-bonus-card")).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId("bellot-hand-bonus-total"),
+      screen.queryByTestId("belot-hand-bonus-total"),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId("bellot-hidden-pickup-placeholder"),
+      screen.queryByTestId("belot-hidden-pickup-placeholder"),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Hidden pickup card")).toBeInTheDocument();
   });
@@ -412,10 +412,10 @@ describe("BellotTable", () => {
         },
       });
 
-      const finalTrick = screen.getByTestId("bellot-current-trick");
+      const finalTrick = screen.getByTestId("belot-current-trick");
 
       expect(
-        screen.queryByTestId("bellot-hand-result"),
+        screen.queryByTestId("belot-hand-result"),
       ).not.toBeInTheDocument();
       expect(
         within(finalTrick).getByText("Completed trick 2"),
@@ -431,16 +431,16 @@ describe("BellotTable", () => {
         vi.advanceTimersByTime(2_000);
       });
 
-      const result = screen.getByTestId("bellot-hand-result");
-      const startingCards = screen.getByTestId("bellot-starting-cards");
+      const result = screen.getByTestId("belot-hand-result");
+      const startingCards = screen.getByTestId("belot-starting-cards");
       const playedTricksButton = screen.getByRole("button", {
         name: "Show details",
       });
 
       expect(
-        screen.queryByTestId("bellot-current-trick"),
+        screen.queryByTestId("belot-current-trick"),
       ).not.toBeInTheDocument();
-      expect(screen.queryByTestId("bellot-hand-card")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("belot-hand-card")).not.toBeInTheDocument();
       expect(
         result.compareDocumentPosition(playedTricksButton) &
           Node.DOCUMENT_POSITION_FOLLOWING,
@@ -459,7 +459,7 @@ describe("BellotTable", () => {
       expect(within(result).queryByText("Alice")).not.toBeInTheDocument();
       expect(within(result).queryByText("Bob")).not.toBeInTheDocument();
 
-      const scores = within(result).getAllByTestId("bellot-result-score");
+      const scores = within(result).getAllByTestId("belot-result-score");
       expect(scores).toHaveLength(2);
       expect(scores[0]).toHaveTextContent("2");
       expect(scores[0]).toHaveClass(
@@ -476,7 +476,7 @@ describe("BellotTable", () => {
         "text-white",
       );
       expect(
-        screen.getByTestId("bellot-trump-upcard-separator"),
+        screen.getByTestId("belot-trump-upcard-separator"),
       ).toBeInTheDocument();
       expect(screen.queryByText("(fell)")).not.toBeInTheDocument();
       expect(screen.queryByText("Caller fell.")).not.toBeInTheDocument();
@@ -484,7 +484,7 @@ describe("BellotTable", () => {
         within(startingCards).getByText("Starting cards"),
       ).toBeInTheDocument();
 
-      const cardRows = screen.getAllByTestId("bellot-result-card-row");
+      const cardRows = screen.getAllByTestId("belot-result-card-row");
       expect(
         within(cardRows[0])
           .getAllByRole("img")
@@ -520,7 +520,7 @@ describe("BellotTable", () => {
       const onRestart = vi.fn();
 
       render(
-        <BellotTable
+        <BelotTable
           state={{
             ...baseState,
             phase: "finished",
@@ -559,11 +559,11 @@ describe("BellotTable", () => {
         vi.advanceTimersByTime(2_000);
       });
 
-      const winner = screen.getByTestId("bellot-winner");
+      const winner = screen.getByTestId("belot-winner");
       const winnerText = within(winner).getByText("Winner: Bob");
-      const handResult = screen.getByTestId("bellot-hand-result");
-      const startingCards = screen.getByTestId("bellot-starting-cards");
-      const scores = within(handResult).getAllByTestId("bellot-result-score");
+      const handResult = screen.getByTestId("belot-hand-result");
+      const startingCards = screen.getByTestId("belot-starting-cards");
+      const scores = within(handResult).getAllByTestId("belot-result-score");
 
       expect(
         screen.queryByRole("button", { name: "Next hand" }),
@@ -600,7 +600,7 @@ describe("BellotTable", () => {
     }
   });
 
-  it("sorts end-of-hand player rows by Bellot point value within suit groups", () => {
+  it("sorts end-of-hand player rows by Belot point value within suit groups", () => {
     vi.useFakeTimers();
 
     try {
@@ -650,7 +650,7 @@ describe("BellotTable", () => {
         vi.advanceTimersByTime(2_000);
       });
 
-      const firstCardRow = screen.getAllByTestId("bellot-result-card-row")[0];
+      const firstCardRow = screen.getAllByTestId("belot-result-card-row")[0];
 
       expect(
         within(firstCardRow)
@@ -683,7 +683,7 @@ describe("BellotTable", () => {
           ],
         },
       ],
-    } satisfies BellotPublicState;
+    } satisfies BelotPublicState;
 
     renderTable(playedDeclaration);
 
@@ -708,7 +708,7 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    const currentTrick = screen.getByTestId("bellot-current-trick");
+    const currentTrick = screen.getByTestId("belot-current-trick");
 
     expect(within(currentTrick).getByText("Current trick")).toBeInTheDocument();
     expect(currentTrick.querySelector(".h-\\[138px\\]")).toBeInTheDocument();
@@ -727,7 +727,7 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    const currentTrick = screen.getByTestId("bellot-current-trick");
+    const currentTrick = screen.getByTestId("belot-current-trick");
 
     expect(
       within(currentTrick).getByText("Trump selection"),
@@ -760,8 +760,8 @@ describe("BellotTable", () => {
 
     await user.click(screen.getByRole("button", { name: "Show details" }));
 
-    expect(screen.getByTestId("bellot-played-tricks")).toBeInTheDocument();
-    expect(screen.getByTestId("bellot-game-timeline")).toBeInTheDocument();
+    expect(screen.getByTestId("belot-played-tricks")).toBeInTheDocument();
+    expect(screen.getByTestId("belot-game-timeline")).toBeInTheDocument();
   });
 
   it("shows mus logs in the current trick area", () => {
@@ -777,7 +777,7 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    const currentTrick = screen.getByTestId("bellot-current-trick");
+    const currentTrick = screen.getByTestId("belot-current-trick");
 
     expect(
       within(currentTrick).getByText("Both players passed twice."),
@@ -794,14 +794,14 @@ describe("BellotTable", () => {
       completedTricks: [],
     });
 
-    const currentTrick = screen.getByTestId("bellot-current-trick");
+    const currentTrick = screen.getByTestId("belot-current-trick");
 
     expect(within(currentTrick).getByAltText("K of Hearts")).toHaveClass(
       "h-[114px]",
       "w-[71px]",
     );
     expect(
-      within(screen.getAllByTestId("bellot-hand-card")[0]).getByRole("img"),
+      within(screen.getAllByTestId("belot-hand-card")[0]).getByRole("img"),
     ).toHaveClass("h-[114px]", "w-[71px]");
   });
 
@@ -852,10 +852,10 @@ describe("BellotTable", () => {
       trickTwo.compareDocumentPosition(trickOne) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0);
-    expect(screen.getAllByTestId("bellot-played-trick-separator")).toHaveLength(
+    expect(screen.getAllByTestId("belot-played-trick-separator")).toHaveLength(
       1,
     );
-    expect(screen.getByTestId("bellot-details-separator")).toBeInTheDocument();
+    expect(screen.getByTestId("belot-details-separator")).toBeInTheDocument();
   });
 
   it("shows the game timeline beside played tricks", async () => {
@@ -904,8 +904,8 @@ describe("BellotTable", () => {
 
     await user.click(screen.getByRole("button", { name: "Show details" }));
 
-    const timeline = screen.getByTestId("bellot-game-timeline");
-    const rows = within(timeline).getAllByTestId("bellot-game-timeline-row");
+    const timeline = screen.getByTestId("belot-game-timeline");
+    const rows = within(timeline).getAllByTestId("belot-game-timeline-row");
 
     expect(
       within(timeline)
@@ -1031,7 +1031,7 @@ describe("BellotTable", () => {
         ({ gamePoints: _gamePoints, ...player }) =>
           player.playerId === "p2" ? player : { ...player, gamePoints: 0 },
       ),
-    } as BellotPublicState;
+    } as BelotPublicState;
 
     renderTable(legacyState);
 
@@ -1061,7 +1061,7 @@ describe("BellotTable", () => {
       },
     });
 
-    expect(screen.getAllByTestId("bellot-declaration-group")).toHaveLength(2);
+    expect(screen.getAllByTestId("belot-declaration-group")).toHaveLength(2);
   });
 
   it("hides duplicate belote cards when an ordinary declaration already shows them", () => {
@@ -1090,7 +1090,7 @@ describe("BellotTable", () => {
 
     const group = screen.getByText("70 bonus pts").parentElement!;
     const declarationGroups = within(group).getAllByTestId(
-      "bellot-declaration-group",
+      "belot-declaration-group",
     );
 
     expect(declarationGroups).toHaveLength(1);

@@ -1,26 +1,26 @@
 import type { Card, Rank, Suit } from "@card-games/shared";
 import { describe, expect, it } from "vitest";
 
-import type { BellotState } from "../games/bellot";
+import type { BelotState } from "../games/belot";
 import {
-  applyBellotAction,
-  autoSelectBellotDeclarations,
-  bellotCardPoints,
-  bellotCpuCheapSearchCard,
-  bellotCpuMonteCarloSampleLimit,
-  bellotCpuOrderCardsForSearch,
-  bellotCpuOrderRootCardsForSearch,
-  bellotCpuSearchCards,
-  bellotCpuTrumpMonteCarloSamples,
-  calculateBellotHandResult,
-  chooseBellotCpuAction,
-  compareBellotCards,
-  createBellotInitialState,
-  defaultBellotCpuMaxSearchPlies,
-  getBellotPublicState,
-  inferBellotCpuImpossibleOpponentCardIds,
-  legalBellotCards,
-  validateBellotDeclarations,
+  applyBelotAction,
+  autoSelectBelotDeclarations,
+  belotCardPoints,
+  belotCpuCheapSearchCard,
+  belotCpuMonteCarloSampleLimit,
+  belotCpuOrderCardsForSearch,
+  belotCpuOrderRootCardsForSearch,
+  belotCpuSearchCards,
+  belotCpuTrumpMonteCarloSamples,
+  calculateBelotHandResult,
+  chooseBelotCpuAction,
+  compareBelotCards,
+  createBelotInitialState,
+  defaultBelotCpuMaxSearchPlies,
+  getBelotPublicState,
+  inferBelotCpuImpossibleOpponentCardIds,
+  legalBelotCards,
+  validateBelotDeclarations,
 } from "../index";
 
 const players = [
@@ -46,8 +46,8 @@ function seededRng(seed: number) {
 }
 
 function readyState() {
-  return applyBellotAction(
-    applyBellotAction(createBellotInitialState(players), {
+  return applyBelotAction(
+    applyBelotAction(createBelotInitialState(players), {
       type: "set-ready",
       playerId: "p1",
       ready: true,
@@ -64,13 +64,13 @@ function scoringState(overrides: {
   p2WonCards: Card[];
   p1TricksWon: number;
   p2TricksWon: number;
-  declarationsByPlayer?: BellotState["declarationsByPlayer"];
+  declarationsByPlayer?: BelotState["declarationsByPlayer"];
   lastTrickWinnerPlayerId?: string;
-}): BellotState {
+}): BelotState {
   const trumpSuit = overrides.trumpSuit ?? "hearts";
 
   return {
-    ...createBellotInitialState(players),
+    ...createBelotInitialState(players),
     phase: "trick-play",
     players: [
       {
@@ -110,7 +110,7 @@ function scoringState(overrides: {
   };
 }
 
-describe("Bellot", () => {
+describe("Belot", () => {
   it("starts a two-player hand with 8-card hands, 2 hidden cards, an upcard, and unused cards", () => {
     const state = readyState();
 
@@ -131,7 +131,7 @@ describe("Bellot", () => {
       (player) => player.playerId === state.trumpTurnPlayerId,
     )!;
     const firstPickupCardIds = firstPlayer.hiddenCards.map((card) => card.id);
-    const publicBeforePickup = getBellotPublicState(
+    const publicBeforePickup = getBelotPublicState(
       state,
       firstPlayer.playerId,
     );
@@ -146,18 +146,18 @@ describe("Bellot", () => {
       ),
     ).toBe(false);
 
-    const afterPickup = applyBellotAction(state, {
+    const afterPickup = applyBelotAction(state, {
       type: "trump-accept-upcard",
       playerId: firstPlayer.playerId,
     });
-    const publicForOwner = getBellotPublicState(
+    const publicForOwner = getBelotPublicState(
       afterPickup,
       firstPlayer.playerId,
     );
     const opponentPlayerId = afterPickup.players.find(
       (player) => player.playerId !== firstPlayer.playerId,
     )!.playerId;
-    const publicForOpponent = getBellotPublicState(
+    const publicForOpponent = getBelotPublicState(
       afterPickup,
       opponentPlayerId,
     );
@@ -180,7 +180,7 @@ describe("Bellot", () => {
 
     const afterDeclarations = afterPickup.players.reduce(
       (currentState, player) =>
-        applyBellotAction(currentState, {
+        applyBelotAction(currentState, {
           type: "declare",
           playerId: player.playerId,
           declarations: [],
@@ -190,14 +190,14 @@ describe("Bellot", () => {
     const firstCard = afterDeclarations.players.find(
       (player) => player.playerId === firstPlayer.playerId,
     )!.hand[0]!;
-    const afterFirstPlay = applyBellotAction(afterDeclarations, {
+    const afterFirstPlay = applyBelotAction(afterDeclarations, {
       type: "play-card",
       playerId: firstPlayer.playerId,
       cardId: firstCard.id,
     });
 
     expect(
-      getBellotPublicState(afterFirstPlay, firstPlayer.playerId).players.find(
+      getBelotPublicState(afterFirstPlay, firstPlayer.playerId).players.find(
         (player) => player.playerId === firstPlayer.playerId,
       )?.pickupCardIds,
     ).toBeUndefined();
@@ -212,18 +212,18 @@ describe("Bellot", () => {
       (player) => player.playerId !== caller.playerId,
     )!;
     const callerPickupCardIds = caller.hiddenCards.map((card) => card.id);
-    const afterPickup = applyBellotAction(state, {
+    const afterPickup = applyBelotAction(state, {
       type: "trump-accept-upcard",
       playerId: caller.playerId,
     });
 
     expect(
-      getBellotPublicState(afterPickup, opponent.playerId).players.find(
+      getBelotPublicState(afterPickup, opponent.playerId).players.find(
         (player) => player.playerId === caller.playerId,
       )?.pickupCardIds,
     ).toBeUndefined();
     expect(
-      getBellotPublicState(afterPickup, opponent.playerId).unusedCards,
+      getBelotPublicState(afterPickup, opponent.playerId).unusedCards,
     ).toBeUndefined();
 
     const handResult = {
@@ -244,13 +244,13 @@ describe("Bellot", () => {
       isMus: false,
       lastTrickWinnerPlayerId: caller.playerId,
     };
-    const withHandResult: BellotState = {
+    const withHandResult: BelotState = {
       ...afterPickup,
       phase: "hand-complete",
       lastHandResult: handResult,
       handResults: [handResult],
     };
-    const publicHandResult = getBellotPublicState(
+    const publicHandResult = getBelotPublicState(
       withHandResult,
       opponent.playerId,
     );
@@ -268,8 +268,8 @@ describe("Bellot", () => {
     const firstRound = readyState();
     const first = firstRound.trumpTurnPlayerId!;
     const second = first === "p1" ? "p2" : "p1";
-    const secondRound = applyBellotAction(
-      applyBellotAction(firstRound, { type: "trump-pass", playerId: first }),
+    const secondRound = applyBelotAction(
+      applyBelotAction(firstRound, { type: "trump-pass", playerId: first }),
       { type: "trump-pass", playerId: second },
     );
 
@@ -277,19 +277,19 @@ describe("Bellot", () => {
     expect(secondRound.trumpTurnPlayerId).toBe(first);
 
     expect(() =>
-      applyBellotAction(secondRound, {
+      applyBelotAction(secondRound, {
         type: "trump-choose-suit",
         playerId: first,
         suit: secondRound.upcard!.suit,
       }),
     ).toThrow("upcard suit");
 
-    const mus = applyBellotAction(
-      applyBellotAction(secondRound, { type: "trump-pass", playerId: first }),
+    const mus = applyBelotAction(
+      applyBelotAction(secondRound, { type: "trump-pass", playerId: first }),
       { type: "trump-pass", playerId: second },
     );
     expect(() =>
-      applyBellotAction(mus, {
+      applyBelotAction(mus, {
         type: "trump-choose-suit",
         playerId: first,
         suit: mus.upcard!.suit,
@@ -299,7 +299,7 @@ describe("Bellot", () => {
     const chosenSuit = (["acorns", "bells", "hearts", "leaves"] as Suit[]).find(
       (suit) => suit !== mus.upcard!.suit,
     )!;
-    const declarations = applyBellotAction(mus, {
+    const declarations = applyBelotAction(mus, {
       type: "trump-choose-suit",
       playerId: first,
       suit: chosenSuit,
@@ -324,19 +324,19 @@ describe("Bellot", () => {
   });
 
   it("scores card points and card rank order differently for trump and non-trump suits", () => {
-    expect(bellotCardPoints(card("U", "hearts"), "hearts")).toBe(20);
-    expect(bellotCardPoints(card("IX", "hearts"), "hearts")).toBe(14);
-    expect(bellotCardPoints(card("O", "hearts"), "hearts")).toBe(3);
-    expect(bellotCardPoints(card("U", "acorns"), "hearts")).toBe(2);
-    expect(bellotCardPoints(card("A", "acorns"), "hearts")).toBe(11);
+    expect(belotCardPoints(card("U", "hearts"), "hearts")).toBe(20);
+    expect(belotCardPoints(card("IX", "hearts"), "hearts")).toBe(14);
+    expect(belotCardPoints(card("O", "hearts"), "hearts")).toBe(3);
+    expect(belotCardPoints(card("U", "acorns"), "hearts")).toBe(2);
+    expect(belotCardPoints(card("A", "acorns"), "hearts")).toBe(11);
     expect(
-      compareBellotCards(card("U", "hearts"), card("IX", "hearts"), "hearts"),
+      compareBelotCards(card("U", "hearts"), card("IX", "hearts"), "hearts"),
     ).toBeGreaterThan(0);
     expect(
-      compareBellotCards(card("IX", "hearts"), card("X", "hearts"), "hearts"),
+      compareBelotCards(card("IX", "hearts"), card("X", "hearts"), "hearts"),
     ).toBeGreaterThan(0);
     expect(
-      compareBellotCards(card("A", "acorns"), card("X", "acorns"), "hearts"),
+      compareBelotCards(card("A", "acorns"), card("X", "acorns"), "hearts"),
     ).toBeGreaterThan(0);
   });
 
@@ -355,7 +355,7 @@ describe("Bellot", () => {
     ];
 
     expect(() =>
-      validateBellotDeclarations({
+      validateBelotDeclarations({
         hand,
         trumpSuit: "hearts",
         declarations: [
@@ -389,7 +389,7 @@ describe("Bellot", () => {
     ).not.toThrow();
 
     expect(() =>
-      validateBellotDeclarations({
+      validateBelotDeclarations({
         hand,
         trumpSuit: "hearts",
         declarations: [
@@ -416,7 +416,7 @@ describe("Bellot", () => {
     ).toThrow("overlap");
 
     expect(() =>
-      validateBellotDeclarations({
+      validateBelotDeclarations({
         hand,
         trumpSuit: "hearts",
         declarations: [
@@ -435,7 +435,7 @@ describe("Bellot", () => {
     ).toThrow("outside");
 
     expect(() =>
-      validateBellotDeclarations({
+      validateBelotDeclarations({
         hand,
         trumpSuit: "hearts",
         declarations: [
@@ -453,7 +453,7 @@ describe("Bellot", () => {
   });
 
   it("auto-selects the maximum valid declarations with belote overlap allowed", () => {
-    const declarations = autoSelectBellotDeclarations(
+    const declarations = autoSelectBelotDeclarations(
       [
         card("VII", "hearts"),
         card("VIII", "hearts"),
@@ -481,7 +481,7 @@ describe("Bellot", () => {
 
   it("waits for both players' declarations and then publishes declaration cards", () => {
     let state = readyState();
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "trump-accept-upcard",
       playerId: state.trumpTurnPlayerId!,
     });
@@ -506,19 +506,19 @@ describe("Bellot", () => {
       ),
     };
 
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "declare",
       playerId: "p1",
       declarations: [p1Declaration],
     });
     expect(state.phase).toBe("declarations");
 
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "declare",
       playerId: "p2",
       declarations: [],
     });
-    const publicForP2 = getBellotPublicState(state, "p2");
+    const publicForP2 = getBelotPublicState(state, "p2");
 
     expect(state.phase).toBe("trick-play");
     expect(publicForP2.upcard).toEqual(state.upcard);
@@ -533,17 +533,17 @@ describe("Bellot", () => {
 
   it("ignores duplicate declaration submissions from a player", () => {
     let state = readyState();
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "trump-accept-upcard",
       playerId: state.trumpTurnPlayerId!,
     });
 
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "declare",
       playerId: "p1",
       declarations: [],
     });
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "declare",
       playerId: "p1",
       declarations: [],
@@ -551,12 +551,12 @@ describe("Bellot", () => {
 
     expect(state.phase).toBe("declarations");
 
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "declare",
       playerId: "p2",
       declarations: [],
     });
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "declare",
       playerId: "p1",
       declarations: [],
@@ -568,7 +568,7 @@ describe("Bellot", () => {
 
   it("enters an error phase instead of continuing after an invalid declaration", () => {
     let state = readyState();
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "trump-accept-upcard",
       playerId: state.trumpTurnPlayerId!,
     });
@@ -590,7 +590,7 @@ describe("Bellot", () => {
           : player,
       ),
     };
-    state = applyBellotAction(state, {
+    state = applyBelotAction(state, {
       type: "declare",
       playerId: "p1",
       declarations: [
@@ -615,7 +615,7 @@ describe("Bellot", () => {
     ];
 
     expect(
-      legalBellotCards(
+      legalBelotCards(
         hand,
         [{ playerId: "p1", card: card("X", "acorns") }],
         "hearts",
@@ -623,7 +623,7 @@ describe("Bellot", () => {
     ).toEqual(["VII-acorns"]);
 
     expect(
-      legalBellotCards(
+      legalBelotCards(
         hand.filter((handCard) => handCard.suit !== "acorns"),
         [{ playerId: "p1", card: card("X", "acorns") }],
         "hearts",
@@ -631,7 +631,7 @@ describe("Bellot", () => {
     ).toEqual(["IX-hearts", "U-hearts"]);
 
     expect(
-      legalBellotCards(
+      legalBelotCards(
         hand,
         [{ playerId: "p1", card: card("A", "hearts") }],
         "hearts",
@@ -640,8 +640,8 @@ describe("Bellot", () => {
   });
 
   it("publishes in-hand game points after won tricks", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -670,15 +670,15 @@ describe("Bellot", () => {
       declarationsByPlayer: { p1: [], p2: [] },
     };
 
-    const publicState = getBellotPublicState(state, "p1");
+    const publicState = getBelotPublicState(state, "p1");
 
     expect(publicState.players[0].gamePoints).toBe(30);
     expect(publicState.players[1].gamePoints).toBe(0);
   });
 
   it("awards a trick to the strongest trump or strongest lead suit card", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -707,8 +707,8 @@ describe("Bellot", () => {
       declarationsByPlayer: { p1: [], p2: [] },
     };
 
-    const finishedTrick = applyBellotAction(
-      applyBellotAction(state, {
+    const finishedTrick = applyBelotAction(
+      applyBelotAction(state, {
         type: "play-card",
         playerId: "p1",
         cardId: "A-acorns",
@@ -720,9 +720,9 @@ describe("Bellot", () => {
     expect(finishedTrick.currentTurnPlayerId).toBe("p2");
   });
 
-  it("chooses CPU trump, declarations, and searched trick cards as normal Bellot actions", () => {
-    const trumpState: BellotState = {
-      ...createBellotInitialState(players),
+  it("chooses CPU trump, declarations, and searched trick cards as normal Belot actions", () => {
+    const trumpState: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trump-round-one",
       players: [
         {
@@ -756,7 +756,7 @@ describe("Bellot", () => {
     };
 
     expect(
-      chooseBellotCpuAction(trumpState, "p1", {
+      chooseBelotCpuAction(trumpState, "p1", {
         trumpMinSuccessRate: 0,
         trumpHighSuccessRate: Number.POSITIVE_INFINITY,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
@@ -766,7 +766,7 @@ describe("Bellot", () => {
       playerId: "p1",
     });
 
-    const declarationState: BellotState = {
+    const declarationState: BelotState = {
       ...trumpState,
       phase: "declarations",
       trumpSuit: "hearts",
@@ -784,7 +784,7 @@ describe("Bellot", () => {
           : player,
       ),
     };
-    const declarationAction = chooseBellotCpuAction(declarationState, "p1");
+    const declarationAction = chooseBelotCpuAction(declarationState, "p1");
 
     expect(declarationAction?.type).toBe("declare");
     expect(
@@ -793,8 +793,8 @@ describe("Bellot", () => {
         : [],
     ).toContain("BELOTE");
 
-    const trickState: BellotState = {
-      ...createBellotInitialState(players),
+    const trickState: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -825,7 +825,7 @@ describe("Bellot", () => {
     };
 
     expect(
-      chooseBellotCpuAction(trickState, "p1", {
+      chooseBelotCpuAction(trickState, "p1", {
         monteCarloSamples: 1,
         maxSearchPlies: 2,
         rng: () => 0.5,
@@ -838,18 +838,18 @@ describe("Bellot", () => {
   });
 
   it("increases CPU Monte Carlo samples by 30 percent per missing trick card", () => {
-    expect(bellotCpuMonteCarloSampleLimit(64, 10)).toBe(64);
-    expect(bellotCpuMonteCarloSampleLimit(64, 9)).toBe(84);
-    expect(bellotCpuMonteCarloSampleLimit(64, 6)).toBe(141);
+    expect(belotCpuMonteCarloSampleLimit(64, 10)).toBe(64);
+    expect(belotCpuMonteCarloSampleLimit(64, 9)).toBe(84);
+    expect(belotCpuMonteCarloSampleLimit(64, 6)).toBe(141);
   });
 
   it("uses the same 14-ply default CPU search for trump and trick play", () => {
-    expect(defaultBellotCpuMaxSearchPlies).toBe(14);
+    expect(defaultBelotCpuMaxSearchPlies).toBe(14);
   });
 
   it("orders CPU search cards from the correct alpha-beta perspective", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -884,20 +884,20 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuOrderCardsForSearch(state.players[0].hand, state, true).map(
+      belotCpuOrderCardsForSearch(state.players[0].hand, state, true).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-acorns", "X-acorns", "VII-acorns"]);
     expect(
-      bellotCpuOrderCardsForSearch(state.players[0].hand, state, false).map(
+      belotCpuOrderCardsForSearch(state.players[0].hand, state, false).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-acorns", "X-acorns", "VII-acorns"]);
   });
 
   it("orders root CPU cards by previous Monte Carlo sample success", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -958,15 +958,15 @@ describe("Bellot", () => {
     ]);
 
     expect(
-      bellotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
+      belotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["X-acorns", "A-acorns", "VII-acorns"]);
   });
 
   it("orders tied leading root CPU cards by non-trump value before trump value", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1013,26 +1013,26 @@ describe("Bellot", () => {
     );
 
     expect(
-      bellotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
+      belotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-acorns", "X-bells", "K-leaves", "U-hearts", "IX-hearts"]);
   });
 
   it("uses 50 percent more regular CPU Monte Carlo samples when selecting trump", () => {
-    expect(bellotCpuTrumpMonteCarloSamples()).toBe(96);
-    expect(bellotCpuTrumpMonteCarloSamples({ monteCarloSamples: 10 })).toBe(15);
+    expect(belotCpuTrumpMonteCarloSamples()).toBe(96);
+    expect(belotCpuTrumpMonteCarloSamples({ monteCarloSamples: 10 })).toBe(15);
     expect(
-      bellotCpuTrumpMonteCarloSamples({
+      belotCpuTrumpMonteCarloSamples({
         monteCarloSamples: 10,
         trumpMonteCarloSamples: 7,
       }),
     ).toBe(7);
   });
 
-  it("uses cheap Bellot search moves for distant rollout plies", () => {
-    const respondingState: BellotState = {
-      ...createBellotInitialState(players),
+  it("uses cheap Belot search moves for distant rollout plies", () => {
+    const respondingState: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1063,11 +1063,11 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(respondingState.players[0].hand, respondingState)
+      belotCpuCheapSearchCard(respondingState.players[0].hand, respondingState)
         .id,
     ).toBe("A-acorns");
 
-    const aceOnlyWinningResponseState: BellotState = {
+    const aceOnlyWinningResponseState: BelotState = {
       ...respondingState,
       players: respondingState.players.map((player) =>
         player.playerId === "p1"
@@ -1081,13 +1081,13 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(
+      belotCpuCheapSearchCard(
         aceOnlyWinningResponseState.players[0].hand,
         aceOnlyWinningResponseState,
       ).id,
     ).toBe("K-acorns");
 
-    const tenOnlyWinningResponseState: BellotState = {
+    const tenOnlyWinningResponseState: BelotState = {
       ...respondingState,
       players: respondingState.players.map((player) =>
         player.playerId === "p1"
@@ -1101,13 +1101,13 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(
+      belotCpuCheapSearchCard(
         tenOnlyWinningResponseState.players[0].hand,
         tenOnlyWinningResponseState,
       ).id,
     ).toBe("X-acorns");
 
-    const losingResponseState: BellotState = {
+    const losingResponseState: BelotState = {
       ...respondingState,
       players: respondingState.players.map((player) =>
         player.playerId === "p1"
@@ -1121,13 +1121,13 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(
+      belotCpuCheapSearchCard(
         losingResponseState.players[0].hand,
         losingResponseState,
       ).id,
     ).toBe("VII-acorns");
 
-    const leadingState: BellotState = {
+    const leadingState: BelotState = {
       ...respondingState,
       players: respondingState.players.map((player) =>
         player.playerId === "p1"
@@ -1151,10 +1151,10 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(leadingState.players[0].hand, leadingState).id,
+      belotCpuCheapSearchCard(leadingState.players[0].hand, leadingState).id,
     ).toBe("X-bells");
 
-    const equalOrMoreTrumpLeadState: BellotState = {
+    const equalOrMoreTrumpLeadState: BelotState = {
       ...leadingState,
       players: leadingState.players.map((player) =>
         player.playerId === "p2"
@@ -1167,13 +1167,13 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(
+      belotCpuCheapSearchCard(
         equalOrMoreTrumpLeadState.players[0].hand,
         equalOrMoreTrumpLeadState,
       ).id,
     ).toBe("A-acorns");
 
-    const fewerTrumpLeadState: BellotState = {
+    const fewerTrumpLeadState: BelotState = {
       ...equalOrMoreTrumpLeadState,
       players: equalOrMoreTrumpLeadState.players.map((player) =>
         player.playerId === "p2"
@@ -1186,13 +1186,13 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(
+      belotCpuCheapSearchCard(
         fewerTrumpLeadState.players[0].hand,
         fewerTrumpLeadState,
       ).id,
     ).toBe("U-hearts");
 
-    const trumpOnlyLeadState: BellotState = {
+    const trumpOnlyLeadState: BelotState = {
       ...leadingState,
       players: leadingState.players.map((player) =>
         player.playerId === "p1"
@@ -1205,7 +1205,7 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuCheapSearchCard(
+      belotCpuCheapSearchCard(
         trumpOnlyLeadState.players[0].hand,
         trumpOnlyLeadState,
       ).id,
@@ -1213,8 +1213,8 @@ describe("Bellot", () => {
   });
 
   it.skip("plays VIII hearts from the screenshot trick-two lead in at least three of five CPU probes", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1281,8 +1281,8 @@ describe("Bellot", () => {
     let eightHeartsCount = 0;
 
     for (const rngSeed of rngSeeds) {
-      const action = chooseBellotCpuAction(state, "p1", {
-        maxSearchPlies: defaultBellotCpuMaxSearchPlies,
+      const action = chooseBelotCpuAction(state, "p1", {
+        maxSearchPlies: defaultBelotCpuMaxSearchPlies,
         rng: seededRng(rngSeed),
       });
 
@@ -1307,8 +1307,8 @@ describe("Bellot", () => {
   });
 
   it.skip("plays X leaves from the screenshot trick-three response in at least three of five CPU probes", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1379,8 +1379,8 @@ describe("Bellot", () => {
     let tenLeavesCount = 0;
 
     for (const rngSeed of rngSeeds) {
-      const action = chooseBellotCpuAction(state, "p1", {
-        maxSearchPlies: defaultBellotCpuMaxSearchPlies,
+      const action = chooseBelotCpuAction(state, "p1", {
+        maxSearchPlies: defaultBelotCpuMaxSearchPlies,
         monteCarloSamples: 8,
         rng: seededRng(rngSeed),
       });
@@ -1404,8 +1404,8 @@ describe("Bellot", () => {
   });
 
   it("searches only the endpoints of strength-connected non-trump card ranges", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1444,15 +1444,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["VII-hearts", "X-hearts", "O-hearts"]);
   });
 
   it("searches only the cheapest losing response card per suit", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1487,15 +1487,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["VII-acorns", "X-acorns"]);
   });
 
   it("prunes same-suit losing responses before the small search-card return", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1526,15 +1526,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["VII-acorns"]);
   });
 
   it("searches only the higher connected endpoint when both response endpoints win", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1565,15 +1565,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-acorns"]);
   });
 
   it("keeps existing winning response evaluations for an unsupported non-trump ace", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1604,15 +1604,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["K-acorns", "A-acorns"]);
   });
 
   it("searches only the non-trump ace when the ten has already been played", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1652,15 +1652,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-acorns"]);
   });
 
   it("searches only the non-trump ten when it can win and the ace is unavailable", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1691,15 +1691,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["X-acorns"]);
   });
 
   it("keeps both connected response endpoints when only one endpoint wins", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1730,15 +1730,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["O-acorns", "X-acorns"]);
   });
 
   it("searches only the endpoints of a full non-trump suit range", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1778,15 +1778,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["VII-hearts", "A-hearts"]);
   });
 
   it("uses played cards and the upcard to bridge non-trump search ranges", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1834,15 +1834,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["VII-hearts", "A-hearts"]);
   });
 
   it("searches trump connected ranges in trump strength order", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1877,15 +1877,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["A-hearts", "U-hearts"]);
   });
 
   it("searches only the endpoints of a full trump suit range", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1925,15 +1925,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["VII-hearts", "U-hearts"]);
   });
 
   it("uses played cards and the upcard to bridge trump search ranges", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -1980,15 +1980,15 @@ describe("Bellot", () => {
     };
 
     expect(
-      bellotCpuSearchCards(state.players[0].hand, state).map(
+      belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
     ).toEqual(["VII-hearts", "IX-hearts"]);
   });
 
   it("gates voluntary CPU trump calls by rollout success rate", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trump-round-one",
       players: [
         {
@@ -2014,13 +2014,13 @@ describe("Bellot", () => {
       trumpTurnPlayerId: "p1",
       firstPlayerId: "p1",
     };
-    const secondRoundOneTurnState: BellotState = {
+    const secondRoundOneTurnState: BelotState = {
       ...state,
       trumpPasses: ["p2"],
     };
 
     expect(
-      chooseBellotCpuAction(state, "p1", {
+      chooseBelotCpuAction(state, "p1", {
         trumpMinSuccessRate: Number.POSITIVE_INFINITY,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
       }),
@@ -2030,7 +2030,7 @@ describe("Bellot", () => {
     });
 
     expect(
-      chooseBellotCpuAction(secondRoundOneTurnState, "p1", {
+      chooseBelotCpuAction(secondRoundOneTurnState, "p1", {
         trumpMinSuccessRate: 0,
         trumpHighSuccessRate: 0,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
@@ -2041,7 +2041,7 @@ describe("Bellot", () => {
     });
 
     expect(
-      chooseBellotCpuAction(state, "p1", {
+      chooseBelotCpuAction(state, "p1", {
         trumpMinSuccessRate: 0,
         trumpHighSuccessRate: Number.POSITIVE_INFINITY,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
@@ -2052,7 +2052,7 @@ describe("Bellot", () => {
     });
 
     expect(
-      chooseBellotCpuAction(
+      chooseBelotCpuAction(
         {
           ...secondRoundOneTurnState,
           players: secondRoundOneTurnState.players.map((player) =>
@@ -2082,8 +2082,8 @@ describe("Bellot", () => {
   });
 
   it("allows the CPU to pass the second trump round but still choose on mus", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trump-round-two",
       players: [
         {
@@ -2111,7 +2111,7 @@ describe("Bellot", () => {
       trumpRound: 2,
       trumpPasses: ["p1"],
     };
-    const action = chooseBellotCpuAction(state, "p2", {
+    const action = chooseBelotCpuAction(state, "p2", {
       trumpMinSuccessRate: Number.POSITIVE_INFINITY,
       trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
     });
@@ -2120,9 +2120,9 @@ describe("Bellot", () => {
       type: "trump-pass",
       playerId: "p2",
     });
-    expect(applyBellotAction(state, action!).phase).toBe("mus");
+    expect(applyBelotAction(state, action!).phase).toBe("mus");
     expect(
-      chooseBellotCpuAction(
+      chooseBelotCpuAction(
         {
           ...state,
           phase: "mus",
@@ -2141,8 +2141,8 @@ describe("Bellot", () => {
   });
 
   it("does not use hidden pickup card identities during CPU trump selection", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trump-round-one",
       players: [
         {
@@ -2168,7 +2168,7 @@ describe("Bellot", () => {
       trumpTurnPlayerId: "p1",
       firstPlayerId: "p1",
     };
-    const changedHiddenState: BellotState = {
+    const changedHiddenState: BelotState = {
       ...state,
       players: state.players.map((player) =>
         player.playerId === "p1"
@@ -2185,14 +2185,14 @@ describe("Bellot", () => {
       rng: () => 0.5,
     };
 
-    expect(chooseBellotCpuAction(changedHiddenState, "p1", options)).toEqual(
-      chooseBellotCpuAction(state, "p1", options),
+    expect(chooseBelotCpuAction(changedHiddenState, "p1", options)).toEqual(
+      chooseBelotCpuAction(state, "p1", options),
     );
   });
 
   it("does not use hidden pickup cards or the actual opponent hand during CPU trump rollouts", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trump-round-two",
       players: [
         {
@@ -2218,7 +2218,7 @@ describe("Bellot", () => {
       trumpTurnPlayerId: "p1",
       firstPlayerId: "p1",
     };
-    const changedHiddenState: BellotState = {
+    const changedHiddenState: BelotState = {
       ...state,
       players: state.players.map((player) =>
         player.playerId === "p1"
@@ -2239,14 +2239,14 @@ describe("Bellot", () => {
       rng: () => 0.5,
     };
 
-    expect(chooseBellotCpuAction(changedHiddenState, "p1", options)).toEqual(
-      chooseBellotCpuAction(state, "p1", options),
+    expect(chooseBelotCpuAction(changedHiddenState, "p1", options)).toEqual(
+      chooseBelotCpuAction(state, "p1", options),
     );
   });
 
   it("does not use hidden opponent cards or the unused deck for CPU trick decisions", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -2289,7 +2289,7 @@ describe("Bellot", () => {
         p2: [card("O", "hearts")],
       },
     };
-    const changedHiddenState: BellotState = {
+    const changedHiddenState: BelotState = {
       ...state,
       players: state.players.map((player) =>
         player.playerId === "p2"
@@ -2307,14 +2307,14 @@ describe("Bellot", () => {
       rng: () => 0.5,
     };
 
-    expect(chooseBellotCpuAction(changedHiddenState, "p1", options)).toEqual(
-      chooseBellotCpuAction(state, "p1", options),
+    expect(chooseBelotCpuAction(changedHiddenState, "p1", options)).toEqual(
+      chooseBelotCpuAction(state, "p1", options),
     );
   });
 
   it("extends shallow CPU searches to finish the current trick before evaluation", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -2348,7 +2348,7 @@ describe("Bellot", () => {
     };
 
     expect(
-      chooseBellotCpuAction(state, "p1", {
+      chooseBelotCpuAction(state, "p1", {
         maxSearchPlies: 1,
         monteCarloSamples: 1,
         rng: () => 0.5,
@@ -2361,8 +2361,8 @@ describe("Bellot", () => {
   });
 
   it("infers opponent void suits and missing trumps from public trick history", () => {
-    const voidState: BellotState = {
-      ...createBellotInitialState(players),
+    const voidState: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -2400,7 +2400,7 @@ describe("Bellot", () => {
       publicCardsByPlayer: { p1: [], p2: [] },
     };
     const voidImpossibleCards = new Set(
-      inferBellotCpuImpossibleOpponentCardIds(voidState, "p2"),
+      inferBelotCpuImpossibleOpponentCardIds(voidState, "p2"),
     );
 
     for (const rank of ["VII", "VIII", "IX", "X", "U", "O", "K", "A"]) {
@@ -2408,7 +2408,7 @@ describe("Bellot", () => {
       expect(voidImpossibleCards.has(`${rank}-hearts`)).toBe(true);
     }
 
-    const trumpedState: BellotState = {
+    const trumpedState: BelotState = {
       ...voidState,
       completedTricks: [
         {
@@ -2421,7 +2421,7 @@ describe("Bellot", () => {
       ],
     };
     const trumpedImpossibleCards = new Set(
-      inferBellotCpuImpossibleOpponentCardIds(trumpedState, "p2"),
+      inferBelotCpuImpossibleOpponentCardIds(trumpedState, "p2"),
     );
 
     for (const rank of ["VII", "VIII", "IX", "X", "U", "O", "K", "A"]) {
@@ -2430,7 +2430,7 @@ describe("Bellot", () => {
     expect(trumpedImpossibleCards.has("U-hearts")).toBe(false);
     expect(trumpedImpossibleCards.has("A-hearts")).toBe(false);
 
-    const trumpResponseState: BellotState = {
+    const trumpResponseState: BelotState = {
       ...voidState,
       completedTricks: [
         {
@@ -2443,7 +2443,7 @@ describe("Bellot", () => {
       ],
     };
     const trumpResponseImpossibleCards = new Set(
-      inferBellotCpuImpossibleOpponentCardIds(trumpResponseState, "p2"),
+      inferBelotCpuImpossibleOpponentCardIds(trumpResponseState, "p2"),
     );
 
     expect(trumpResponseImpossibleCards.has("U-hearts")).toBe(false);
@@ -2451,8 +2451,8 @@ describe("Bellot", () => {
   });
 
   it("infers cheaper same-suit cards are unavailable after costly lost responses", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -2490,7 +2490,7 @@ describe("Bellot", () => {
       publicCardsByPlayer: { p1: [], p2: [] },
     };
     const impossibleCards = new Set(
-      inferBellotCpuImpossibleOpponentCardIds(state, "p2"),
+      inferBelotCpuImpossibleOpponentCardIds(state, "p2"),
     );
 
     expect(impossibleCards.has("K-acorns")).toBe(true);
@@ -2501,8 +2501,8 @@ describe("Bellot", () => {
   });
 
   it("keeps cheaper same-suit cards possible when later play history disproves the costly response inference", () => {
-    const state: BellotState = {
-      ...createBellotInitialState(players),
+    const state: BelotState = {
+      ...createBelotInitialState(players),
       phase: "trick-play",
       players: [
         {
@@ -2547,7 +2547,7 @@ describe("Bellot", () => {
       publicCardsByPlayer: { p1: [], p2: [] },
     };
     const impossibleCards = new Set(
-      inferBellotCpuImpossibleOpponentCardIds(state, "p2"),
+      inferBelotCpuImpossibleOpponentCardIds(state, "p2"),
     );
 
     expect(impossibleCards.has("K-acorns")).toBe(false);
@@ -2556,7 +2556,7 @@ describe("Bellot", () => {
   });
 
   it("passes the caller when caller total is strictly greater", () => {
-    const result = calculateBellotHandResult(
+    const result = calculateBelotHandResult(
       scoringState({
         p1WonCards: [
           card("U", "hearts"),
@@ -2587,7 +2587,7 @@ describe("Bellot", () => {
   });
 
   it("implements the caller fall scoring branches, including mus and schuster", () => {
-    const fellByDeclarations = calculateBellotHandResult(
+    const fellByDeclarations = calculateBelotHandResult(
       scoringState({
         p1WonCards: [
           card("U", "hearts"),
@@ -2633,7 +2633,7 @@ describe("Bellot", () => {
       fellByDeclarations.totalPointsByPlayer.p2,
     );
 
-    const fellOnGame = calculateBellotHandResult(
+    const fellOnGame = calculateBelotHandResult(
       scoringState({
         p1WonCards: [card("A", "acorns"), card("K", "acorns")],
         p2WonCards: [
@@ -2656,7 +2656,7 @@ describe("Bellot", () => {
       fellOnGame.totalPointsByPlayer.p1 + fellOnGame.totalPointsByPlayer.p2,
     );
 
-    const musSchuster = calculateBellotHandResult(
+    const musSchuster = calculateBelotHandResult(
       scoringState({
         isMus: true,
         p1WonCards: [],
@@ -2678,7 +2678,7 @@ describe("Bellot", () => {
     );
     expect(musSchuster.schusterPlayerIds).toEqual(["p1"]);
 
-    const schusterWithDeclarations = calculateBellotHandResult(
+    const schusterWithDeclarations = calculateBelotHandResult(
       scoringState({
         callerPlayerId: "p2",
         p1WonCards: [],
@@ -2721,7 +2721,7 @@ describe("Bellot", () => {
   });
 
   it("finishes at 501 only when there is a winner after the hand", () => {
-    const state: BellotState = {
+    const state: BelotState = {
       ...scoringState({
         p1WonCards: [card("A", "acorns")],
         p2WonCards: [card("VII", "bells")],
@@ -2760,8 +2760,8 @@ describe("Bellot", () => {
       declarationsByPlayer: { p1: [], p2: [] },
     };
 
-    const finished = applyBellotAction(
-      applyBellotAction(state, {
+    const finished = applyBelotAction(
+      applyBelotAction(state, {
         type: "play-card",
         playerId: "p1",
         cardId: "A-acorns",
@@ -2774,7 +2774,7 @@ describe("Bellot", () => {
   });
 
   it("continues with another hand when both players are tied after crossing 501", () => {
-    const state: BellotState = {
+    const state: BelotState = {
       ...scoringState({
         p1WonCards: [card("X", "acorns")],
         p2WonCards: [card("A", "bells"), card("X", "bells")],
@@ -2813,8 +2813,8 @@ describe("Bellot", () => {
       declarationsByPlayer: { p1: [], p2: [] },
     };
 
-    const tiedAfterHand = applyBellotAction(
-      applyBellotAction(state, {
+    const tiedAfterHand = applyBelotAction(
+      applyBelotAction(state, {
         type: "play-card",
         playerId: "p1",
         cardId: "A-acorns",

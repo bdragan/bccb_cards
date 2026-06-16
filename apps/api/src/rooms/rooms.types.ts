@@ -1,4 +1,4 @@
-import type { BellotState, GreaterCardState } from "@card-games/game-core";
+import type { BelotState, GreaterCardState } from "@card-games/game-core";
 import type { GameId } from "@card-games/shared";
 
 export type RoomPlayer = {
@@ -12,7 +12,7 @@ export type Room = {
   code: string;
   gameId: GameId;
   players: RoomPlayer[];
-  state: GreaterCardState | BellotState;
+  state: GreaterCardState | BelotState;
   createdAt: Date;
   persistedMatchId?: string;
 };

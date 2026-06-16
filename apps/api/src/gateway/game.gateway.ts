@@ -1,8 +1,8 @@
 import {
   type Ack,
-  bellotDeclarePayloadSchema,
-  bellotPlayCardPayloadSchema,
-  bellotTrumpDecisionPayloadSchema,
+  belotDeclarePayloadSchema,
+  belotPlayCardPayloadSchema,
+  belotTrumpDecisionPayloadSchema,
   createRoomPayloadSchema,
   joinRoomPayloadSchema,
   readyPayloadSchema,
@@ -157,15 +157,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage("bellot:trump-decision")
-  async handleBellotTrumpDecision(
+  @SubscribeMessage("belot:trump-decision")
+  async handleBelotTrumpDecision(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, async () => {
-      const body = bellotTrumpDecisionPayloadSchema.parse(payload);
+      const body = belotTrumpDecisionPayloadSchema.parse(payload);
       const user = this.requireUser(client);
-      await this.roomsService.bellotTrumpDecision(
+      await this.roomsService.belotTrumpDecision(
         body.roomId,
         user.id,
         body.kind === "choose-suit"
@@ -177,15 +177,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage("bellot:declare")
-  async handleBellotDeclare(
+  @SubscribeMessage("belot:declare")
+  async handleBelotDeclare(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, async () => {
-      const body = bellotDeclarePayloadSchema.parse(payload);
+      const body = belotDeclarePayloadSchema.parse(payload);
       const user = this.requireUser(client);
-      await this.roomsService.bellotDeclare(
+      await this.roomsService.belotDeclare(
         body.roomId,
         user.id,
         body.declarations,
@@ -195,29 +195,29 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage("bellot:play-card")
-  async handleBellotPlayCard(
+  @SubscribeMessage("belot:play-card")
+  async handleBelotPlayCard(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, async () => {
-      const body = bellotPlayCardPayloadSchema.parse(payload);
+      const body = belotPlayCardPayloadSchema.parse(payload);
       const user = this.requireUser(client);
-      await this.roomsService.bellotPlayCard(body.roomId, user.id, body.cardId);
+      await this.roomsService.belotPlayCard(body.roomId, user.id, body.cardId);
       this.emitRoom(body.roomId);
       return { ok: true };
     });
   }
 
-  @SubscribeMessage("bellot:next-hand")
-  async handleBellotNextHand(
+  @SubscribeMessage("belot:next-hand")
+  async handleBelotNextHand(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: unknown,
   ): Promise<Ack<{ ok: true }>> {
     return this.safe(client, async () => {
       const body = roomIdPayloadSchema.parse(payload);
       this.requireUser(client);
-      await this.roomsService.bellotNextHand(body.roomId);
+      await this.roomsService.belotNextHand(body.roomId);
       this.emitRoom(body.roomId);
       return { ok: true };
     });

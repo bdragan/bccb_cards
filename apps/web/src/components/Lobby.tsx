@@ -4,7 +4,7 @@ import { Button } from "./Button";
 
 const gameNames: Record<RoomPublicState["gameId"], string> = {
   "greater-card": "GreaterCard",
-  bellot: "Bellot",
+  belot: "Belot",
 };
 
 export function Lobby({

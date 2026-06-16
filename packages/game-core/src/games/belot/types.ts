@@ -1,12 +1,12 @@
 import type {
-  BellotDeclaration,
-  BellotDeclarationType,
+  BelotDeclaration,
+  BelotDeclarationType,
   Card,
   PlayerRef,
   Suit,
 } from "@card-games/shared";
 
-export type BellotPhase =
+export type BelotPhase =
   | "waiting-for-players"
   | "ready-check"
   | "trump-round-one"
@@ -18,7 +18,7 @@ export type BellotPhase =
   | "finished"
   | "error";
 
-export type BellotPlayerState = PlayerRef & {
+export type BelotPlayerState = PlayerRef & {
   ready: boolean;
   hand: Card[];
   hiddenCards: Card[];
@@ -28,17 +28,17 @@ export type BellotPlayerState = PlayerRef & {
   totalScore: number;
 };
 
-export type BellotTrickPlay = {
+export type BelotTrickPlay = {
   playerId: string;
   card: Card;
 };
 
-export type BellotCompletedTrick = {
+export type BelotCompletedTrick = {
   winnerPlayerId: string;
-  cards: BellotTrickPlay[];
+  cards: BelotTrickPlay[];
 };
 
-export type BellotHandResult = {
+export type BelotHandResult = {
   dealerPlayerId?: string;
   callerPlayerId: string;
   opponentPlayerId: string;
@@ -54,12 +54,12 @@ export type BellotHandResult = {
   lastTrickWinnerPlayerId: string;
 };
 
-export type BellotState = {
-  gameId: "bellot";
-  phase: BellotPhase;
+export type BelotState = {
+  gameId: "belot";
+  phase: BelotPhase;
   deck: Card[];
   unusedCards: Card[];
-  players: BellotPlayerState[];
+  players: BelotPlayerState[];
   dealerPlayerId?: string;
   firstPlayerId?: string;
   trumpSuit?: Suit;
@@ -70,19 +70,19 @@ export type BellotState = {
   trumpTurnPlayerId?: string;
   trumpPasses: string[];
   currentTurnPlayerId?: string;
-  currentTrick: BellotTrickPlay[];
-  completedTricks: BellotCompletedTrick[];
-  declarationsByPlayer: Record<string, BellotDeclaration[]>;
+  currentTrick: BelotTrickPlay[];
+  completedTricks: BelotCompletedTrick[];
+  declarationsByPlayer: Record<string, BelotDeclaration[]>;
   publicCardsByPlayer: Record<string, Card[]>;
-  lastHandResult?: BellotHandResult;
-  handResults?: BellotHandResult[];
+  lastHandResult?: BelotHandResult;
+  handResults?: BelotHandResult[];
   winnerPlayerId?: string;
   createdAt: string;
   finishedAt?: string;
   error?: string;
 };
 
-export type BellotAction =
+export type BelotAction =
   | {
       type: "sync-players";
       players: Array<{ playerId: string; displayName: string }>;
@@ -94,14 +94,14 @@ export type BellotAction =
   | {
       type: "declare";
       playerId: string;
-      declarations: BellotDeclaration[];
+      declarations: BelotDeclaration[];
     }
   | { type: "play-card"; playerId: string; cardId: string }
   | { type: "next-hand" }
   | { type: "restart" };
 
-export type BellotDeclarationCandidate = {
-  type: BellotDeclarationType;
+export type BelotDeclarationCandidate = {
+  type: BelotDeclarationType;
   cards: Card[];
   points: number;
 };

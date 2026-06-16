@@ -2,18 +2,18 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 
 const password = "password123";
 
-test("plays a complete Bellot game through the browser", async ({
+test("plays a complete Belot game through the browser", async ({
   browser,
 }) => {
   test.setTimeout(180_000);
 
   const runId = `${Date.now()}-${test.info().workerIndex}`;
   const playerOne = await newPlayer(browser, {
-    email: `bellot-p1-${runId}@example.test`,
+    email: `belot-p1-${runId}@example.test`,
     displayName: "E2E Player One",
   });
   const playerTwo = await newPlayer(browser, {
-    email: `bellot-p2-${runId}@example.test`,
+    email: `belot-p2-${runId}@example.test`,
     displayName: "E2E Player Two",
   });
 
@@ -33,16 +33,16 @@ test("plays a complete Bellot game through the browser", async ({
 
   await playerOne.getByRole("button", { name: "Ready" }).click();
   await playerTwo.getByRole("button", { name: "Ready" }).click();
-  await expect(playerOne.getByTestId("bellot-status")).toBeVisible();
-  await expect(playerTwo.getByTestId("bellot-status")).toBeVisible();
+  await expect(playerOne.getByTestId("belot-status")).toBeVisible();
+  await expect(playerTwo.getByTestId("belot-status")).toBeVisible();
 
   await chooseTrump([playerOne, playerTwo]);
   await playUntilFinished([playerOne, playerTwo]);
 
-  await expect(playerOne.getByTestId("bellot-status")).toContainText(
+  await expect(playerOne.getByTestId("belot-status")).toContainText(
     "Status: finished",
   );
-  await expect(playerTwo.getByTestId("bellot-status")).toContainText(
+  await expect(playerTwo.getByTestId("belot-status")).toContainText(
     "Status: finished",
   );
   await expect(
@@ -90,7 +90,7 @@ async function chooseTrump(players: Page[]) {
 
       if (await acceptButton.isVisible().catch(() => false)) {
         await acceptButton.click();
-        await expect(player.getByTestId("bellot-status")).toContainText(
+        await expect(player.getByTestId("belot-status")).toContainText(
           /Status: (declarations|trick play)/,
         );
         return;
@@ -107,7 +107,7 @@ async function playUntilFinished(players: Page[]) {
   for (let action = 0; action < 500; action += 1) {
     await assertNoDeclarationError(players);
 
-    const status = await players[0].getByTestId("bellot-status").innerText();
+    const status = await players[0].getByTestId("belot-status").innerText();
 
     if (status.includes("finished")) {
       return;
@@ -120,7 +120,7 @@ async function playUntilFinished(players: Page[]) {
     }
 
     if (status.includes("declarations")) {
-      await expect(players[0].getByTestId("bellot-status")).toContainText(
+      await expect(players[0].getByTestId("belot-status")).toContainText(
         "Status: trick play",
         { timeout: 10_000 },
       );
@@ -135,12 +135,12 @@ async function playUntilFinished(players: Page[]) {
       }
 
       const playableCard = currentPlayer
-        .locator('[data-testid="bellot-hand-card"]:not([disabled])')
+        .locator('[data-testid="belot-hand-card"]:not([disabled])')
         .first();
 
       await expect(playableCard).toBeVisible({ timeout: 10_000 });
       if (
-        !(await players[0].getByTestId("bellot-status").innerText()).includes(
+        !(await players[0].getByTestId("belot-status").innerText()).includes(
           "trick play",
         )
       ) {
@@ -156,15 +156,15 @@ async function playUntilFinished(players: Page[]) {
       continue;
     }
 
-    throw new Error(`Unexpected Bellot status: ${status}`);
+    throw new Error(`Unexpected Belot status: ${status}`);
   }
 
-  throw new Error("Bellot game did not finish within 500 player actions");
+  throw new Error("Belot game did not finish within 500 player actions");
 }
 
 async function playerWithPlayableCard(players: Page[]) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const status = await players[0].getByTestId("bellot-status").innerText();
+    const status = await players[0].getByTestId("belot-status").innerText();
 
     if (!status.includes("trick play")) {
       return undefined;
@@ -172,7 +172,7 @@ async function playerWithPlayableCard(players: Page[]) {
 
     for (const player of players) {
       const playableCards = player.locator(
-        '[data-testid="bellot-hand-card"]:not([disabled])',
+        '[data-testid="belot-hand-card"]:not([disabled])',
       );
 
       if ((await playableCards.count()) > 0) {

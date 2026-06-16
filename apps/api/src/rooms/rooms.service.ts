@@ -1,23 +1,23 @@
 import { randomUUID } from "node:crypto";
 
 import {
-  applyBellotAction,
+  applyBelotAction,
   applyGreaterCardAction,
-  bellotDefinition,
-  bellotResult,
+  belotDefinition,
+  belotResult,
   cardValue,
-  createBellotInitialState,
+  createBelotInitialState,
   createGreaterCardInitialState,
-  getBellotPublicState,
+  getBelotPublicState,
   getGreaterCardPublicState,
   greaterCardDefinition,
   greaterCardResult,
   listGames,
 } from "@card-games/game-core";
 import type {
-  BellotDeclaration,
-  BellotPublicState,
-  BellotResult,
+  BelotDeclaration,
+  BelotPublicState,
+  BelotResult,
   GameId,
   GamePublicState,
   GameResult,
@@ -37,7 +37,7 @@ import { MatchesService } from "../matches/matches.service";
 import type { Room, RoomPlayer } from "./rooms.types";
 
 type RoomGameAction =
-  | Parameters<typeof applyBellotAction>[1]
+  | Parameters<typeof applyBelotAction>[1]
   | Parameters<typeof applyGreaterCardAction>[1];
 
 function randomId(prefix: string) {
@@ -164,7 +164,7 @@ export class RoomsService {
     return room;
   }
 
-  async bellotTrumpDecision(
+  async belotTrumpDecision(
     roomId: string,
     playerId: string,
     decision:
@@ -173,7 +173,7 @@ export class RoomsService {
       | { kind: "choose-suit"; suit: Suit },
   ) {
     const room = this.getRoom(roomId);
-    this.ensureBellotRoom(room);
+    this.ensureBelotRoom(room);
 
     if (decision.kind === "pass") {
       room.state = await this.applyActionAndPersist(room, {
@@ -196,15 +196,15 @@ export class RoomsService {
     return room;
   }
 
-  async bellotDeclare(
+  async belotDeclare(
     roomId: string,
     playerId: string,
-    declarations: BellotDeclaration[],
+    declarations: BelotDeclaration[],
   ) {
     const room = this.getRoom(roomId);
-    if (room.state.gameId !== "bellot") {
+    if (room.state.gameId !== "belot") {
       throw new BadRequestException(
-        "Bellot action is not supported for this game",
+        "Belot action is not supported for this game",
       );
     }
 
@@ -226,9 +226,9 @@ export class RoomsService {
     return room;
   }
 
-  async bellotPlayCard(roomId: string, playerId: string, cardId: string) {
+  async belotPlayCard(roomId: string, playerId: string, cardId: string) {
     const room = this.getRoom(roomId);
-    this.ensureBellotRoom(room);
+    this.ensureBelotRoom(room);
     room.state = await this.applyActionAndPersist(room, {
       type: "play-card",
       playerId,
@@ -237,9 +237,9 @@ export class RoomsService {
     return room;
   }
 
-  async bellotNextHand(roomId: string) {
+  async belotNextHand(roomId: string) {
     const room = this.getRoom(roomId);
-    this.ensureBellotRoom(room);
+    this.ensureBelotRoom(room);
     room.state = await this.applyActionAndPersist(room, { type: "next-hand" });
     return room;
   }
@@ -284,18 +284,18 @@ export class RoomsService {
   }
 
   publicGameState(room: Room, viewerPlayerId: string): GamePublicState {
-    if (room.state.gameId === "bellot") {
-      return getBellotPublicState(room.state, viewerPlayerId);
+    if (room.state.gameId === "belot") {
+      return getBelotPublicState(room.state, viewerPlayerId);
     }
 
     return getGreaterCardPublicState(room.state, viewerPlayerId);
   }
 
   result(room: Room): GameResult {
-    if (room.state.gameId === "bellot") {
+    if (room.state.gameId === "belot") {
       return {
         roomId: room.id,
-        ...bellotResult(room.state),
+        ...belotResult(room.state),
       };
     }
 
@@ -330,7 +330,7 @@ export class RoomsService {
                 card: player.card,
                 score: player.card ? cardValue(player.card) : undefined,
               }))
-            : (result as BellotResult).players.map((player) => ({
+            : (result as BelotResult).players.map((player) => ({
                 playerId: player.playerId,
                 outcome: player.outcome,
                 score: player.score,
@@ -341,16 +341,16 @@ export class RoomsService {
   }
 
   private createInitialState(gameId: GameId, players: PlayerRef[]) {
-    if (gameId === "bellot") {
-      return createBellotInitialState(players);
+    if (gameId === "belot") {
+      return createBelotInitialState(players);
     }
 
     return createGreaterCardInitialState(players);
   }
 
   private maxPlayers(gameId: GameId) {
-    return gameId === "bellot"
-      ? bellotDefinition.maxPlayers
+    return gameId === "belot"
+      ? belotDefinition.maxPlayers
       : greaterCardDefinition.maxPlayers;
   }
 
@@ -360,8 +360,8 @@ export class RoomsService {
       displayName: player.displayName,
     }));
 
-    if (room.state.gameId === "bellot") {
-      return applyBellotAction(room.state, { type: "sync-players", players });
+    if (room.state.gameId === "belot") {
+      return applyBelotAction(room.state, { type: "sync-players", players });
     }
 
     return applyGreaterCardAction(room.state, {
@@ -371,10 +371,10 @@ export class RoomsService {
   }
 
   private applyAction(room: Room, action: RoomGameAction) {
-    if (room.state.gameId === "bellot") {
-      return applyBellotAction(
+    if (room.state.gameId === "belot") {
+      return applyBelotAction(
         room.state,
-        action as Parameters<typeof applyBellotAction>[1],
+        action as Parameters<typeof applyBelotAction>[1],
       );
     }
 
@@ -386,13 +386,13 @@ export class RoomsService {
 
   private async applyActionAndPersist(room: Room, action: RoomGameAction) {
     const wasFinished =
-      room.state.gameId === "bellot"
-        ? bellotDefinition.isFinished(room.state)
+      room.state.gameId === "belot"
+        ? belotDefinition.isFinished(room.state)
         : greaterCardDefinition.isFinished(room.state);
     const nextState = this.applyAction(room, action);
     const isFinished =
-      nextState.gameId === "bellot"
-        ? bellotDefinition.isFinished(nextState)
+      nextState.gameId === "belot"
+        ? belotDefinition.isFinished(nextState)
         : greaterCardDefinition.isFinished(nextState);
 
     room.state = nextState;
@@ -404,10 +404,10 @@ export class RoomsService {
     return nextState;
   }
 
-  private ensureBellotRoom(room: Room) {
-    if (room.state.gameId !== "bellot") {
+  private ensureBelotRoom(room: Room) {
+    if (room.state.gameId !== "belot") {
       throw new BadRequestException(
-        "Bellot action is not supported for this game",
+        "Belot action is not supported for this game",
       );
     }
   }

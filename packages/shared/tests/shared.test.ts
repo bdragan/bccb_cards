@@ -10,7 +10,7 @@ import {
 describe("shared schemas", () => {
   it("accept valid socket payloads", () => {
     expect(
-      createRoomPayloadSchema.safeParse({ gameId: "bellot" }).success,
+      createRoomPayloadSchema.safeParse({ gameId: "belot" }).success,
     ).toBe(true);
     expect(
       joinRoomPayloadSchema.safeParse({ roomCode: "ABCD12" }).success,
@@ -35,7 +35,7 @@ describe("shared schemas", () => {
     ).toBe(false);
   });
 
-  it("registers Bellot as the only game id", () => {
-    expect(gameIds).toEqual(["bellot"]);
+  it("registers Belot as the only game id", () => {
+    expect(gameIds).toEqual(["belot"]);
   });
 });

@@ -3,30 +3,30 @@ import { suits } from "@card-games/shared";
 
 import { createDeck, shuffleDeck } from "../../cards/deck";
 import {
-  applyBellotAction,
-  autoSelectBellotDeclarations,
-  bellotCardPoints,
-  compareBellotCards,
-  legalBellotCards,
-} from "./bellot";
+  applyBelotAction,
+  autoSelectBelotDeclarations,
+  belotCardPoints,
+  compareBelotCards,
+  legalBelotCards,
+} from "./belot";
 import {
-  bellotHandPlayAlphaBetaResult,
-  bellotHandPlayAlphaBetaValue,
-  bellotHandPlaySearchMaxUtility,
-  createBellotHandPlaySearchContext,
+  belotHandPlayAlphaBetaResult,
+  belotHandPlayAlphaBetaValue,
+  belotHandPlaySearchMaxUtility,
+  createBelotHandPlaySearchContext,
 } from "./hand-play-search";
 import type {
-  BellotHandPlaySearchContext,
-  BellotHandPlaySearchPolicy,
+  BelotHandPlaySearchContext,
+  BelotHandPlaySearchPolicy,
 } from "./hand-play-search";
 import type {
-  BellotAction,
-  BellotPlayerState,
-  BellotState,
-  BellotTrickPlay,
+  BelotAction,
+  BelotPlayerState,
+  BelotState,
+  BelotTrickPlay,
 } from "./types";
 
-export type BellotCpuOptions = {
+export type BelotCpuOptions = {
   maxSearchPlies?: number;
   monteCarloSamples?: number;
   rng?: () => number;
@@ -38,7 +38,7 @@ export type BellotCpuOptions = {
   trumpMinExpectedValue?: number;
 };
 
-export const defaultBellotCpuMaxSearchPlies = 14;
+export const defaultBelotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
 const trumpMonteCarloSampleMultiplier = 1.5;
 const defaultTrumpMinSuccessRate = 0.85;
@@ -48,7 +48,7 @@ const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
-const bellotDeck = createDeck();
+const belotDeck = createDeck();
 const trumpSearchRankGroups: Rank[][] = [
   ["VII", "VIII", "O", "K", "X", "A", "IX", "U"],
 ];
@@ -79,19 +79,19 @@ type TrumpCallThresholds = {
   minExpectedValue: number;
 };
 
-export type BellotCpuRootCardSampleStats = {
+export type BelotCpuRootCardSampleStats = {
   sampleCount: number;
   successCount: number;
   totalWinningValue: number;
 };
 
-type BellotRootSampleSearchResult = {
+type BelotRootSampleSearchResult = {
   bestCardId: string;
   bestValue: number;
   searchedCardIds: string[];
 };
 
-export function bellotCpuMonteCarloSampleLimit(
+export function belotCpuMonteCarloSampleLimit(
   baseSampleCount: number,
   remainingHandCards: number,
 ) {
@@ -107,8 +107,8 @@ export function bellotCpuMonteCarloSampleLimit(
   );
 }
 
-export function bellotCpuTrumpMonteCarloSamples(
-  options: BellotCpuOptions = {},
+export function belotCpuTrumpMonteCarloSamples(
+  options: BelotCpuOptions = {},
 ) {
   return (
     options.trumpMonteCarloSamples ??
@@ -117,17 +117,17 @@ export function bellotCpuTrumpMonteCarloSamples(
   );
 }
 
-export function chooseBellotCpuAction(
-  state: BellotState,
+export function chooseBelotCpuAction(
+  state: BelotState,
   cpuPlayerId: string,
-  options: BellotCpuOptions = {},
-): BellotAction | undefined {
+  options: BelotCpuOptions = {},
+): BelotAction | undefined {
   const player = state.players.find(
     (candidate) => candidate.playerId === cpuPlayerId,
   );
 
   if (!player) {
-    throw new Error("CPU player is not in this Bellot game");
+    throw new Error("CPU player is not in this Belot game");
   }
 
   if (state.trumpTurnPlayerId === cpuPlayerId) {
@@ -145,7 +145,7 @@ export function chooseBellotCpuAction(
     return {
       type: "declare",
       playerId: cpuPlayerId,
-      declarations: autoSelectBellotDeclarations(player.hand, state.trumpSuit),
+      declarations: autoSelectBelotDeclarations(player.hand, state.trumpSuit),
     };
   }
 
@@ -164,8 +164,8 @@ export function chooseBellotCpuAction(
   return undefined;
 }
 
-export function inferBellotCpuImpossibleOpponentCardIds(
-  state: BellotState,
+export function inferBelotCpuImpossibleOpponentCardIds(
+  state: BelotState,
   opponentPlayerId: string,
 ) {
   return [
@@ -174,10 +174,10 @@ export function inferBellotCpuImpossibleOpponentCardIds(
 }
 
 function chooseTrumpAction(
-  state: BellotState,
-  player: BellotPlayerState,
-  options: BellotCpuOptions,
-): BellotAction | undefined {
+  state: BelotState,
+  player: BelotPlayerState,
+  options: BelotCpuOptions,
+): BelotAction | undefined {
   const rng = options.rng ?? Math.random;
   const minExpectedValue =
     options.trumpMinExpectedValue ?? defaultTrumpMinExpectedValue;
@@ -283,18 +283,18 @@ function chooseTrumpAction(
 }
 
 function trumpSuitCandidates(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   candidateSuits: readonly Suit[],
   isMus: boolean,
-  options: BellotCpuOptions,
+  options: BelotCpuOptions,
   rng: () => number,
 ) {
   const cpu = playerById(state, cpuPlayerId);
   const samples = createTrumpRolloutSamples(
     state,
     cpuPlayerId,
-    Math.max(1, bellotCpuTrumpMonteCarloSamples(options)),
+    Math.max(1, belotCpuTrumpMonteCarloSamples(options)),
     rng,
   );
   const candidates = candidateSuits
@@ -320,11 +320,11 @@ function trumpSuitCandidates(
 }
 
 function scoreTrumpCandidate(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   trumpSuit: Suit,
   isMus: boolean,
-  options: BellotCpuOptions,
+  options: BelotCpuOptions,
   samples: TrumpRolloutSample[],
 ) {
   return averageTrumpRolloutScore(
@@ -439,11 +439,11 @@ function compareTrumpCandidates(
 }
 
 function averageTrumpRolloutScore(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   trumpSuit: Suit,
   isMus: boolean,
-  options: BellotCpuOptions,
+  options: BelotCpuOptions,
   samples: TrumpRolloutSample[],
 ): TrumpCandidateScore {
   const rolloutStates = samples.map((sample) =>
@@ -452,18 +452,18 @@ function averageTrumpRolloutScore(
   const searchPlies =
     options.trumpSearchPlies ??
     options.maxSearchPlies ??
-    defaultBellotCpuMaxSearchPlies;
-  const searchContext = createBellotHandPlaySearchContext(
+    defaultBelotCpuMaxSearchPlies;
+  const searchContext = createBelotHandPlaySearchContext(
     searchPlies,
-    bellotCpuHandPlaySearchPolicy,
+    belotCpuHandPlaySearchPolicy,
   );
   const results = rolloutStates.map((sample) =>
-    bellotHandPlayAlphaBetaResult(
+    belotHandPlayAlphaBetaResult(
       sample,
       cpuPlayerId,
       searchPlies,
-      -bellotHandPlaySearchMaxUtility,
-      bellotHandPlaySearchMaxUtility,
+      -belotHandPlaySearchMaxUtility,
+      belotHandPlaySearchMaxUtility,
       searchContext,
     ),
   );
@@ -483,7 +483,7 @@ function averageTrumpRolloutScore(
 }
 
 function createTrumpRolloutSamples(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   sampleCount: number,
   rng: () => number,
@@ -521,7 +521,7 @@ function createTrumpRolloutSamples(
 }
 
 function createTrumpRolloutState(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   trumpSuit: Suit,
   isMus: boolean,
@@ -538,8 +538,8 @@ function createTrumpRolloutState(
 
   const sampledCpuHand = [...cpu.hand, ...sample.cpuHiddenCards];
   const declarationsByPlayer = {
-    [cpuPlayerId]: autoSelectBellotDeclarations(sampledCpuHand, trumpSuit),
-    [opponent.playerId]: autoSelectBellotDeclarations(
+    [cpuPlayerId]: autoSelectBelotDeclarations(sampledCpuHand, trumpSuit),
+    [opponent.playerId]: autoSelectBelotDeclarations(
       sample.opponentHand,
       trumpSuit,
     ),
@@ -570,16 +570,16 @@ function createTrumpRolloutState(
 }
 
 function chooseCardForTrick(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
-  options: BellotCpuOptions,
+  options: BelotCpuOptions,
 ) {
   if (!state.trumpSuit) {
     throw new Error("Cannot choose a card before trump is selected");
   }
 
   const cpu = playerById(state, cpuPlayerId);
-  const legalCards = legalBellotCards(
+  const legalCards = legalBelotCards(
     cpu.hand,
     state.currentTrick,
     state.trumpSuit,
@@ -595,25 +595,25 @@ function chooseCardForTrick(
 
   const rng = options.rng ?? Math.random;
   const maxSearchPlies =
-    options.maxSearchPlies ?? defaultBellotCpuMaxSearchPlies;
+    options.maxSearchPlies ?? defaultBelotCpuMaxSearchPlies;
   const samples = createDeterminizedStates(
     state,
     cpuPlayerId,
-    bellotCpuMonteCarloSampleLimit(
+    belotCpuMonteCarloSampleLimit(
       options.monteCarloSamples ?? defaultMonteCarloSamples,
       cpu.hand.length,
     ),
     rng,
   );
-  const searchCards = bellotCpuSearchCards(legalCards, state);
+  const searchCards = belotCpuSearchCards(legalCards, state);
   const rootCardStats = createRootCardSampleStats(searchCards);
-  const searchContext = createBellotHandPlaySearchContext(
+  const searchContext = createBelotHandPlaySearchContext(
     maxSearchPlies,
-    bellotCpuHandPlaySearchPolicy,
+    belotCpuHandPlaySearchPolicy,
   );
 
   for (const sample of samples) {
-    const sampleSearchCards = bellotCpuSearchCards(searchCards, sample);
+    const sampleSearchCards = belotCpuSearchCards(searchCards, sample);
 
     updateRootCardSampleStats(
       rootCardStats,
@@ -628,42 +628,42 @@ function chooseCardForTrick(
     );
   }
 
-  return bellotCpuOrderRootCardsForSearch(searchCards, state, rootCardStats)[0];
+  return belotCpuOrderRootCardsForSearch(searchCards, state, rootCardStats)[0];
 }
 
 function searchRootCardsForSample(
-  sample: BellotState,
+  sample: BelotState,
   cpuPlayerId: string,
   rootCards: Card[],
-  rootCardStats: ReadonlyMap<string, BellotCpuRootCardSampleStats>,
+  rootCardStats: ReadonlyMap<string, BelotCpuRootCardSampleStats>,
   maxSearchPlies: number,
-  searchContext: BellotHandPlaySearchContext,
-): BellotRootSampleSearchResult {
-  let alpha = -bellotHandPlaySearchMaxUtility;
+  searchContext: BelotHandPlaySearchContext,
+): BelotRootSampleSearchResult {
+  let alpha = -belotHandPlaySearchMaxUtility;
   let bestCardId = rootCards[0]?.id;
-  let bestValue = -bellotHandPlaySearchMaxUtility;
+  let bestValue = -belotHandPlaySearchMaxUtility;
   const searchedCardIds: string[] = [];
 
   if (!bestCardId) {
     throw new Error("CPU has no root cards to search");
   }
 
-  for (const card of bellotCpuOrderRootCardsForSearch(
+  for (const card of belotCpuOrderRootCardsForSearch(
     rootCards,
     sample,
     rootCardStats,
   )) {
-    const next = applyBellotAction(sample, {
+    const next = applyBelotAction(sample, {
       type: "play-card",
       playerId: cpuPlayerId,
       cardId: card.id,
     });
-    const value = bellotHandPlayAlphaBetaValue(
+    const value = belotHandPlayAlphaBetaValue(
       next,
       cpuPlayerId,
       maxSearchPlies - 1,
       alpha,
-      bellotHandPlaySearchMaxUtility,
+      belotHandPlaySearchMaxUtility,
       searchContext,
     );
 
@@ -679,7 +679,7 @@ function searchRootCardsForSample(
   return { bestCardId, bestValue, searchedCardIds };
 }
 
-export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
+export function belotCpuSearchCards(cards: Card[], state: BelotState) {
   if (!state.trumpSuit) {
     return cards;
   }
@@ -707,7 +707,7 @@ export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
       let run: Card[] = [];
 
       for (const rank of rankGroup) {
-        const card = bellotDeck.find(
+        const card = belotDeck.find(
           (candidate) => candidate.suit === suit && candidate.rank === rank,
         );
 
@@ -727,7 +727,7 @@ export function bellotCpuSearchCards(cards: Card[], state: BellotState) {
   return responseCards.filter((card) => keepCardIds.has(card.id));
 }
 
-function cheapestLosingResponseCardsBySuit(cards: Card[], state: BellotState) {
+function cheapestLosingResponseCardsBySuit(cards: Card[], state: BelotState) {
   if (!state.trumpSuit || state.currentTrick.length === 0) {
     return cards;
   }
@@ -770,7 +770,7 @@ function cheapestLosingResponseCardsBySuit(cards: Card[], state: BellotState) {
   return cards.filter((card) => keepCardIds.has(card.id));
 }
 
-function nonTrumpWinningResponseAceOrTen(cards: Card[], state: BellotState) {
+function nonTrumpWinningResponseAceOrTen(cards: Card[], state: BelotState) {
   if (!state.trumpSuit || state.currentTrick.length === 0) {
     return undefined;
   }
@@ -803,7 +803,7 @@ function nonTrumpWinningResponseAceOrTen(cards: Card[], state: BellotState) {
   return undefined;
 }
 
-function hasPlayedCard(state: BellotState, suit: Suit, rank: Rank) {
+function hasPlayedCard(state: BelotState, suit: Suit, rank: Rank) {
   for (const play of state.currentTrick) {
     if (play.card.suit === suit && play.card.rank === rank) {
       return true;
@@ -829,12 +829,12 @@ function hasPlayedCard(state: BellotState, suit: Suit, rank: Rank) {
   return false;
 }
 
-export function bellotCpuCheapSearchCard(
+export function belotCpuCheapSearchCard(
   cards: Card[],
-  state: BellotState,
+  state: BelotState,
 ): Card {
   if (cards.length === 0) {
-    throw new Error("No cards are available for cheap Bellot search");
+    throw new Error("No cards are available for cheap Belot search");
   }
 
   if (!state.trumpSuit) {
@@ -904,7 +904,7 @@ function addSearchCardRangeEndpoints(
   keepCardIds: Set<string>,
   run: Card[],
   candidateCardIds: Set<string>,
-  state: BellotState,
+  state: BelotState,
 ) {
   const playableCards = run.filter((card) => candidateCardIds.has(card.id));
   const first = playableCards[0];
@@ -941,7 +941,7 @@ function addSearchCardRangeEndpoints(
   keepCardIds.add(last.id);
 }
 
-function knownPlayedOrDeadCards(state: BellotState) {
+function knownPlayedOrDeadCards(state: BelotState) {
   const cards: Card[] = [];
 
   if (state.upcard) {
@@ -966,7 +966,7 @@ function knownPlayedOrDeadCards(state: BellotState) {
 }
 
 function createDeterminizedStates(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   sampleCount: number,
   rng: () => number,
@@ -1333,7 +1333,7 @@ function cardSetKey(cards: Card[]) {
 }
 
 function impossibleOpponentCardIdsFromPlayHistory(
-  state: BellotState,
+  state: BelotState,
   opponentPlayerId: string,
 ) {
   const impossibleCardIds = new Set<string>();
@@ -1369,7 +1369,7 @@ function impossibleOpponentCardIdsFromPlayHistory(
 
 function addImpossibleCardsFromResponse(
   impossibleCardIds: Set<string>,
-  plays: BellotTrickPlay[],
+  plays: BelotTrickPlay[],
   opponentPlayerId: string,
   trumpSuit: Suit,
 ) {
@@ -1408,7 +1408,7 @@ function addSuitToImpossibleCards(impossibleCardIds: Set<string>, suit: Suit) {
 
 function addImpossibleCheapCardsFromCostlyLostResponses(
   impossibleCardIds: Set<string>,
-  state: BellotState,
+  state: BelotState,
   opponentPlayerId: string,
   trumpSuit: Suit,
 ) {
@@ -1443,7 +1443,7 @@ function addImpossibleCheapCardsFromCostlyLostResponses(
       continue;
     }
 
-    const responsePoints = bellotCardPoints(response.card, trumpSuit);
+    const responsePoints = belotCardPoints(response.card, trumpSuit);
 
     if (
       responsePoints < 10 ||
@@ -1459,10 +1459,10 @@ function addImpossibleCheapCardsFromCostlyLostResponses(
       continue;
     }
 
-    for (const card of bellotDeck) {
+    for (const card of belotDeck) {
       if (
         card.suit === response.card.suit &&
-        bellotCardPoints(card, trumpSuit) < responsePoints
+        belotCardPoints(card, trumpSuit) < responsePoints
       ) {
         impossibleCardIds.add(card.id);
       }
@@ -1472,7 +1472,7 @@ function addImpossibleCheapCardsFromCostlyLostResponses(
 
 function hasSubsequentCheaperOpponentCard(
   trickHistory: Array<{
-    cards: BellotTrickPlay[];
+    cards: BelotTrickPlay[];
     winnerPlayerId: string;
   }>,
   trickIndex: number,
@@ -1488,7 +1488,7 @@ function hasSubsequentCheaperOpponentCard(
 
     if (
       subsequentPlay?.card.suit === suit &&
-      bellotCardPoints(subsequentPlay.card, trumpSuit) < responsePoints
+      belotCardPoints(subsequentPlay.card, trumpSuit) < responsePoints
     ) {
       return true;
     }
@@ -1498,7 +1498,7 @@ function hasSubsequentCheaperOpponentCard(
 }
 
 function unknownCardsForCpu(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   opponentKnownCards: Card[],
 ) {
@@ -1541,7 +1541,7 @@ function unknownCardsForCpu(
 }
 
 function knownUnplayedOpponentCards(
-  state: BellotState,
+  state: BelotState,
   opponentPlayerId: string,
 ) {
   const playedCardIds = new Set<string>();
@@ -1562,7 +1562,7 @@ function knownUnplayedOpponentCards(
 }
 
 function trumpCandidateSucceedsFromRawGamePointDelta(
-  state: BellotState,
+  state: BelotState,
   cpuPlayerId: string,
   rawGamePointDelta: number,
 ) {
@@ -1588,7 +1588,7 @@ function trumpCandidateSucceedsFromRawGamePointDelta(
   return cpuTotal > opponentTotal;
 }
 
-function totalPlayableGamePoints(state: BellotState) {
+function totalPlayableGamePoints(state: BelotState) {
   if (!state.trumpSuit) {
     return 0;
   }
@@ -1597,31 +1597,31 @@ function totalPlayableGamePoints(state: BellotState) {
 
   for (const player of state.players) {
     for (const card of player.hand) {
-      total += bellotCardPoints(card, state.trumpSuit);
+      total += belotCardPoints(card, state.trumpSuit);
     }
 
     for (const card of player.wonCards) {
-      total += bellotCardPoints(card, state.trumpSuit);
+      total += belotCardPoints(card, state.trumpSuit);
     }
   }
 
   for (const play of state.currentTrick) {
-    total += bellotCardPoints(play.card, state.trumpSuit);
+    total += belotCardPoints(play.card, state.trumpSuit);
   }
 
   return total;
 }
 
-function fixedDeclarationPoints(state: BellotState, playerId: string) {
+function fixedDeclarationPoints(state: BelotState, playerId: string) {
   return (state.declarationsByPlayer[playerId] ?? []).reduce(
     (sum, declaration) => sum + declaration.points,
     0,
   );
 }
 
-export function bellotCpuOrderCardsForSearch(
+export function belotCpuOrderCardsForSearch(
   cards: Card[],
-  state: BellotState,
+  state: BelotState,
   maximizing: boolean,
 ) {
   if (!state.trumpSuit) {
@@ -1640,17 +1640,17 @@ export function bellotCpuOrderCardsForSearch(
   });
 }
 
-const bellotCpuHandPlaySearchPolicy: BellotHandPlaySearchPolicy = {
+const belotCpuHandPlaySearchPolicy: BelotHandPlaySearchPolicy = {
   cheapOpeningSearchPlies,
-  searchCards: bellotCpuSearchCards,
-  orderCards: bellotCpuOrderCardsForSearch,
-  cheapSearchCard: bellotCpuCheapSearchCard,
+  searchCards: belotCpuSearchCards,
+  orderCards: belotCpuOrderCardsForSearch,
+  cheapSearchCard: belotCpuCheapSearchCard,
 };
 
-export function bellotCpuOrderRootCardsForSearch(
+export function belotCpuOrderRootCardsForSearch(
   cards: Card[],
-  state: BellotState,
-  stats: ReadonlyMap<string, BellotCpuRootCardSampleStats>,
+  state: BelotState,
+  stats: ReadonlyMap<string, BelotCpuRootCardSampleStats>,
 ) {
   if (!state.trumpSuit) {
     return cards;
@@ -1684,7 +1684,7 @@ export function bellotCpuOrderRootCardsForSearch(
   });
 }
 
-function compareLeadingRootCards(left: Card, right: Card, state: BellotState) {
+function compareLeadingRootCards(left: Card, right: Card, state: BelotState) {
   if (!state.trumpSuit || state.currentTrick.length > 0) {
     return 0;
   }
@@ -1697,8 +1697,8 @@ function compareLeadingRootCards(left: Card, right: Card, state: BellotState) {
   }
 
   const pointDelta =
-    bellotCardPoints(right, state.trumpSuit) -
-    bellotCardPoints(left, state.trumpSuit);
+    belotCardPoints(right, state.trumpSuit) -
+    belotCardPoints(left, state.trumpSuit);
 
   if (pointDelta !== 0) {
     return pointDelta;
@@ -1706,7 +1706,7 @@ function compareLeadingRootCards(left: Card, right: Card, state: BellotState) {
 
   const strengthDelta =
     left.suit === right.suit
-      ? compareBellotCards(right, left, state.trumpSuit)
+      ? compareBelotCards(right, left, state.trumpSuit)
       : 0;
 
   if (strengthDelta !== 0) {
@@ -1717,7 +1717,7 @@ function compareLeadingRootCards(left: Card, right: Card, state: BellotState) {
 }
 
 function createRootCardSampleStats(cards: Card[]) {
-  return new Map<string, BellotCpuRootCardSampleStats>(
+  return new Map<string, BelotCpuRootCardSampleStats>(
     cards.map((card) => [
       card.id,
       {
@@ -1730,8 +1730,8 @@ function createRootCardSampleStats(cards: Card[]) {
 }
 
 function updateRootCardSampleStats(
-  stats: Map<string, BellotCpuRootCardSampleStats>,
-  sampleResult: BellotRootSampleSearchResult,
+  stats: Map<string, BelotCpuRootCardSampleStats>,
+  sampleResult: BelotRootSampleSearchResult,
 ) {
   for (const cardId of sampleResult.searchedCardIds) {
     const current = stats.get(cardId) ?? {
@@ -1751,8 +1751,8 @@ function updateRootCardSampleStats(
 }
 
 function compareRootCardSampleStats(
-  left: BellotCpuRootCardSampleStats | undefined,
-  right: BellotCpuRootCardSampleStats | undefined,
+  left: BelotCpuRootCardSampleStats | undefined,
+  right: BelotCpuRootCardSampleStats | undefined,
 ) {
   const leftObserved = Boolean(left?.sampleCount);
   const rightObserved = Boolean(right?.sampleCount);
@@ -1783,7 +1783,7 @@ function compareRootCardSampleStats(
   return 0;
 }
 
-function averageRootCardWinningValue(stats: BellotCpuRootCardSampleStats) {
+function averageRootCardWinningValue(stats: BelotCpuRootCardSampleStats) {
   return stats.successCount > 0
     ? stats.totalWinningValue / stats.successCount
     : 0;
@@ -1791,7 +1791,7 @@ function averageRootCardWinningValue(stats: BellotCpuRootCardSampleStats) {
 
 function cardSearchOrderingScore(
   card: Card,
-  state: BellotState,
+  state: BelotState,
   maximizing: boolean,
 ) {
   const currentPlayerScore =
@@ -1803,7 +1803,7 @@ function cardSearchOrderingScore(
 
 function wouldCurrentlyWin(
   card: Card,
-  trick: BellotTrickPlay[],
+  trick: BelotTrickPlay[],
   trumpSuit: Suit,
 ) {
   if (trick.length === 0) {
@@ -1818,20 +1818,20 @@ function wouldCurrentlyWin(
   return winner.card.id === card.id;
 }
 
-function trickWinner(plays: BellotTrickPlay[], trumpSuit: Suit) {
+function trickWinner(plays: BelotTrickPlay[], trumpSuit: Suit) {
   const trumpPlays = plays.filter((play) => play.card.suit === trumpSuit);
   const relevantPlays = trumpPlays.length
     ? trumpPlays
     : plays.filter((play) => play.card.suit === plays[0]?.card.suit);
 
   return relevantPlays.reduce((winner, play) =>
-    compareBellotCards(play.card, winner.card, trumpSuit) > 0 ? play : winner,
+    compareBelotCards(play.card, winner.card, trumpSuit) > 0 ? play : winner,
   );
 }
 
 function cardHeuristic(card: Card, trumpSuit: Suit) {
   return (
-    bellotCardPoints(card, trumpSuit) +
+    belotCardPoints(card, trumpSuit) +
     (card.suit === trumpSuit ? 10 : 0) +
     (card.rank === "A" ? 4 : 0) +
     (card.rank === "X" ? 2 : 0)
@@ -1847,7 +1847,7 @@ function compareCardsByCheapValue(left: Card, right: Card, trumpSuit: Suit) {
   }
 
   const strengthDelta =
-    left.suit === right.suit ? compareBellotCards(left, right, trumpSuit) : 0;
+    left.suit === right.suit ? compareBelotCards(left, right, trumpSuit) : 0;
 
   if (strengthDelta !== 0) {
     return strengthDelta;
@@ -1864,13 +1864,13 @@ function highestCheapValueCard(cards: Card[], trumpSuit: Suit) {
     )[0]!;
 }
 
-function playerById(state: BellotState, playerId: string) {
+function playerById(state: BelotState, playerId: string) {
   const player = state.players.find(
     (candidate) => candidate.playerId === playerId,
   );
 
   if (!player) {
-    throw new Error("Player is not in this Bellot game");
+    throw new Error("Player is not in this Belot game");
   }
 
   return player;

@@ -49,7 +49,7 @@ export const readyPayloadSchema = z.object({
   ready: z.boolean(),
 });
 
-export const bellotDeclarationTypeSchema = z.enum([
+export const belotDeclarationTypeSchema = z.enum([
   "BELOTE",
   "SEQUENCE_3",
   "SEQUENCE_4",
@@ -62,13 +62,13 @@ export const bellotDeclarationTypeSchema = z.enum([
   "FOUR_QUEENS",
 ]);
 
-export const bellotDeclarationSchema = z.object({
-  type: bellotDeclarationTypeSchema,
+export const belotDeclarationSchema = z.object({
+  type: belotDeclarationTypeSchema,
   cards: z.array(cardSchema).min(2).max(8),
   points: z.number().int(),
 });
 
-export const bellotTrumpDecisionPayloadSchema = z.discriminatedUnion("kind", [
+export const belotTrumpDecisionPayloadSchema = z.discriminatedUnion("kind", [
   z.object({
     roomId: z.string().min(1),
     kind: z.literal("pass"),
@@ -84,12 +84,12 @@ export const bellotTrumpDecisionPayloadSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const bellotDeclarePayloadSchema = z.object({
+export const belotDeclarePayloadSchema = z.object({
   roomId: z.string().min(1),
-  declarations: z.array(bellotDeclarationSchema),
+  declarations: z.array(belotDeclarationSchema),
 });
 
-export const bellotPlayCardPayloadSchema = z.object({
+export const belotPlayCardPayloadSchema = z.object({
   roomId: z.string().min(1),
   cardId: z.string().min(1),
 });
@@ -146,11 +146,11 @@ export type GreaterCardResult = {
   }>;
 };
 
-export type BellotDeclarationType = z.infer<typeof bellotDeclarationTypeSchema>;
+export type BelotDeclarationType = z.infer<typeof belotDeclarationTypeSchema>;
 
-export type BellotDeclaration = z.infer<typeof bellotDeclarationSchema>;
+export type BelotDeclaration = z.infer<typeof belotDeclarationSchema>;
 
-export type BellotPhase =
+export type BelotPhase =
   | "waiting-for-players"
   | "ready-check"
   | "trump-round-one"
@@ -162,7 +162,7 @@ export type BellotPhase =
   | "finished"
   | "error";
 
-export type BellotPublicPlayer = {
+export type BelotPublicPlayer = {
   playerId: string;
   displayName: string;
   ready: boolean;
@@ -177,12 +177,12 @@ export type BellotPublicPlayer = {
   tricksWon: number;
 };
 
-export type BellotTrickPlay = {
+export type BelotTrickPlay = {
   playerId: string;
   card: z.infer<typeof cardSchema>;
 };
 
-export type BellotHandResult = {
+export type BelotHandResult = {
   dealerPlayerId?: string;
   callerPlayerId: string;
   opponentPlayerId: string;
@@ -198,10 +198,10 @@ export type BellotHandResult = {
   lastTrickWinnerPlayerId: string;
 };
 
-export type BellotPublicState = {
-  gameId: "bellot";
-  phase: BellotPhase;
-  players: BellotPublicPlayer[];
+export type BelotPublicState = {
+  gameId: "belot";
+  phase: BelotPhase;
+  players: BelotPublicPlayer[];
   dealerPlayerId?: string;
   firstPlayerId?: string;
   trumpSuit?: z.infer<typeof suitSchema>;
@@ -211,25 +211,25 @@ export type BellotPublicState = {
   trumpTurnPlayerId?: string;
   trumpPasses?: string[];
   currentTurnPlayerId?: string;
-  currentTrick: BellotTrickPlay[];
+  currentTrick: BelotTrickPlay[];
   completedTricks: Array<{
     winnerPlayerId: string;
-    cards: BellotTrickPlay[];
+    cards: BelotTrickPlay[];
   }>;
-  declarationsByPlayer: Record<string, BellotDeclaration[]>;
+  declarationsByPlayer: Record<string, BelotDeclaration[]>;
   publicCardsByPlayer: Record<string, z.infer<typeof cardSchema>[]>;
   unusedCards?: z.infer<typeof cardSchema>[];
-  lastHandResult?: BellotHandResult;
-  handResults?: BellotHandResult[];
+  lastHandResult?: BelotHandResult;
+  handResults?: BelotHandResult[];
   winnerPlayerId?: string;
   createdAt: string;
   finishedAt?: string;
   error?: string;
 };
 
-export type BellotResult = {
+export type BelotResult = {
   roomId: string;
-  gameId: "bellot";
+  gameId: "belot";
   winnerPlayerIds: string[];
   tied: boolean;
   players: Array<{
@@ -240,5 +240,5 @@ export type BellotResult = {
   }>;
 };
 
-export type GamePublicState = GreaterCardPublicState | BellotPublicState;
-export type GameResult = GreaterCardResult | BellotResult;
+export type GamePublicState = GreaterCardPublicState | BelotPublicState;
+export type GameResult = GreaterCardResult | BelotResult;
