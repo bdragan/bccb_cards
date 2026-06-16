@@ -175,6 +175,42 @@ describe("BelotTable", () => {
     ]);
   });
 
+  it("lightly shadows only illegal hand cards when it is the player's turn", () => {
+    renderTable({
+      ...baseState,
+      currentTrick: [{ playerId: "p2", card: card("A", "acorns") }],
+      completedTricks: [],
+    });
+
+    const handButtons = screen.getAllByTestId("belot-hand-card");
+    const handButton = (label: string) =>
+      handButtons.find((button) => within(button).queryByAltText(label))!;
+
+    expect(
+      handButton("VII of Acorns").closest(".opacity-75"),
+    ).toBeNull();
+    expect(handButton("X of Acorns").closest(".opacity-75")).toBeNull();
+    expect(
+      handButton("IX of Bells").closest(".opacity-75"),
+    ).not.toBeNull();
+    expect(
+      handButton("A of Hearts").closest(".opacity-75"),
+    ).not.toBeNull();
+  });
+
+  it("lightly shadows all hand cards after trump selection when waiting", () => {
+    renderTable({
+      ...baseState,
+      currentTurnPlayerId: "p2",
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    for (const button of screen.getAllByTestId("belot-hand-card")) {
+      expect(button).toHaveClass("opacity-75");
+    }
+  });
+
   it("marks hidden pickup cards after they enter the player's hand", () => {
     renderTable({
       ...baseState,

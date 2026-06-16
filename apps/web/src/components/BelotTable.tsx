@@ -1200,12 +1200,15 @@ export function BelotTable({
                       state.phase === "trick-play" &&
                       state.currentTurnPlayerId === currentPlayerId &&
                       playable;
+                    const shadowed = Boolean(state.trumpSuit) && !canPlay;
 
                     return (
                       <button
                         key={card.id}
                         type="button"
-                        className="relative rounded-md disabled:cursor-default disabled:opacity-100"
+                        className={`relative rounded-md disabled:cursor-default ${
+                          shadowed ? "opacity-75" : ""
+                        }`}
                         data-testid="belot-hand-card"
                         disabled={!canPlay}
                         onClick={() => onPlayCard(card.id)}
