@@ -10,7 +10,7 @@ describe("Lobby", () => {
         room={{
           id: "room1",
           code: "ABCD12",
-          gameId: "greater-card",
+          gameId: "belot",
           phase: "ready-check",
           createdAt: new Date().toISOString(),
           players: [
@@ -63,8 +63,5 @@ describe("Lobby", () => {
     expect(screen.getByText("Game")).toBeInTheDocument();
     expect(screen.getByText("Belot")).toBeInTheDocument();
     expect(screen.getByText(/starts Belot automatically/)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/starts GreaterCard automatically/),
-    ).not.toBeInTheDocument();
   });
 });

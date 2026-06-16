@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { cardSchema, suitSchema } from "./cards";
-import { gameIdSchema } from "./games";
+import { gameIdSchema, type GameId } from "./games";
 
 export const registerSchema = z.object({
   email: z.string().email(),
@@ -104,46 +104,10 @@ export type RoomPublicPlayer = {
 export type RoomPublicState = {
   id: string;
   code: string;
-  gameId: GamePublicState["gameId"];
+  gameId: GameId;
   players: RoomPublicPlayer[];
   phase: string;
   createdAt: string;
-};
-
-export type GreaterCardPublicPlayer = {
-  playerId: string;
-  displayName: string;
-  ready: boolean;
-  hasDrawn: boolean;
-  drawnCard?: z.infer<typeof cardSchema>;
-};
-
-export type GreaterCardPublicState = {
-  gameId: "greater-card";
-  phase:
-    | "waiting-for-players"
-    | "ready-check"
-    | "drawing"
-    | "revealed"
-    | "finished";
-  players: GreaterCardPublicPlayer[];
-  winnerPlayerIds: string[];
-  createdAt: string;
-  finishedAt?: string;
-};
-
-export type GreaterCardResult = {
-  roomId: string;
-  gameId: "greater-card";
-  winnerPlayerIds: string[];
-  tied: boolean;
-  players: Array<{
-    playerId: string;
-    displayName: string;
-    card?: z.infer<typeof cardSchema>;
-    outcome: "win" | "loss" | "tie";
-    score?: number;
-  }>;
 };
 
 export type BelotDeclarationType = z.infer<typeof belotDeclarationTypeSchema>;
@@ -240,5 +204,5 @@ export type BelotResult = {
   }>;
 };
 
-export type GamePublicState = GreaterCardPublicState | BelotPublicState;
-export type GameResult = GreaterCardResult | BelotResult;
+export type GamePublicState = BelotPublicState;
+export type GameResult = BelotResult;

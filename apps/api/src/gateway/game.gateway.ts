@@ -143,20 +143,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage("game:draw-card")
-  async handleDraw(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: unknown,
-  ): Promise<Ack<{ ok: true }>> {
-    return this.safe(client, async () => {
-      const body = roomIdPayloadSchema.parse(payload);
-      const user = this.requireUser(client);
-      await this.roomsService.drawCard(body.roomId, user.id);
-      this.emitRoom(body.roomId);
-      return { ok: true };
-    });
-  }
-
   @SubscribeMessage("belot:trump-decision")
   async handleBelotTrumpDecision(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -254,7 +240,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    if (room.state.phase === "revealed" || room.state.phase === "finished") {
+    if (room.state.phase === "finished") {
       this.server
         .to(roomId)
         .emit("game:result", this.roomsService.result(room));

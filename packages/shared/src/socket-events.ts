@@ -3,8 +3,6 @@ import type {
   BelotDeclaration,
   BelotPublicState,
   BelotResult,
-  GreaterCardPublicState,
-  GreaterCardResult,
   RoomPublicState,
 } from "./dto";
 import type { Suit } from "./cards";
@@ -24,10 +22,6 @@ export type ClientToServerEvents = {
   ) => void;
   "player:ready": (
     payload: { roomId: string; ready: boolean },
-    ack: (response: Ack<{ ok: true }>) => void,
-  ) => void;
-  "game:draw-card": (
-    payload: { roomId: string },
     ack: (response: Ack<{ ok: true }>) => void,
   ) => void;
   "belot:trump-decision": (
@@ -57,7 +51,7 @@ export type ClientToServerEvents = {
 
 export type ServerToClientEvents = {
   "room:state": (payload: RoomPublicState) => void;
-  "game:state": (payload: GreaterCardPublicState | BelotPublicState) => void;
-  "game:result": (payload: GreaterCardResult | BelotResult) => void;
+  "game:state": (payload: BelotPublicState) => void;
+  "game:result": (payload: BelotResult) => void;
   "room:error": (payload: { message: string }) => void;
 };

@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -17,7 +16,6 @@ export class MatchesService {
       tied: boolean;
       players: Array<{
         playerId: string;
-        card?: Prisma.InputJsonValue;
         outcome: "win" | "loss" | "tie";
         score?: number;
       }>;
@@ -34,7 +32,6 @@ export class MatchesService {
           create: input.result.players.map((player) => ({
             userId: player.playerId,
             outcome: player.outcome,
-            cardJson: player.card,
             score: player.score,
           })),
         },

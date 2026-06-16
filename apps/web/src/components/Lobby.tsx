@@ -3,7 +3,6 @@ import type { RoomPublicState } from "@card-games/shared";
 import { Button } from "./Button";
 
 const gameNames: Record<RoomPublicState["gameId"], string> = {
-  "greater-card": "GreaterCard",
   belot: "Belot",
 };
 

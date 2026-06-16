@@ -27,7 +27,6 @@ CREATE TABLE "MatchPlayer" (
     "matchId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "outcome" TEXT NOT NULL,
-    "cardJson" JSONB,
     "score" INTEGER,
 
     CONSTRAINT "MatchPlayer_pkey" PRIMARY KEY ("id")
