@@ -23,6 +23,7 @@ import type { Server, Socket } from "socket.io";
 
 import type { JwtPayload, RequestUser } from "../auth/auth.types";
 import { RoomsService } from "../rooms/rooms.service";
+import { UsersService } from "../users/users.service";
 
 type AuthenticatedSocket = Socket & { user?: RequestUser };
 
@@ -42,9 +43,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
     private readonly roomsService: RoomsService,
+    private readonly usersService: UsersService,
   ) {}
 
-  handleConnection(client: AuthenticatedSocket) {
+  async handleConnection(client: AuthenticatedSocket) {
     const token = this.extractToken(client);
 
     if (!token) {
@@ -55,10 +57,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
+      const user = await this.usersService.findById(payload.sub);
+
+      if (!user) {
+        client.emit("room:error", { message: "Authentication required" });
+        client.disconnect(true);
+        return;
+      }
+
       client.user = {
-        id: payload.sub,
-        email: payload.email,
-        displayName: payload.displayName,
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
       };
     } catch {
       client.emit("room:error", { message: "Authentication required" });

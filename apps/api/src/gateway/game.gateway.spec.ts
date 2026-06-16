@@ -3,9 +3,12 @@ import { JwtService } from "@nestjs/jwt";
 import { GameGateway } from "./game.gateway";
 
 describe("GameGateway", () => {
+  const jwtService = new JwtService({ secret: "test" });
+
   it("rejects unauthenticated sockets", () => {
     const gateway = new GameGateway(
-      new JwtService({ secret: "test" }),
+      jwtService,
+      {} as never,
       {} as never,
     );
     const client = {
@@ -15,6 +18,35 @@ describe("GameGateway", () => {
     };
 
     gateway.handleConnection(client as never);
+
+    expect(client.emit).toHaveBeenCalledWith("room:error", {
+      message: "Authentication required",
+    });
+    expect(client.disconnect).toHaveBeenCalledWith(true);
+  });
+
+  it("rejects sockets for tokens whose user no longer exists", async () => {
+    const gateway = new GameGateway(
+      jwtService,
+      {} as never,
+      { findById: jest.fn().mockResolvedValue(null) } as never,
+    );
+    const client = {
+      handshake: {
+        auth: {
+          token: jwtService.sign({
+            sub: "missing-user",
+            email: "old@example.test",
+            displayName: "Old User",
+          }),
+        },
+        headers: {},
+      },
+      emit: jest.fn(),
+      disconnect: jest.fn(),
+    };
+
+    await gateway.handleConnection(client as never);
 
     expect(client.emit).toHaveBeenCalledWith("room:error", {
       message: "Authentication required",
@@ -41,8 +73,9 @@ describe("GameGateway", () => {
       result: jest.fn(),
     };
     const gateway = new GameGateway(
-      new JwtService({ secret: "test" }),
+      jwtService,
       roomsService as never,
+      {} as never,
     );
     gateway.server = {
       to: jest.fn((target: string) => {

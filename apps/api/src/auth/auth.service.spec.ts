@@ -6,6 +6,7 @@ import { AuthService } from "./auth.service";
 describe("AuthService", () => {
   const usersService = {
     createUser: jest.fn(),
+    findById: jest.fn(),
     findByEmail: jest.fn(),
   };
   let service: AuthService;
