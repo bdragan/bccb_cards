@@ -590,12 +590,12 @@ describe("BelotTable", () => {
       expect(winner).toHaveClass(
         "mt-4",
         "rounded-md",
-        "bg-white/10",
+        "bg-red-100",
         "p-3",
         "text-center",
-        "text-white",
+        "text-ink",
       );
-      expect(winner).not.toHaveClass("bg-white", "text-ink");
+      expect(winner).not.toHaveClass("bg-white/10", "bg-sky-100", "text-white");
       expect(winnerText).toHaveClass("text-lg", "font-bold");
 
       fireEvent.click(
@@ -604,6 +604,50 @@ describe("BelotTable", () => {
 
       expect(onNextHand).not.toHaveBeenCalled();
       expect(onRestart).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("uses a light blue finished game panel when the current player wins", () => {
+    vi.useFakeTimers();
+
+    try {
+      renderTable({
+        ...baseState,
+        phase: "finished",
+        winnerPlayerId: "p1",
+        currentTurnPlayerId: undefined,
+        currentTrick: [],
+        players: baseState.players.map((player) =>
+          player.playerId === "p1"
+            ? { ...player, hand: [], handCount: 0 }
+            : { ...player, handCount: 0 },
+        ),
+        lastHandResult: {
+          callerPlayerId: "p1",
+          opponentPlayerId: "p2",
+          gamePointsByPlayer: { p1: 32, p2: 4 },
+          declarationPointsByPlayer: { p1: 0, p2: 0 },
+          totalPointsByPlayer: { p1: 32, p2: 4 },
+          handScoreByPlayer: { p1: 3, p2: 0 },
+          schusterPlayerIds: [],
+          callerFell: false,
+          callerFellOnGame: false,
+          isMus: false,
+          lastTrickWinnerPlayerId: "p1",
+        },
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(2_000);
+      });
+
+      expect(screen.getByTestId("belot-winner")).toHaveClass(
+        "bg-sky-100",
+        "text-ink",
+      );
+      expect(screen.getByTestId("belot-winner")).not.toHaveClass("bg-red-100");
     } finally {
       vi.useRealTimers();
     }

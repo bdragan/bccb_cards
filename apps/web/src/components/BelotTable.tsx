@@ -858,6 +858,10 @@ export function BelotTable({
   const winnerPlayer = state.players.find(
     (player) => player.playerId === state.winnerPlayerId,
   );
+  const winnerPanelClass =
+    state.winnerPlayerId === currentPlayerId
+      ? "bg-sky-100 text-ink"
+      : "bg-red-100 text-ink";
   const playerPanels = state.players.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
     const declarationGroups = visibleDeclarationGroups(declarations);
@@ -1102,7 +1106,7 @@ export function BelotTable({
         <>
           {winnerPlayer ? (
             <div
-              className="mt-4 rounded-md bg-white/10 p-3 text-center text-white"
+              className={`mt-4 rounded-md p-3 text-center ${winnerPanelClass}`}
               data-testid="belot-winner"
             >
               <p className="text-lg font-bold">
