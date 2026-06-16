@@ -87,11 +87,14 @@ const baseState: BelotPublicState = {
   createdAt: new Date().toISOString(),
 };
 
-function renderTable(state: BelotPublicState = baseState) {
+function renderTable(
+  state: BelotPublicState = baseState,
+  currentPlayerId = "p1",
+) {
   return render(
     <BelotTable
       state={state}
-      currentPlayerId="p1"
+      currentPlayerId={currentPlayerId}
       onTrumpDecision={vi.fn()}
       onDeclare={vi.fn()}
       onPlayCard={vi.fn()}
@@ -102,6 +105,35 @@ function renderTable(state: BelotPublicState = baseState) {
 }
 
 describe("BelotTable", () => {
+  it("keeps the current player's live section on the left while timeline stays dealer-first", async () => {
+    const user = userEvent.setup();
+    renderTable(
+      {
+        ...baseState,
+        dealerPlayerId: "p1",
+      },
+      "p2",
+    );
+
+    const currentPlayerHeading = screen.getByRole("heading", { name: "Bob" });
+    const opponentHeading = screen.getByRole("heading", { name: "Alice" });
+
+    expect(
+      currentPlayerHeading.compareDocumentPosition(opponentHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+
+    await user.click(screen.getByRole("button", { name: "Show details" }));
+
+    const timeline = screen.getByTestId("belot-game-timeline");
+
+    expect(
+      within(timeline)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Hand", "Alice", "Bob"]);
+  });
+
   it("sorts the player's hand by suit and rank and keeps the upcard visible", () => {
     renderTable();
 

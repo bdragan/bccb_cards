@@ -360,6 +360,28 @@ function timelinePlayers(state: BelotPublicState) {
   ) as BelotPublicState["players"];
 }
 
+function perspectivePlayers(
+  players: BelotPublicState["players"],
+  currentPlayerId?: string,
+) {
+  if (!currentPlayerId) {
+    return players;
+  }
+
+  const currentPlayer = players.find(
+    (player) => player.playerId === currentPlayerId,
+  );
+
+  if (!currentPlayer) {
+    return players;
+  }
+
+  return [
+    currentPlayer,
+    ...players.filter((player) => player.playerId !== currentPlayerId),
+  ];
+}
+
 function BelotGameTimeline({
   handResults,
   players,
@@ -716,7 +738,7 @@ export function BelotTable({
   >({});
   const [showPlayedHands, setShowPlayedHands] = useState(false);
   const [revealedHandResultKey, setRevealedHandResultKey] = useState<string>();
-  const playerNameRefs = useRef<Record<string, HTMLHeadingElement | null>>({});
+  const playerPanelRefs = useRef<Record<string, HTMLElement | null>>({});
   const trickCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const legalCardIds = useMemo(() => {
@@ -832,13 +854,17 @@ export function BelotTable({
   const handResults =
     state.handResults ?? (state.lastHandResult ? [state.lastHandResult] : []);
   const timelineOrderedPlayers = timelinePlayers(state);
+  const displayedPlayers = useMemo(
+    () => perspectivePlayers(state.players, currentPlayerId),
+    [currentPlayerId, state.players],
+  );
   const turnPlayerId =
     state.phase === "trick-play"
       ? state.currentTurnPlayerId
       : state.trumpTurnPlayerId;
   const collectTrickCards = useCallback(
     (trickNumber: number, winnerPlayerId: string, cards: BelotTrickPlay[]) => {
-      const targetElement = playerNameRefs.current[winnerPlayerId];
+      const targetElement = playerPanelRefs.current[winnerPlayerId];
 
       if (!targetElement) {
         setLingeringTrick((current) =>
@@ -849,9 +875,13 @@ export function BelotTable({
         return;
       }
 
+      const targetPlayerIndex = displayedPlayers.findIndex(
+        (player) => player.playerId === winnerPlayerId,
+      );
       const targetRect = targetElement.getBoundingClientRect();
-      const targetX = targetRect.left + targetRect.width / 2;
-      const targetY = targetRect.top + targetRect.height / 2;
+      const targetX =
+        targetPlayerIndex === 0 ? targetRect.left : targetRect.right;
+      const targetY = targetRect.top;
 
       const transforms = Object.fromEntries(
         cards.map((play) => {
@@ -882,7 +912,7 @@ export function BelotTable({
           : current,
       );
     },
-    [],
+    [displayedPlayers],
   );
 
   useEffect(() => {
@@ -983,7 +1013,7 @@ export function BelotTable({
     state.winnerPlayerId === currentPlayerId
       ? winnerPanelWinClass
       : winnerPanelLossClass;
-  const playerPanels = state.players.map((player) => {
+  const playerPanels = displayedPlayers.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
     const declarationGroups = visibleDeclarationGroups(declarations);
     const bonusPoints = declarations.reduce(
@@ -998,14 +1028,15 @@ export function BelotTable({
     const isTurnToPlay = turnPlayerId === player.playerId;
 
     return (
-      <article key={player.playerId} className="rounded-md bg-white/10 p-3">
+      <article
+        key={player.playerId}
+        ref={(element) => {
+          playerPanelRefs.current[player.playerId] = element;
+        }}
+        className="rounded-md bg-white/10 p-3"
+      >
         <div className="flex items-start justify-between gap-2">
-          <h3
-            ref={(element) => {
-              playerNameRefs.current[player.playerId] = element;
-            }}
-            className="flex min-w-0 items-center gap-2 font-semibold"
-          >
+          <h3 className="flex min-w-0 items-center gap-2 font-semibold">
             <span className="truncate">{player.displayName}</span>
             {isTurnToPlay ? (
               <span
@@ -1111,7 +1142,7 @@ export function BelotTable({
                   {messages.handResult}
                 </p>
                 <div className="grid grid-cols-2 items-center gap-4">
-                  {state.players.slice(0, 2).map((player, index) => (
+                  {displayedPlayers.slice(0, 2).map((player, index) => (
                     <p
                       key={player.playerId}
                       aria-label={
