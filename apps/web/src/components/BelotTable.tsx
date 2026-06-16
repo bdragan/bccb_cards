@@ -606,6 +606,30 @@ function HiddenPickupPlaceholder({
   );
 }
 
+function WinnerPanel({
+  playerName,
+  className,
+  onRestart,
+}: {
+  playerName: string;
+  className: string;
+  onRestart: () => void;
+}) {
+  const { messages } = useI18n();
+
+  return (
+    <div
+      className={`mt-4 rounded-md p-3 text-center ${className}`}
+      data-testid="belot-winner"
+    >
+      <p className="text-lg font-bold">{messages.winner(playerName)}</p>
+      <div className="mt-3">
+        <Button onClick={onRestart}>{messages.nextGame}</Button>
+      </div>
+    </div>
+  );
+}
+
 export function BelotTable({
   state,
   currentPlayerId,
@@ -858,10 +882,12 @@ export function BelotTable({
   const winnerPlayer = state.players.find(
     (player) => player.playerId === state.winnerPlayerId,
   );
+  const winnerPanelWinClass = "bg-sky-300 text-ink";
+  const winnerPanelLossClass = "bg-red-300 text-ink";
   const winnerPanelClass =
     state.winnerPlayerId === currentPlayerId
-      ? "bg-sky-100 text-ink"
-      : "bg-red-100 text-ink";
+      ? winnerPanelWinClass
+      : winnerPanelLossClass;
   const playerPanels = state.players.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
     const declarationGroups = visibleDeclarationGroups(declarations);
@@ -1105,17 +1131,11 @@ export function BelotTable({
       {showHandResult ? (
         <>
           {winnerPlayer ? (
-            <div
-              className={`mt-4 rounded-md p-3 text-center ${winnerPanelClass}`}
-              data-testid="belot-winner"
-            >
-              <p className="text-lg font-bold">
-                {messages.winner(winnerPlayer.displayName)}
-              </p>
-              <div className="mt-3">
-                <Button onClick={onRestart}>{messages.nextGame}</Button>
-              </div>
-            </div>
+            <WinnerPanel
+              playerName={winnerPlayer.displayName}
+              className={winnerPanelClass}
+              onRestart={onRestart}
+            />
           ) : null}
           <div
             className="mt-4 rounded-md bg-white/10 p-3 text-white"

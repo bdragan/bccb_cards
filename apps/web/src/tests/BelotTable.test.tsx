@@ -577,9 +577,6 @@ describe("BelotTable", () => {
       expect(
         screen.queryByRole("button", { name: "Next hand" }),
       ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: "New game" }),
-      ).not.toBeInTheDocument();
       expect(within(handResult).getByText("Hand result")).toBeInTheDocument();
       expect(scores[0]).toHaveTextContent("2");
       expect(scores[1]).toHaveTextContent("1");
@@ -590,16 +587,16 @@ describe("BelotTable", () => {
       expect(winner).toHaveClass(
         "mt-4",
         "rounded-md",
-        "bg-red-100",
+        "bg-red-300",
         "p-3",
         "text-center",
         "text-ink",
       );
-      expect(winner).not.toHaveClass("bg-white/10", "bg-sky-100", "text-white");
+      expect(winner).not.toHaveClass("bg-white/10", "bg-sky-300", "text-white");
       expect(winnerText).toHaveClass("text-lg", "font-bold");
 
       fireEvent.click(
-        within(winner).getByRole("button", { name: "Next game" }),
+        within(winner).getByRole("button", { name: "New game" }),
       );
 
       expect(onNextHand).not.toHaveBeenCalled();
@@ -644,10 +641,10 @@ describe("BelotTable", () => {
       });
 
       expect(screen.getByTestId("belot-winner")).toHaveClass(
-        "bg-sky-100",
+        "bg-sky-300",
         "text-ink",
       );
-      expect(screen.getByTestId("belot-winner")).not.toHaveClass("bg-red-100");
+      expect(screen.getByTestId("belot-winner")).not.toHaveClass("bg-red-300");
     } finally {
       vi.useRealTimers();
     }
