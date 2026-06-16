@@ -14,7 +14,14 @@ import type {
   Suit,
 } from "@card-games/shared";
 import type { ReactNode } from "react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { PlayingCard, PlayingCardBack } from "../game/cards";
 import { type Messages, useI18n } from "../i18n";
@@ -34,12 +41,23 @@ const configuredCompletedTrickLingerMs = Number(
 );
 const completedTrickLingerMs = Number.isFinite(configuredCompletedTrickLingerMs)
   ? Math.max(0, configuredCompletedTrickLingerMs)
-  : 2_000;
+  : 1_500;
+const completedTrickCollectMs =
+  completedTrickLingerMs > 0 ? Math.min(500, completedTrickLingerMs) : 0;
+const completedTrickHoldMs = Math.max(
+  0,
+  completedTrickLingerMs - completedTrickCollectMs,
+);
 const trumpSelectionPhases: BelotPublicState["phase"][] = [
   "trump-round-one",
   "trump-round-two",
   "mus",
 ];
+
+type CardCollectionTransform = {
+  x: number;
+  y: number;
+};
 
 function compareCardsWithinSuit(left: Card, right: Card, trumpSuit?: Suit) {
   if (trumpSuit) {
@@ -281,6 +299,10 @@ function trickStrengthMap(trick: BelotTrickPlay[], trumpSuit?: Suit) {
   });
 
   return new Map(trick.map((play) => [play.card.id, play === strongest]));
+}
+
+function trickCardKey(play: BelotTrickPlay) {
+  return `${play.playerId}-${play.card.id}`;
 }
 
 function visibleGamePointsByPlayer(state: BelotPublicState) {
@@ -687,9 +709,15 @@ export function BelotTable({
     trickNumber: number;
     winnerPlayerId: string;
     cards: BelotTrickPlay[];
+    collecting: boolean;
   }>();
+  const [cardCollectionTransforms, setCardCollectionTransforms] = useState<
+    Record<string, CardCollectionTransform>
+  >({});
   const [showPlayedHands, setShowPlayedHands] = useState(false);
   const [revealedHandResultKey, setRevealedHandResultKey] = useState<string>();
+  const playerNameRefs = useRef<Record<string, HTMLHeadingElement | null>>({});
+  const trickCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const legalCardIds = useMemo(() => {
     if (
@@ -808,11 +836,60 @@ export function BelotTable({
     state.phase === "trick-play"
       ? state.currentTurnPlayerId
       : state.trumpTurnPlayerId;
+  const collectTrickCards = useCallback(
+    (trickNumber: number, winnerPlayerId: string, cards: BelotTrickPlay[]) => {
+      const targetElement = playerNameRefs.current[winnerPlayerId];
+
+      if (!targetElement) {
+        setLingeringTrick((current) =>
+          current?.trickNumber === trickNumber
+            ? { ...current, collecting: true }
+            : current,
+        );
+        return;
+      }
+
+      const targetRect = targetElement.getBoundingClientRect();
+      const targetX = targetRect.left + targetRect.width / 2;
+      const targetY = targetRect.top + targetRect.height / 2;
+
+      const transforms = Object.fromEntries(
+        cards.map((play) => {
+          const cardElement = trickCardRefs.current[trickCardKey(play)];
+
+          if (!cardElement) {
+            return [trickCardKey(play), { x: 0, y: 0 }];
+          }
+
+          const cardRect = cardElement.getBoundingClientRect();
+          const cardX = cardRect.left + cardRect.width / 2;
+          const cardY = cardRect.top + cardRect.height / 2;
+
+          return [
+            trickCardKey(play),
+            {
+              x: Math.round(targetX - cardX),
+              y: Math.round(targetY - cardY),
+            },
+          ];
+        }),
+      ) as Record<string, CardCollectionTransform>;
+
+      setCardCollectionTransforms(transforms);
+      setLingeringTrick((current) =>
+        current?.trickNumber === trickNumber
+          ? { ...current, collecting: true }
+          : current,
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     if (state.currentTrick.length || !state.completedTricks.length) {
       if (state.currentTrick.length) {
         setLingeringTrick(undefined);
+        setCardCollectionTransforms({});
       }
 
       return;
@@ -829,16 +906,29 @@ export function BelotTable({
       trickNumber,
       winnerPlayerId: lastTrick.winnerPlayerId,
       cards: lastTrick.cards,
+      collecting: false,
     });
+    setCardCollectionTransforms({});
 
-    const timeout = window.setTimeout(() => {
+    const collectTimeout = window.setTimeout(() => {
+      collectTrickCards(
+        trickNumber,
+        lastTrick.winnerPlayerId,
+        lastTrick.cards,
+      );
+    }, completedTrickHoldMs);
+    const hideTimeout = window.setTimeout(() => {
       setLingeringTrick((current) =>
         current?.trickNumber === trickNumber ? undefined : current,
       );
+      setCardCollectionTransforms({});
     }, completedTrickLingerMs);
 
-    return () => window.clearTimeout(timeout);
-  }, [state.completedTricks, state.currentTrick]);
+    return () => {
+      window.clearTimeout(collectTimeout);
+      window.clearTimeout(hideTimeout);
+    };
+  }, [collectTrickCards, state.completedTricks, state.currentTrick]);
 
   useEffect(() => {
     if (!handResultKey) {
@@ -910,7 +1000,12 @@ export function BelotTable({
     return (
       <article key={player.playerId} className="rounded-md bg-white/10 p-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="flex min-w-0 items-center gap-2 font-semibold">
+          <h3
+            ref={(element) => {
+              playerNameRefs.current[player.playerId] = element;
+            }}
+            className="flex min-w-0 items-center gap-2 font-semibold"
+          >
             <span className="truncate">{player.displayName}</span>
             {isTurnToPlay ? (
               <span
@@ -1113,21 +1208,49 @@ export function BelotTable({
             </ol>
           ) : (
             <div className="grid h-[138px] grid-cols-[repeat(2,71px)] items-start justify-center gap-3 overflow-visible">
-              {visibleTrick?.cards.map((play) => (
-                <div
-                  key={`${play.playerId}-${play.card.id}`}
-                  className={
-                    visibleTrick.strengthByCardId.size &&
-                    !visibleTrick.strengthByCardId.get(play.card.id)
-                      ? "opacity-75"
-                      : ""
-                  }
-                >
-                  <TrumpMarkedCard card={play.card} trumpSuit={state.trumpSuit}>
-                    <PlayingCard card={play.card} native />
-                  </TrumpMarkedCard>
-                </div>
-              ))}
+              {visibleTrick?.cards.map((play) => {
+                const cardKey = trickCardKey(play);
+                const collectionTransform = lingeringTrick?.collecting
+                  ? cardCollectionTransforms[cardKey]
+                  : undefined;
+                const isWeakerCard =
+                  visibleTrick.strengthByCardId.size &&
+                  !visibleTrick.strengthByCardId.get(play.card.id);
+
+                return (
+                  <div
+                    key={cardKey}
+                    ref={(element) => {
+                      trickCardRefs.current[cardKey] = element;
+                    }}
+                    className={`transition-[transform,opacity] ease-in ${
+                      isWeakerCard ? "opacity-75" : ""
+                    }`}
+                    data-collecting={
+                      collectionTransform ? "true" : undefined
+                    }
+                    data-testid="belot-current-trick-card"
+                    style={{
+                      opacity: collectionTransform
+                        ? 0.35
+                        : isWeakerCard
+                          ? undefined
+                          : 1,
+                      transform: collectionTransform
+                        ? `translate3d(${collectionTransform.x}px, ${collectionTransform.y}px, 0) scale(0.35)`
+                        : undefined,
+                      transitionDuration: `${completedTrickCollectMs}ms`,
+                    }}
+                  >
+                    <TrumpMarkedCard
+                      card={play.card}
+                      trumpSuit={state.trumpSuit}
+                    >
+                      <PlayingCard card={play.card} native />
+                    </TrumpMarkedCard>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

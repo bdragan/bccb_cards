@@ -462,7 +462,19 @@ describe("BelotTable", () => {
       ).toBeInTheDocument();
 
       act(() => {
-        vi.advanceTimersByTime(2_000);
+        vi.advanceTimersByTime(1_000);
+      });
+
+      expect(screen.queryByTestId("belot-hand-result")).not.toBeInTheDocument();
+      expect(screen.getByTestId("belot-current-trick")).toBeInTheDocument();
+      screen.getAllByTestId("belot-current-trick-card").forEach(
+        (cardElement) => {
+          expect(cardElement).toHaveAttribute("data-collecting", "true");
+        },
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(500);
       });
 
       const result = screen.getByTestId("belot-hand-result");
