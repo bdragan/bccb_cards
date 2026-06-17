@@ -1074,11 +1074,11 @@ export function BelotTable({
             <p className="mb-1 text-xs font-semibold text-white/70">
               {messages.bonusPts(bonusPoints)}
             </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
+            <div className="belot-declaration-list flex flex-wrap gap-x-4 gap-y-2">
               {declarationGroups.map((declaration, declarationIndex) => (
                 <div
                   key={`${declaration.type}-${declarationIndex}`}
-                  className="flex flex-wrap gap-2"
+                  className="belot-declaration-group flex flex-wrap gap-2"
                   data-testid="belot-declaration-group"
                 >
                   {sortDeclarationCards(declaration.cards).map((card) => (

@@ -102,22 +102,34 @@ input {
   }
 
   .belot-hand-row {
-    gap: 0.25rem;
-    overflow: hidden;
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.25rem;
   }
 
   .belot-hand-cards {
+    gap: 0.5rem;
+  }
+
+  .belot-hand-suit-group {
     gap: 0.25rem;
   }
 
-  .belot-hand-suit-group,
   .belot-hidden-pickups {
-    gap: 0.125rem;
+    gap: 0.25rem;
   }
 
   .belot-hand-card {
-    flex: 0 1 auto;
-    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .belot-declaration-list {
+    gap: 0.25rem;
+  }
+
+  .belot-declaration-group {
+    gap: 0.125rem;
   }
 
   .belot-card-marker-row {
