@@ -1199,7 +1199,12 @@ export function BelotTable({
                 </div>
                 {state.phase === "hand-complete" && !state.winnerPlayerId ? (
                   <div className="mt-3">
-                    <Button onClick={onNextHand}>{messages.nextHand}</Button>
+                    <Button
+                      className="belot-next-hand-button"
+                      onClick={onNextHand}
+                    >
+                      {messages.nextHand}
+                    </Button>
                   </div>
                 ) : null}
               </div>

@@ -45,7 +45,10 @@ input {
   }
 
   .belot-scoreboard {
-    grid-template-columns: minmax(0, 1fr) 4.75rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) clamp(5.25rem, 24vw, 9rem) minmax(
+        0,
+        1fr
+      );
     gap: 0.5rem;
   }
 
@@ -64,6 +67,16 @@ input {
   .belot-table button {
     font-size: 0.6875rem;
     line-height: 0.875rem;
+  }
+
+  .belot-next-hand-button {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .belot-current-trick-grid .card-face {

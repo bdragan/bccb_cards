@@ -531,6 +531,7 @@ describe("BelotTable", () => {
         name: "Next hand",
       });
       expect(scores).toHaveLength(2);
+      expect(nextHandButton).toHaveClass("belot-next-hand-button");
       expect(scores[0]).toHaveTextContent("2");
       expect(scores[0]).toHaveClass(
         "text-xl",
