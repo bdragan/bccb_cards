@@ -11,8 +11,6 @@ import type { BelotDeclaration, Suit } from "@card-games/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BelotTable } from "../components/BelotTable";
-import { Button } from "../components/Button";
-import { LanguageToggle } from "../components/LanguageToggle";
 import { useI18n } from "../i18n";
 import type {
   BelotCpuWorkerRequest,
@@ -238,21 +236,6 @@ export function StaticCpuApp() {
 
   return (
     <main className="app-background min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold">{messages.appTitle}</h1>
-            <p className="text-sm text-slate-600">{messages.playBelotVsCpu}</p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <LanguageToggle />
-            <Button type="button" onClick={() => setBelotState(createState())}>
-              {messages.newGame}
-            </Button>
-          </div>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-6xl px-4 py-6">
         <BelotTable
           state={publicState}
