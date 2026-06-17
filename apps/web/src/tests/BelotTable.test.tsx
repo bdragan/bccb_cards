@@ -105,8 +105,7 @@ function renderTable(
 }
 
 describe("BelotTable", () => {
-  it("keeps the current player's live section on the left while timeline stays dealer-first", async () => {
-    const user = userEvent.setup();
+  it("keeps the current player's live section on the left while timeline stays dealer-first", () => {
     renderTable(
       {
         ...baseState,
@@ -122,8 +121,6 @@ describe("BelotTable", () => {
       currentPlayerHeading.compareDocumentPosition(opponentHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0);
-
-    await user.click(screen.getByRole("button", { name: "Show details" }));
 
     const timeline = screen.getByTestId("belot-game-timeline");
 
@@ -218,16 +215,10 @@ describe("BelotTable", () => {
     const handButton = (label: string) =>
       handButtons.find((button) => within(button).queryByAltText(label))!;
 
-    expect(
-      handButton("VII of Acorns").closest(".opacity-70"),
-    ).toBeNull();
+    expect(handButton("VII of Acorns").closest(".opacity-70")).toBeNull();
     expect(handButton("X of Acorns").closest(".opacity-70")).toBeNull();
-    expect(
-      handButton("IX of Bells").closest(".opacity-70"),
-    ).not.toBeNull();
-    expect(
-      handButton("A of Hearts").closest(".opacity-70"),
-    ).not.toBeNull();
+    expect(handButton("IX of Bells").closest(".opacity-70")).not.toBeNull();
+    expect(handButton("A of Hearts").closest(".opacity-70")).not.toBeNull();
   });
 
   it("lightly shadows all hand cards after trump selection when waiting", () => {
@@ -499,11 +490,11 @@ describe("BelotTable", () => {
 
       expect(screen.queryByTestId("belot-hand-result")).not.toBeInTheDocument();
       expect(screen.getByTestId("belot-current-trick")).toBeInTheDocument();
-      screen.getAllByTestId("belot-current-trick-card").forEach(
-        (cardElement) => {
+      screen
+        .getAllByTestId("belot-current-trick-card")
+        .forEach((cardElement) => {
           expect(cardElement).toHaveAttribute("data-collecting", "true");
-        },
-      );
+        });
 
       act(() => {
         vi.advanceTimersByTime(500);
@@ -511,25 +502,19 @@ describe("BelotTable", () => {
 
       const result = screen.getByTestId("belot-hand-result");
       const startingCards = screen.getByTestId("belot-starting-cards");
-      const playedTricksButton = screen.getByRole("button", {
-        name: "Show details",
-      });
+      const playedTricks = screen.getByTestId("belot-played-tricks");
 
       expect(
         screen.queryByTestId("belot-current-trick"),
       ).not.toBeInTheDocument();
       expect(screen.queryByTestId("belot-hand-card")).not.toBeInTheDocument();
       expect(
-        result.compareDocumentPosition(playedTricksButton) &
+        result.compareDocumentPosition(startingCards) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
       expect(startingCards).toHaveClass("bg-white/10", "text-white");
       expect(
-        result.compareDocumentPosition(startingCards) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(
-        startingCards.compareDocumentPosition(playedTricksButton) &
+        startingCards.compareDocumentPosition(playedTricks) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
 
@@ -675,9 +660,7 @@ describe("BelotTable", () => {
       expect(winner).not.toHaveClass("bg-white/10", "bg-sky-300", "text-white");
       expect(winnerText).toHaveClass("text-lg", "font-bold");
 
-      fireEvent.click(
-        within(winner).getByRole("button", { name: "New game" }),
-      );
+      fireEvent.click(within(winner).getByRole("button", { name: "New game" }));
 
       expect(onNextHand).not.toHaveBeenCalled();
       expect(onRestart).toHaveBeenCalledOnce();
@@ -877,8 +860,7 @@ describe("BelotTable", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows details during trump selection", async () => {
-    const user = userEvent.setup();
+  it("shows details during trump selection", () => {
     renderTable({
       ...baseState,
       phase: "trump-round-one",
@@ -889,8 +871,6 @@ describe("BelotTable", () => {
       currentTrick: [],
       completedTricks: [],
     });
-
-    await user.click(screen.getByRole("button", { name: "Show details" }));
 
     expect(screen.getByTestId("belot-played-tricks")).toBeInTheDocument();
     expect(screen.getByTestId("belot-game-timeline")).toBeInTheDocument();
@@ -957,11 +937,8 @@ describe("BelotTable", () => {
     ).toBeNull();
   });
 
-  it("shows played tricks and highlights the trick winner's card", async () => {
-    const user = userEvent.setup();
+  it("shows played tricks and highlights the trick winner's card", () => {
     renderTable();
-
-    await user.click(screen.getByRole("button", { name: "Show details" }));
 
     const hand = screen.getByText("Trick 1 · Bob").parentElement!;
 
@@ -973,8 +950,7 @@ describe("BelotTable", () => {
     ).not.toBeNull();
   });
 
-  it("shows completed tricks from last to first with separators", async () => {
-    const user = userEvent.setup();
+  it("shows completed tricks from last to first with separators", () => {
     renderTable({
       ...baseState,
       completedTricks: [
@@ -995,8 +971,6 @@ describe("BelotTable", () => {
       ],
     });
 
-    await user.click(screen.getByRole("button", { name: "Show details" }));
-
     const trickTwo = screen.getByText("Trick 2 · Bob");
     const trickOne = screen.getByText("Trick 1 · Alice");
 
@@ -1010,8 +984,7 @@ describe("BelotTable", () => {
     expect(screen.getByTestId("belot-details-separator")).toBeInTheDocument();
   });
 
-  it("shows the game timeline beside played tricks", async () => {
-    const user = userEvent.setup();
+  it("shows the game timeline beside played tricks", () => {
     renderTable({
       ...baseState,
       players: baseState.players.map((player) =>
@@ -1054,8 +1027,6 @@ describe("BelotTable", () => {
       ],
     });
 
-    await user.click(screen.getByRole("button", { name: "Show details" }));
-
     const timeline = screen.getByTestId("belot-game-timeline");
     const rows = within(timeline).getAllByTestId("belot-game-timeline-row");
 
@@ -1089,19 +1060,20 @@ describe("BelotTable", () => {
     expect(within(timeline).getByText("92")).toBeInTheDocument();
   });
 
-  it("shows played tricks before the first trick has completed", async () => {
-    const user = userEvent.setup();
+  it("shows played tricks before the first trick has completed", () => {
     renderTable({
       ...baseState,
       currentTrick: [],
       completedTricks: [],
     });
 
-    await user.click(screen.getByRole("button", { name: "Show details" }));
-
     expect(
-      screen.getByRole("button", { name: "Hide details" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Show details" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Hide details" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("belot-played-tricks")).toBeInTheDocument();
     expect(screen.queryByText(/Trick 1/)).not.toBeInTheDocument();
   });
 
@@ -1126,8 +1098,8 @@ describe("BelotTable", () => {
       ),
     });
 
-    expect(screen.getByText("184")).toBeInTheDocument();
-    expect(screen.getByText("92")).toBeInTheDocument();
+    expect(screen.getAllByText("184")).not.toHaveLength(0);
+    expect(screen.getAllByText("92")).not.toHaveLength(0);
   });
 
   it("bolds the caller label and shows mus in player sections", () => {

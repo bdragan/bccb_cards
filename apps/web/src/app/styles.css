@@ -39,10 +39,6 @@ input {
   grid-template-columns: minmax(0, 1fr) 9rem minmax(0, 1fr);
 }
 
-.belot-hand-bonus-short {
-  display: none;
-}
-
 @media (max-width: 767px) {
   .belot-table {
     padding: 0.5rem;
@@ -70,8 +66,6 @@ input {
     line-height: 0.875rem;
   }
 
-  .belot-player-panel .card-face,
-  .belot-center-panel .card-face,
   .belot-current-trick-grid .card-face {
     width: clamp(30px, 9.25vw, 56px);
     height: clamp(48px, 14.85vw, 90px);
@@ -119,6 +113,7 @@ input {
   }
 
   .belot-hand-cards {
+    display: contents;
     gap: 0.4rem 0.5rem;
   }
 
@@ -154,28 +149,6 @@ input {
     width: 0.75rem;
     height: 0.75rem;
     font-size: 0.4375rem;
-  }
-
-  .belot-hand-bonus {
-    flex: 0 0 auto;
-    height: clamp(42px, 13vw, 138px);
-  }
-
-  .belot-hand-bonus-pill {
-    display: grid;
-    width: 2.25rem;
-    height: 2.25rem;
-    place-items: center;
-    padding: 0;
-    font-size: 0.8125rem;
-  }
-
-  .belot-hand-bonus-full {
-    display: none;
-  }
-
-  .belot-hand-bonus-short {
-    display: block;
   }
 
   .belot-result-card-row {

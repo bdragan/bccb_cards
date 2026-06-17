@@ -29,7 +29,7 @@ describe("StaticCpuApp", () => {
     );
 
     expect(await screen.findAllByText("Me")).not.toHaveLength(0);
-    expect(screen.getByText("CPU")).toBeInTheDocument();
+    expect(screen.getAllByText("CPU")).not.toHaveLength(0);
     expect(
       screen.getByRole("button", { name: "New game" }),
     ).toBeInTheDocument();

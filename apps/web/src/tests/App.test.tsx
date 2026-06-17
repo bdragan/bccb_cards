@@ -34,7 +34,7 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findAllByText("Me")).not.toHaveLength(0);
-    expect(screen.getByText("CPU")).toBeInTheDocument();
+    expect(screen.getAllByText("CPU")).not.toHaveLength(0);
     expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
   });
 
@@ -44,7 +44,9 @@ describe("App", () => {
 
     await user.click(await screen.findByRole("button", { name: "Login" }));
 
-    expect(screen.getByRole("button", { name: "Register" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Register" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 

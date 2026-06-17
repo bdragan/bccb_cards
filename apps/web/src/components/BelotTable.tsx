@@ -740,7 +740,6 @@ export function BelotTable({
   const [cardCollectionTransforms, setCardCollectionTransforms] = useState<
     Record<string, CardCollectionTransform>
   >({});
-  const [showPlayedHands, setShowPlayedHands] = useState(false);
   const [revealedHandResultKey, setRevealedHandResultKey] = useState<string>();
   const playerPanelRefs = useRef<Record<string, HTMLElement | null>>({});
   const trickCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1394,21 +1393,6 @@ export function BelotTable({
                   })}
                 </div>
               ))}
-              {showBonusPreview ? (
-                <div
-                  className="belot-hand-bonus flex h-[138px] items-center"
-                  data-testid="belot-hand-bonus-total"
-                >
-                  <span className="belot-hand-bonus-pill rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
-                    <span className="belot-hand-bonus-full">
-                      {messages.bonusPts(bonusPreview.points)}
-                    </span>
-                    <span className="belot-hand-bonus-short" aria-hidden="true">
-                      {bonusPreview.points}
-                    </span>
-                  </span>
-                </div>
-              ) : null}
             </div>
             {showHiddenPickupPlaceholders ? (
               <div className="belot-hidden-pickups ml-auto flex shrink-0 gap-2">
@@ -1422,90 +1406,86 @@ export function BelotTable({
               </div>
             ) : null}
           </div>
+          {showBonusPreview ? (
+            <div
+              className="belot-hand-bonus mt-2 flex justify-start"
+              data-testid="belot-hand-bonus-total"
+            >
+              <span className="belot-hand-bonus-pill rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
+                {messages.bonusPts(bonusPreview.points)}
+              </span>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="mt-4">
-        <Button
-          type="button"
-          onClick={() => setShowPlayedHands((visible) => !visible)}
-        >
-          {showPlayedHands ? messages.hideDetails : messages.showDetails}
-        </Button>
-        {showPlayedHands ? (
-          <div className="mt-3 rounded-md bg-white/10 p-3">
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-              <section
-                className="belot-played-tricks min-w-0"
-                data-testid="belot-played-tricks"
-              >
-                <h3 className="text-sm font-semibold">
-                  {messages.playedTricks}
-                </h3>
-                <div className="mt-2 space-y-3">
-                  {displayedCompletedTricks.length ? (
-                    displayedCompletedTricks.map(
-                      ({ index, trick }, itemIndex) => (
-                        <Fragment key={index}>
-                          {itemIndex > 0 ? (
-                            <div
-                              aria-hidden="true"
-                              className="h-px w-full bg-white/15"
-                              data-testid="belot-played-trick-separator"
-                            />
-                          ) : null}
-                          <div>
-                            <p className="mb-2 text-sm font-semibold">
-                              {messages.trickWinner(
-                                index + 1,
-                                state.players.find(
-                                  (player) =>
-                                    player.playerId === trick.winnerPlayerId,
-                                )?.displayName,
-                              )}
-                            </p>
-                            <div className="flex flex-wrap gap-3">
-                              {trick.cards.map((play) => (
-                                <div
-                                  key={`${index}-${play.playerId}-${play.card.id}`}
-                                  className={`belot-played-trick-card ${
-                                    play.playerId === trick.winnerPlayerId
-                                      ? ""
-                                      : "opacity-45"
-                                  }`}
-                                >
-                                  <TrumpMarkedCard
-                                    card={play.card}
-                                    trumpSuit={state.trumpSuit}
-                                  >
-                                    <PlayingCard card={play.card} compact />
-                                  </TrumpMarkedCard>
-                                </div>
-                              ))}
-                            </div>
+      <div className="mt-4 rounded-md bg-white/10 p-3">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+          <section
+            className="belot-played-tricks min-w-0"
+            data-testid="belot-played-tricks"
+          >
+            <h3 className="text-sm font-semibold">{messages.playedTricks}</h3>
+            <div className="mt-2 space-y-3">
+              {displayedCompletedTricks.length ? (
+                displayedCompletedTricks.map(({ index, trick }, itemIndex) => (
+                  <Fragment key={index}>
+                    {itemIndex > 0 ? (
+                      <div
+                        aria-hidden="true"
+                        className="h-px w-full bg-white/15"
+                        data-testid="belot-played-trick-separator"
+                      />
+                    ) : null}
+                    <div>
+                      <p className="mb-2 text-sm font-semibold">
+                        {messages.trickWinner(
+                          index + 1,
+                          state.players.find(
+                            (player) =>
+                              player.playerId === trick.winnerPlayerId,
+                          )?.displayName,
+                        )}
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        {trick.cards.map((play) => (
+                          <div
+                            key={`${index}-${play.playerId}-${play.card.id}`}
+                            className={`belot-played-trick-card ${
+                              play.playerId === trick.winnerPlayerId
+                                ? ""
+                                : "opacity-45"
+                            }`}
+                          >
+                            <TrumpMarkedCard
+                              card={play.card}
+                              trumpSuit={state.trumpSuit}
+                            >
+                              <PlayingCard card={play.card} compact />
+                            </TrumpMarkedCard>
                           </div>
-                        </Fragment>
-                      ),
-                    )
-                  ) : (
-                    <p className="text-sm text-white/60">
-                      {messages.noTricksCompleted}
-                    </p>
-                  )}
-                </div>
-              </section>
-              <div
-                aria-hidden="true"
-                className="h-px w-full bg-white/15 md:h-auto md:w-px"
-                data-testid="belot-details-separator"
-              />
-              <BelotGameTimeline
-                handResults={handResults}
-                players={timelineOrderedPlayers}
-              />
+                        ))}
+                      </div>
+                    </div>
+                  </Fragment>
+                ))
+              ) : (
+                <p className="text-sm text-white/60">
+                  {messages.noTricksCompleted}
+                </p>
+              )}
             </div>
-          </div>
-        ) : null}
+          </section>
+          <div
+            aria-hidden="true"
+            className="h-px w-full bg-white/15 md:h-auto md:w-px"
+            data-testid="belot-details-separator"
+          />
+          <BelotGameTimeline
+            handResults={handResults}
+            players={timelineOrderedPlayers}
+          />
+        </div>
       </div>
 
       {state.error ? (
