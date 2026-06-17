@@ -144,6 +144,10 @@ input {
     align-self: stretch;
   }
 
+  .belot-hand-bonus-mobile .belot-hand-bonus-pill {
+    font-size: 0.8125rem;
+  }
+
   .belot-hand-card {
     flex: 0 0 auto;
   }
