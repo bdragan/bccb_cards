@@ -942,11 +942,7 @@ export function BelotTable({
     setCardCollectionTransforms({});
 
     const collectTimeout = window.setTimeout(() => {
-      collectTrickCards(
-        trickNumber,
-        lastTrick.winnerPlayerId,
-        lastTrick.cards,
-      );
+      collectTrickCards(trickNumber, lastTrick.winnerPlayerId, lastTrick.cards);
     }, completedTrickHoldMs);
     const hideTimeout = window.setTimeout(() => {
       setLingeringTrick((current) =>
@@ -1034,7 +1030,7 @@ export function BelotTable({
         ref={(element) => {
           playerPanelRefs.current[player.playerId] = element;
         }}
-        className="rounded-md bg-white/10 p-3"
+        className="belot-player-panel min-w-0 rounded-md bg-white/10 p-3"
       >
         <div className="flex items-start justify-between gap-2">
           <h3 className="flex min-w-0 items-center gap-2 font-semibold">
@@ -1105,11 +1101,11 @@ export function BelotTable({
   });
 
   return (
-    <section className="rounded-md bg-felt p-4 text-white shadow-lg">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]">
+    <section className="belot-table rounded-md bg-felt p-4 text-white shadow-lg">
+      <div className="belot-scoreboard grid gap-3">
         {playerPanels[0]}
-        <div className="rounded-md bg-white/10 p-3">
-          <div className="flex flex-wrap items-start justify-center gap-4 md:flex-col md:items-center">
+        <div className="belot-center-panel min-w-0 rounded-md bg-white/10 p-3">
+          <div className="flex flex-col items-center gap-4">
             {state.trumpSuit ? (
               <div className="text-center">
                 <p className="mb-1 text-sm font-semibold">{messages.trump}</p>
@@ -1119,7 +1115,7 @@ export function BelotTable({
             {state.trumpSuit && state.upcard ? (
               <div
                 aria-hidden="true"
-                className="h-24 w-px bg-white/15 md:h-px md:w-full"
+                className="h-px w-full bg-white/15"
                 data-testid="belot-trump-upcard-separator"
               />
             ) : null}
@@ -1242,7 +1238,7 @@ export function BelotTable({
               ))}
             </ol>
           ) : (
-            <div className="grid h-[138px] grid-cols-[repeat(2,71px)] items-start justify-center gap-3 overflow-visible">
+            <div className="belot-current-trick-grid grid h-[138px] grid-cols-[repeat(2,71px)] items-start justify-center gap-3 overflow-visible">
               {visibleTrick?.cards.map((play) => {
                 const cardKey = trickCardKey(play);
                 const collectionTransform = lingeringTrick?.collecting
@@ -1261,9 +1257,7 @@ export function BelotTable({
                     className={`transition-[transform,opacity] ease-in ${
                       isWeakerCard ? "opacity-75" : ""
                     }`}
-                    data-collecting={
-                      collectionTransform ? "true" : undefined
-                    }
+                    data-collecting={collectionTransform ? "true" : undefined}
                     data-testid="belot-current-trick-card"
                     style={{
                       opacity: collectionTransform
@@ -1342,12 +1336,12 @@ export function BelotTable({
               ? ` · ${messages.playLegalCard}`
               : ""}
           </p>
-          <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-            <div className="flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2">
+          <div className="belot-hand-row flex flex-wrap items-start gap-x-4 gap-y-2">
+            <div className="belot-hand-cards flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2">
               {currentHandSuitGroups.map((group) => (
                 <div
                   key={group.suit}
-                  className="flex flex-wrap gap-2"
+                  className="belot-hand-suit-group flex flex-wrap gap-2"
                   data-testid="belot-hand-suit-group"
                 >
                   {group.cards.map((card) => {
@@ -1364,7 +1358,7 @@ export function BelotTable({
                       <button
                         key={card.id}
                         type="button"
-                        className={`relative rounded-md disabled:cursor-default ${
+                        className={`belot-hand-card relative rounded-md disabled:cursor-default ${
                           shadowed ? "opacity-70" : ""
                         }`}
                         data-testid="belot-hand-card"
@@ -1387,7 +1381,7 @@ export function BelotTable({
                           </span>
                         ) : null}
                         {state.trumpSuit ? (
-                          <span className="mt-1 block text-xs text-white/70">
+                          <span className="belot-card-points mt-1 block text-xs text-white/70">
                             {messages.points(
                               belotCardPoints(card, state.trumpSuit),
                             )}
@@ -1400,17 +1394,22 @@ export function BelotTable({
               ))}
               {showBonusPreview ? (
                 <div
-                  className="flex h-[138px] items-center"
+                  className="belot-hand-bonus flex h-[138px] items-center"
                   data-testid="belot-hand-bonus-total"
                 >
-                  <span className="rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
-                    {messages.bonusPts(bonusPreview.points)}
+                  <span className="belot-hand-bonus-pill rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
+                    <span className="belot-hand-bonus-full">
+                      {messages.bonusPts(bonusPreview.points)}
+                    </span>
+                    <span className="belot-hand-bonus-short" aria-hidden="true">
+                      {bonusPreview.points}
+                    </span>
                   </span>
                 </div>
               ) : null}
             </div>
             {showHiddenPickupPlaceholders ? (
-              <div className="ml-auto flex shrink-0 gap-2">
+              <div className="belot-hidden-pickups ml-auto flex shrink-0 gap-2">
                 {[1, 2].map((index) => (
                   <HiddenPickupPlaceholder
                     key={index}

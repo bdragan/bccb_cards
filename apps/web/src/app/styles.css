@@ -34,3 +34,107 @@ input {
 .card-face {
   box-shadow: 0 12px 30px rgb(24 33 47 / 12%);
 }
+
+.belot-scoreboard {
+  grid-template-columns: minmax(0, 1fr) 9rem minmax(0, 1fr);
+}
+
+.belot-hand-bonus-short {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .belot-table {
+    padding: 0.5rem;
+  }
+
+  .belot-scoreboard {
+    grid-template-columns: minmax(0, 1fr) 4.75rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .belot-player-panel,
+  .belot-center-panel {
+    padding: 0.5rem;
+  }
+
+  .belot-player-panel h3 {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .belot-player-panel p,
+  .belot-center-panel p,
+  .belot-table button {
+    font-size: 0.6875rem;
+    line-height: 0.875rem;
+  }
+
+  .belot-player-panel .card-face,
+  .belot-center-panel .card-face,
+  .belot-current-trick-grid .card-face,
+  .belot-hand-row .card-face {
+    width: clamp(22px, 6.8vw, 71px);
+    height: clamp(35px, 10.9vw, 114px);
+    border-radius: 0.25rem;
+  }
+
+  .belot-current-trick-grid {
+    grid-template-columns: repeat(2, clamp(22px, 6.8vw, 71px));
+    height: clamp(50px, 16vw, 138px);
+    gap: 0.25rem;
+  }
+
+  .belot-hand-row,
+  .belot-hand-cards,
+  .belot-hand-suit-group {
+    flex-wrap: nowrap;
+  }
+
+  .belot-hand-row {
+    gap: 0.25rem;
+    overflow: hidden;
+  }
+
+  .belot-hand-cards {
+    gap: 0.25rem;
+  }
+
+  .belot-hand-suit-group,
+  .belot-hidden-pickups {
+    gap: 0.125rem;
+  }
+
+  .belot-hand-card {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .belot-card-points {
+    font-size: 0.5rem;
+    line-height: 0.625rem;
+    white-space: nowrap;
+  }
+
+  .belot-hand-bonus {
+    flex: 0 0 auto;
+    height: clamp(42px, 13vw, 138px);
+  }
+
+  .belot-hand-bonus-pill {
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    padding: 0;
+    font-size: 0.8125rem;
+  }
+
+  .belot-hand-bonus-full {
+    display: none;
+  }
+
+  .belot-hand-bonus-short {
+    display: block;
+  }
+}
