@@ -830,17 +830,20 @@ describe("BelotTable", () => {
   });
 
   it("shows trump selection logs in the current trick area", () => {
-    renderTable({
-      ...baseState,
-      phase: "trump-round-one",
-      trumpSuit: undefined,
-      callerPlayerId: undefined,
-      trumpTurnPlayerId: "p2",
-      trumpPasses: ["p1"],
-      currentTurnPlayerId: undefined,
-      currentTrick: [],
-      completedTricks: [],
-    });
+    renderTable(
+      {
+        ...baseState,
+        phase: "trump-round-one",
+        trumpSuit: undefined,
+        callerPlayerId: undefined,
+        trumpTurnPlayerId: "p2",
+        trumpPasses: ["p1"],
+        currentTurnPlayerId: undefined,
+        currentTrick: [],
+        completedTricks: [],
+      },
+      "p2",
+    );
 
     const currentTrick = screen.getByTestId("belot-current-trick");
 
@@ -855,7 +858,7 @@ describe("BelotTable", () => {
     ).toBeInTheDocument();
     expect(
       within(currentTrick).getByText(
-        "Bob is deciding whether to accept the upcard suit.",
+        "You are deciding whether to accept the upcard suit.",
       ),
     ).toBeInTheDocument();
   });
@@ -895,7 +898,7 @@ describe("BelotTable", () => {
       within(currentTrick).getByText("Both players passed twice."),
     ).toBeInTheDocument();
     expect(
-      within(currentTrick).getByText("Alice is on mus and must choose trump."),
+      within(currentTrick).getByText("You are on mus and must choose trump."),
     ).toBeInTheDocument();
   });
 

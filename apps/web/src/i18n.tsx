@@ -70,6 +70,7 @@ export type Messages = {
   hiddenPickupCard: string;
   hiddenPickupCardNumber: (index: number) => string;
   unknownPlayer: string;
+  statusYou: string;
   toPlay: (playerName: string) => string;
   suits: Record<Suit, string>;
   cardLabel: (rank: Rank, suit: Suit) => string;
@@ -109,11 +110,14 @@ export type Messages = {
   playerPassedOnSuit: (playerName: string, suit: string) => string;
   upcardSuit: string;
   playerDecidingUpcard: (playerName: string) => string;
+  youDecidingUpcard: string;
   bothPlayersPassedSuit: (suit: string) => string;
   playerPassedChoosingAnotherSuit: (playerName: string) => string;
   playerChoosingOtherSuit: (playerName: string, suit: string) => string;
+  youChoosingOtherSuit: (suit: string) => string;
   bothPlayersPassedTwice: string;
   playerMustChooseTrumpOnMus: (playerName: string) => string;
+  youMustChooseTrumpOnMus: string;
   winner: (playerName: string) => string;
   startingCards: string;
   remainingCards: string;
@@ -158,7 +162,7 @@ export const messages: Record<Locale, Messages> = {
       `Server pokreće igru ${gameName} automatski kada se pridruže najmanje dva igrača i svi su spremni.`,
     belotName: "Bela",
     offlineYou: "Ja",
-    cpu: "CPU",
+    cpu: "AI",
     requestFailed: "Zahtev nije uspeo",
     registrationFailed: "Registracija nije uspela",
     loginFailed: "Prijava nije uspela",
@@ -169,6 +173,7 @@ export const messages: Record<Locale, Messages> = {
     hiddenPickupCard: "Skrivena pokupljena karta",
     hiddenPickupCardNumber: (index) => `Skrivena pokupljena karta ${index}`,
     unknownPlayer: "Nepoznat igrač",
+    statusYou: "Ti",
     toPlay: (playerName) => `${playerName} je na potezu`,
     suits: {
       acorns: "Žir",
@@ -234,18 +239,22 @@ export const messages: Record<Locale, Messages> = {
     upcardSuit: "boja presečene karte",
     playerDecidingUpcard: (playerName) =>
       `${playerName} odlučuje da li prihvata boju presečene karte.`,
+    youDecidingUpcard:
+      "Ti odlučuješ da li prihvataš boju presečene karte.",
     bothPlayersPassedSuit: (suit) => `Oba igrača: Dalje za ${suit}.`,
     playerPassedChoosingAnotherSuit: (playerName) =>
       `${playerName}: Dalje za drugu boju.`,
     playerChoosingOtherSuit: (playerName, suit) =>
       `${playerName} bira boju različitu od ${suit}.`,
+    youChoosingOtherSuit: (suit) => `Ti biraš boju različitu od ${suit}.`,
     bothPlayersPassedTwice: "Oba igrača: Dalje dva puta.",
     playerMustChooseTrumpOnMus: (playerName) =>
       `${playerName} je na musu i mora izabrati adut.`,
+    youMustChooseTrumpOnMus: "Ti si na musu i moraš izabrati adut.",
     winner: (playerName) => `Pobednik: ${playerName}`,
     startingCards: "Početne karte",
     remainingCards: "Tesla",
-    yourHand: "Vaše karte",
+    yourHand: "Tvoje karte",
     playLegalCard: "odigraj dozvoljenu kartu",
     hideDetails: "Sakrij detalje",
     showDetails: "Prikaži detalje",
@@ -285,7 +294,7 @@ export const messages: Record<Locale, Messages> = {
       `The server starts ${gameName} automatically when at least two players have joined and everyone is ready.`,
     belotName: "Belot",
     offlineYou: "Me",
-    cpu: "CPU",
+    cpu: "AI",
     requestFailed: "Request failed",
     registrationFailed: "Registration failed",
     loginFailed: "Login failed",
@@ -296,6 +305,7 @@ export const messages: Record<Locale, Messages> = {
     hiddenPickupCard: "Hidden pickup card",
     hiddenPickupCardNumber: (index) => `Hidden pickup card ${index}`,
     unknownPlayer: "Unknown player",
+    statusYou: "You",
     toPlay: (playerName) => `${playerName} to play`,
     suits: {
       acorns: "Acorns",
@@ -353,14 +363,18 @@ export const messages: Record<Locale, Messages> = {
     upcardSuit: "the upcard suit",
     playerDecidingUpcard: (playerName) =>
       `${playerName} is deciding whether to accept the upcard suit.`,
+    youDecidingUpcard: "You are deciding whether to accept the upcard suit.",
     bothPlayersPassedSuit: (suit) => `Both players passed ${suit}.`,
     playerPassedChoosingAnotherSuit: (playerName) =>
       `${playerName} passed choosing another suit.`,
     playerChoosingOtherSuit: (playerName, suit) =>
       `${playerName} is choosing a suit other than ${suit}.`,
+    youChoosingOtherSuit: (suit) =>
+      `You are choosing a suit other than ${suit}.`,
     bothPlayersPassedTwice: "Both players passed twice.",
     playerMustChooseTrumpOnMus: (playerName) =>
       `${playerName} is on mus and must choose trump.`,
+    youMustChooseTrumpOnMus: "You are on mus and must choose trump.",
     winner: (playerName) => `Winner: ${playerName}`,
     startingCards: "Starting cards",
     remainingCards: "Remaining cards",

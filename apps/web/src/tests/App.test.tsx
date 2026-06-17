@@ -34,7 +34,7 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findAllByText("Me")).not.toHaveLength(0);
-    expect(screen.getAllByText("CPU")).not.toHaveLength(0);
+    expect(screen.getAllByText("AI")).not.toHaveLength(0);
     expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
   });
 

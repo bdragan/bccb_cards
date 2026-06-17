@@ -342,6 +342,19 @@ function playerName(
   );
 }
 
+function statusPlayerName(
+  state: BelotPublicState,
+  messages: Messages,
+  playerId?: string,
+  currentPlayerId?: string,
+) {
+  if (playerId && currentPlayerId && playerId === currentPlayerId) {
+    return messages.statusYou;
+  }
+
+  return playerName(state, messages, playerId);
+}
+
 function timelinePlayers(state: BelotPublicState) {
   const handResults =
     state.handResults ?? (state.lastHandResult ? [state.lastHandResult] : []);
@@ -503,7 +516,11 @@ function BelotGameTimeline({
   );
 }
 
-function trumpSelectionLogs(state: BelotPublicState, messages: Messages) {
+function trumpSelectionLogs(
+  state: BelotPublicState,
+  messages: Messages,
+  currentPlayerId?: string,
+) {
   if (!trumpSelectionPhases.includes(state.phase)) {
     return [];
   }
@@ -511,7 +528,14 @@ function trumpSelectionLogs(state: BelotPublicState, messages: Messages) {
   const logs: string[] = [];
   const upcardSuit = state.upcard?.suit;
   const upcardSuitLabel = upcardSuit ? messages.suits[upcardSuit] : undefined;
-  const turnPlayer = playerName(state, messages, state.trumpTurnPlayerId);
+  const isCurrentPlayerTurn =
+    Boolean(currentPlayerId) && state.trumpTurnPlayerId === currentPlayerId;
+  const turnPlayer = statusPlayerName(
+    state,
+    messages,
+    state.trumpTurnPlayerId,
+    currentPlayerId,
+  );
   const passedPlayers = state.trumpPasses ?? [];
 
   if (state.upcard && upcardSuitLabel) {
@@ -522,13 +546,17 @@ function trumpSelectionLogs(state: BelotPublicState, messages: Messages) {
     for (const playerId of passedPlayers) {
       logs.push(
         messages.playerPassedOnSuit(
-          playerName(state, messages, playerId),
+          statusPlayerName(state, messages, playerId, currentPlayerId),
           upcardSuitLabel ?? messages.upcardSuit,
         ),
       );
     }
 
-    logs.push(messages.playerDecidingUpcard(turnPlayer));
+    logs.push(
+      isCurrentPlayerTurn
+        ? messages.youDecidingUpcard
+        : messages.playerDecidingUpcard(turnPlayer),
+    );
     return logs;
   }
 
@@ -540,22 +568,28 @@ function trumpSelectionLogs(state: BelotPublicState, messages: Messages) {
     for (const playerId of passedPlayers) {
       logs.push(
         messages.playerPassedChoosingAnotherSuit(
-          playerName(state, messages, playerId),
+          statusPlayerName(state, messages, playerId, currentPlayerId),
         ),
       );
     }
 
     logs.push(
-      messages.playerChoosingOtherSuit(
-        turnPlayer,
-        upcardSuitLabel ?? messages.upcardSuit,
-      ),
+      isCurrentPlayerTurn
+        ? messages.youChoosingOtherSuit(upcardSuitLabel ?? messages.upcardSuit)
+        : messages.playerChoosingOtherSuit(
+            turnPlayer,
+            upcardSuitLabel ?? messages.upcardSuit,
+          ),
     );
     return logs;
   }
 
   logs.push(messages.bothPlayersPassedTwice);
-  logs.push(messages.playerMustChooseTrumpOnMus(turnPlayer));
+  logs.push(
+    isCurrentPlayerTurn
+      ? messages.youMustChooseTrumpOnMus
+      : messages.playerMustChooseTrumpOnMus(turnPlayer),
+  );
   return logs;
 }
 
@@ -795,7 +829,7 @@ export function BelotTable({
     () => playedCardsByPlayer(state),
     [state],
   );
-  const selectionLogs = trumpSelectionLogs(state, messages);
+  const selectionLogs = trumpSelectionLogs(state, messages, currentPlayerId);
   const handResultKey = state.lastHandResult
     ? [
         state.completedTricks.length,
