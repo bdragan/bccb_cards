@@ -127,6 +127,10 @@ input {
     gap: 0.25rem;
   }
 
+  .belot-hand-bonus-mobile {
+    align-self: stretch;
+  }
+
   .belot-hand-card {
     flex: 0 0 auto;
   }

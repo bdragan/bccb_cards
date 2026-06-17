@@ -1394,6 +1394,13 @@ export function BelotTable({
                 </div>
               ))}
             </div>
+            {showBonusPreview && showHiddenPickupPlaceholders ? (
+              <div className="belot-hand-bonus belot-hand-bonus-mobile mr-auto flex items-center md:hidden">
+                <span className="belot-hand-bonus-pill rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
+                  {messages.bonusPts(bonusPreview.points)}
+                </span>
+              </div>
+            ) : null}
             {showHiddenPickupPlaceholders ? (
               <div className="belot-hidden-pickups ml-auto flex shrink-0 gap-2">
                 {[1, 2].map((index) => (
@@ -1408,7 +1415,9 @@ export function BelotTable({
           </div>
           {showBonusPreview ? (
             <div
-              className="belot-hand-bonus mt-2 flex justify-start"
+              className={`belot-hand-bonus mt-8 justify-start ${
+                showHiddenPickupPlaceholders ? "hidden md:flex" : "flex"
+              }`}
               data-testid="belot-hand-bonus-total"
             >
               <span className="belot-hand-bonus-pill rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
