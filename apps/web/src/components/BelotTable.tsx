@@ -53,6 +53,7 @@ const trumpSelectionPhases: BelotPublicState["phase"][] = [
   "trump-round-two",
   "mus",
 ];
+const trumpSelectionPassButtonClassName = "min-w-[6.75rem]";
 
 type CardCollectionTransform = {
   x: number;
@@ -1195,7 +1196,10 @@ export function BelotTable({
               </Button>
             ) : null}
             {state.phase !== "mus" ? (
-              <Button onClick={() => onTrumpDecision({ kind: "pass" })}>
+              <Button
+                className={trumpSelectionPassButtonClassName}
+                onClick={() => onTrumpDecision({ kind: "pass" })}
+              >
                 {messages.pass}
               </Button>
             ) : null}
