@@ -28,6 +28,7 @@ import { BelotTable } from "../components/BelotTable";
 import { Button } from "../components/Button";
 import { LanguageToggle } from "../components/LanguageToggle";
 import { Lobby } from "../components/Lobby";
+import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { useI18n } from "../i18n";
 import { createGameSocket, type GameSocket } from "../socket/game-socket";
 import { useAuthStore } from "../stores/auth-store";
@@ -453,68 +454,76 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
           ) : null}
 
           {offlineBelotPublicState ? (
-            <BelotTable
-              state={offlineBelotPublicState}
-              currentPlayerId={offlineHumanPlayerId}
-              onTrumpDecision={applyOfflineTrumpDecision}
-              onDeclare={submitOfflineDeclarations}
-              onPlayCard={(cardId) =>
-                offlineHumanPlayerId &&
-                applyOfflineBelotAction({
-                  type: "play-card",
-                  playerId: offlineHumanPlayerId,
-                  cardId,
-                })
-              }
-              onNextHand={() => applyOfflineBelotAction({ type: "next-hand" })}
-              onRestart={() => setOfflineBelotState(createOfflineBelotState())}
-            />
+            <BelotAssetsGate>
+              <BelotTable
+                state={offlineBelotPublicState}
+                currentPlayerId={offlineHumanPlayerId}
+                onTrumpDecision={applyOfflineTrumpDecision}
+                onDeclare={submitOfflineDeclarations}
+                onPlayCard={(cardId) =>
+                  offlineHumanPlayerId &&
+                  applyOfflineBelotAction({
+                    type: "play-card",
+                    playerId: offlineHumanPlayerId,
+                    cardId,
+                  })
+                }
+                onNextHand={() =>
+                  applyOfflineBelotAction({ type: "next-hand" })
+                }
+                onRestart={() =>
+                  setOfflineBelotState(createOfflineBelotState())
+                }
+              />
+            </BelotAssetsGate>
           ) : gameState && !inLobby && gameState.gameId === "belot" ? (
-            <BelotTable
-              state={gameState}
-              currentPlayerId={user?.id}
-              onTrumpDecision={(decision) =>
-                room &&
-                socket?.emit(
-                  "belot:trump-decision",
-                  { roomId: room.id, ...decision },
-                  () => undefined,
-                )
-              }
-              onDeclare={(declarations) =>
-                room &&
-                socket?.emit(
-                  "belot:declare",
-                  { roomId: room.id, declarations },
-                  () => undefined,
-                )
-              }
-              onPlayCard={(cardId) =>
-                room &&
-                socket?.emit(
-                  "belot:play-card",
-                  { roomId: room.id, cardId },
-                  () => undefined,
-                )
-              }
-              onNextHand={() =>
-                room &&
-                socket?.emit(
-                  "belot:next-hand",
-                  { roomId: room.id },
-                  () => undefined,
-                )
-              }
-              onRestart={() => {
-                if (room) {
+            <BelotAssetsGate>
+              <BelotTable
+                state={gameState}
+                currentPlayerId={user?.id}
+                onTrumpDecision={(decision) =>
+                  room &&
                   socket?.emit(
-                    "game:restart",
+                    "belot:trump-decision",
+                    { roomId: room.id, ...decision },
+                    () => undefined,
+                  )
+                }
+                onDeclare={(declarations) =>
+                  room &&
+                  socket?.emit(
+                    "belot:declare",
+                    { roomId: room.id, declarations },
+                    () => undefined,
+                  )
+                }
+                onPlayCard={(cardId) =>
+                  room &&
+                  socket?.emit(
+                    "belot:play-card",
+                    { roomId: room.id, cardId },
+                    () => undefined,
+                  )
+                }
+                onNextHand={() =>
+                  room &&
+                  socket?.emit(
+                    "belot:next-hand",
                     { roomId: room.id },
                     () => undefined,
-                  );
+                  )
                 }
-              }}
-            />
+                onRestart={() => {
+                  if (room) {
+                    socket?.emit(
+                      "game:restart",
+                      { roomId: room.id },
+                      () => undefined,
+                    );
+                  }
+                }}
+              />
+            </BelotAssetsGate>
           ) : null}
         </div>
 

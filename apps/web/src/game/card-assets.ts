@@ -21,28 +21,66 @@ export const belotImagePaths = [
 ];
 
 let belotImagePreload: Promise<void> | undefined;
+let belotImagesLoaded = false;
+const decodedBelotImages = new Map<string, HTMLImageElement>();
 
 export function preloadBelotImages() {
+  if (isBelotImagePreloadBypassed()) {
+    belotImagesLoaded = true;
+    return Promise.resolve();
+  }
+
   if (typeof window === "undefined") {
     return Promise.resolve();
   }
 
   belotImagePreload ??= Promise.all(belotImagePaths.map(preloadImage)).then(
-    () => undefined,
+    () => {
+      belotImagesLoaded = true;
+    },
   );
 
   return belotImagePreload;
 }
 
+export function areBelotImagesLoaded() {
+  return isBelotImagePreloadBypassed() || belotImagesLoaded;
+}
+
+function isBelotImagePreloadBypassed() {
+  return import.meta.env.MODE === "test";
+}
+
 function preloadImage(src: string) {
+  if (decodedBelotImages.has(src)) {
+    return Promise.resolve();
+  }
+
   return new Promise<void>((resolve) => {
     const image = new Image();
+    let settled = false;
+    const settle = () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      decodedBelotImages.set(src, image);
+      resolve();
+    };
+    const settleLoaded = () => {
+      const decode = image.decode?.() ?? Promise.resolve();
+
+      void decode.then(settle, settle);
+    };
 
     image.decoding = "async";
-    image.onload = () => resolve();
+    image.onload = settleLoaded;
     image.onerror = () => resolve();
     image.src = src;
 
-    void image.decode?.().then(resolve, resolve);
+    if (image.complete && image.naturalWidth > 0) {
+      settleLoaded();
+    }
   });
 }

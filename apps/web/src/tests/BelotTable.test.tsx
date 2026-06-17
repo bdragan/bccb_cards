@@ -1,6 +1,5 @@
 import type { BelotPublicState, Card } from "@card-games/shared";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { BelotTable } from "../components/BelotTable";

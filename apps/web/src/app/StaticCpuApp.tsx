@@ -11,6 +11,7 @@ import type { BelotDeclaration, Suit } from "@card-games/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BelotTable } from "../components/BelotTable";
+import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { useI18n } from "../i18n";
 import type {
   BelotCpuWorkerRequest,
@@ -237,21 +238,23 @@ export function StaticCpuApp() {
   return (
     <main className="app-background min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-6">
-        <BelotTable
-          state={publicState}
-          currentPlayerId={humanPlayerId}
-          onTrumpDecision={applyTrumpDecision}
-          onDeclare={submitDeclarations}
-          onPlayCard={(cardId) =>
-            applyAction({
-              type: "play-card",
-              playerId: humanPlayerId,
-              cardId,
-            })
-          }
-          onNextHand={() => applyAction({ type: "next-hand" })}
-          onRestart={() => setBelotState(createState())}
-        />
+        <BelotAssetsGate>
+          <BelotTable
+            state={publicState}
+            currentPlayerId={humanPlayerId}
+            onTrumpDecision={applyTrumpDecision}
+            onDeclare={submitDeclarations}
+            onPlayCard={(cardId) =>
+              applyAction({
+                type: "play-card",
+                playerId: humanPlayerId,
+                cardId,
+              })
+            }
+            onNextHand={() => applyAction({ type: "next-hand" })}
+            onRestart={() => setBelotState(createState())}
+          />
+        </BelotAssetsGate>
       </div>
     </main>
   );

@@ -65,6 +65,7 @@ export type Messages = {
   loginFailed: string;
   cpuActionFailed: string;
   cpuWorkerUnavailable: string;
+  loadingCards: string;
   cardBack: string;
   drawn: string;
   hiddenPickupCard: string;
@@ -168,6 +169,7 @@ export const messages: Record<Locale, Messages> = {
     loginFailed: "Prijava nije uspela",
     cpuActionFailed: "CPU potez nije uspeo",
     cpuWorkerUnavailable: "CPU worker nije dostupan",
+    loadingCards: "Učitavanje karata...",
     cardBack: "Poleđina karte",
     drawn: "Izvučeno",
     hiddenPickupCard: "Skrivena pokupljena karta",
@@ -300,6 +302,7 @@ export const messages: Record<Locale, Messages> = {
     loginFailed: "Login failed",
     cpuActionFailed: "CPU action failed",
     cpuWorkerUnavailable: "CPU worker is not available",
+    loadingCards: "Loading cards...",
     cardBack: "Card back",
     drawn: "Drawn",
     hiddenPickupCard: "Hidden pickup card",
