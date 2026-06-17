@@ -484,8 +484,8 @@ describe("BelotTable", () => {
 
       expect(screen.queryByTestId("belot-hand-result")).not.toBeInTheDocument();
       expect(
-        within(finalTrick).getByText("Completed trick 2"),
-      ).toBeInTheDocument();
+        within(finalTrick).queryByText("Completed trick 2"),
+      ).not.toBeInTheDocument();
       expect(
         within(finalTrick).getByAltText("A of Hearts"),
       ).toBeInTheDocument();
@@ -840,7 +840,9 @@ describe("BelotTable", () => {
 
     const currentTrick = screen.getByTestId("belot-current-trick");
 
-    expect(within(currentTrick).getByText("Current trick")).toBeInTheDocument();
+    expect(
+      within(currentTrick).queryByText("Current trick"),
+    ).not.toBeInTheDocument();
     expect(currentTrick.querySelector(".h-\\[138px\\]")).toBeInTheDocument();
   });
 

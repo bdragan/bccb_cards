@@ -236,10 +236,10 @@ function TrumpMarkedCard({
       }
     >
       {showMarkerRow ? (
-        <span className="mb-1 flex h-5 items-center justify-center gap-1">
+        <span className="belot-card-marker-row mb-1 flex h-5 items-center justify-center gap-1">
           {reserveTrumpMarker ? (
             <span
-              className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
+              className={`belot-card-marker grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
                 isTrump ? "bg-yellow-300 shadow-sm" : "invisible"
               }`}
               aria-hidden={!isTrump}
@@ -249,7 +249,7 @@ function TrumpMarkedCard({
           ) : null}
           {reserveBonusMarker ? (
             <span
-              className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
+              className={`belot-card-marker grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
                 bonusMarked ? "bg-emerald-300 shadow-sm" : "invisible"
               }`}
               aria-hidden={!bonusMarked}
@@ -818,13 +818,11 @@ export function BelotTable({
     : undefined;
   const visibleTrick = state.currentTrick.length
     ? {
-        label: messages.currentTrick,
         cards: state.currentTrick,
         strengthByCardId: trickStrengthMap(state.currentTrick, state.trumpSuit),
       }
     : lingeringTrick
       ? {
-          label: messages.completedTrick(lingeringTrick.trickNumber),
           cards: lingeringTrick.cards,
           strengthByCardId: new Map(
             lingeringTrick.cards.map((play) => [
@@ -835,7 +833,6 @@ export function BelotTable({
         }
       : resultDelayTrick
         ? {
-            label: messages.completedTrick(state.completedTricks.length),
             cards: resultDelayTrick.cards,
             strengthByCardId: new Map(
               resultDelayTrick.cards.map((play) => [
@@ -1233,11 +1230,11 @@ export function BelotTable({
           className="mt-4 rounded-md bg-white/10 p-3"
           data-testid="belot-current-trick"
         >
-          <p className="mb-2 text-sm font-semibold">
-            {selectionLogs.length
-              ? messages.trumpSelection
-              : (visibleTrick?.label ?? messages.currentTrick)}
-          </p>
+          {selectionLogs.length ? (
+            <p className="mb-2 text-sm font-semibold">
+              {messages.trumpSelection}
+            </p>
+          ) : null}
           {selectionLogs.length ? (
             <ol className="min-h-[114px] space-y-2 text-sm text-white/85">
               {selectionLogs.map((log, index) => (
@@ -1390,13 +1387,6 @@ export function BelotTable({
                         {pickedUp ? (
                           <span className="sr-only">
                             {messages.hiddenPickupCard}
-                          </span>
-                        ) : null}
-                        {state.trumpSuit ? (
-                          <span className="belot-card-points mt-1 block text-xs text-white/70">
-                            {messages.points(
-                              belotCardPoints(card, state.trumpSuit),
-                            )}
                           </span>
                         ) : null}
                       </button>
