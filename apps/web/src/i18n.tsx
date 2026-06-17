@@ -135,7 +135,7 @@ export const messages: Record<Locale, Messages> = {
     localeName: "Srpski",
     language: "Jezik",
     switchLanguage: (localeName) => `Promeni jezik na ${localeName}`,
-    appTitle: "Bela",
+    appTitle: "Bela 1v1",
     authTitle: "Bela",
     login: "Prijava",
     register: "Registracija",
@@ -267,7 +267,7 @@ export const messages: Record<Locale, Messages> = {
     localeName: "English",
     language: "Language",
     switchLanguage: (localeName) => `Switch language to ${localeName}`,
-    appTitle: "Belot",
+    appTitle: "Belot 1v1",
     authTitle: "Card Games",
     login: "Login",
     register: "Register",
@@ -422,6 +422,7 @@ export function I18nProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    document.title = messages[locale].appTitle;
   }, [locale]);
 
   const value = useMemo<I18nContextValue>(

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../app/App";
-import { setLocaleForTests } from "../i18n";
+import { I18nProvider, setLocaleForTests } from "../i18n";
 import { useAuthStore } from "../stores/auth-store";
 
 class TestWorker {
@@ -12,6 +12,14 @@ class TestWorker {
 
   postMessage = vi.fn();
   terminate = vi.fn();
+}
+
+function renderApp() {
+  return render(
+    <I18nProvider>
+      <App />
+    </I18nProvider>,
+  );
 }
 
 describe("App", () => {
@@ -31,16 +39,17 @@ describe("App", () => {
   });
 
   it("starts an anonymous CPU game on the home page", async () => {
-    render(<App />);
+    renderApp();
 
     expect(await screen.findAllByText("Me")).not.toHaveLength(0);
     expect(screen.getAllByText("AI")).not.toHaveLength(0);
     expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
+    expect(document.title).toBe("Belot 1v1");
   });
 
   it("opens login and registration from anonymous play", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Login" }));
 
@@ -53,8 +62,9 @@ describe("App", () => {
   it("uses the Serbian anonymous player name", async () => {
     setLocaleForTests("sr");
 
-    render(<App />);
+    renderApp();
 
     expect(await screen.findAllByText("Ja")).not.toHaveLength(0);
+    expect(document.title).toBe("Bela 1v1");
   });
 });
