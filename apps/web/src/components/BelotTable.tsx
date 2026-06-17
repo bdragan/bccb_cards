@@ -1175,7 +1175,7 @@ export function BelotTable({
       {state.trumpTurnPlayerId === currentPlayerId ? (
         <div className="mt-4 rounded-md bg-white/10 p-3 text-white">
           <p className="text-sm font-semibold">{messages.chooseTrump}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
             {state.phase === "trump-round-one" ? (
               <Button
                 onClick={() => onTrumpDecision({ kind: "accept-upcard" })}
