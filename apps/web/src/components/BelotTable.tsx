@@ -406,14 +406,17 @@ function BelotGameTimeline({
   const { messages } = useI18n();
 
   return (
-    <section className="min-w-0" data-testid="belot-game-timeline">
+    <section
+      className="belot-game-timeline min-w-0"
+      data-testid="belot-game-timeline"
+    >
       <h3 className="text-sm font-semibold">{messages.gameTimeline}</h3>
-      <div className="mt-2 overflow-x-auto">
-        <table className="w-full min-w-[18rem] table-fixed border-collapse text-sm">
+      <div className="belot-game-timeline-scroll mt-2 overflow-x-auto">
+        <table className="belot-game-timeline-table w-full min-w-[18rem] table-fixed border-collapse text-sm">
           <thead>
             <tr className="border-b border-white/15 text-xs">
               <th
-                className="w-12 py-1 pr-2 text-left font-medium uppercase text-white/60"
+                className="belot-game-timeline-hand-col w-12 py-1 pr-2 text-left font-medium uppercase text-white/60"
                 scope="col"
               >
                 {messages.hand}
@@ -421,7 +424,7 @@ function BelotGameTimeline({
               {players.map((player) => (
                 <th
                   key={player.playerId}
-                  className="px-2 py-1 text-right font-bold text-white"
+                  className="truncate px-2 py-1 text-right font-bold text-white"
                   scope="col"
                 >
                   {player.displayName}
@@ -440,7 +443,7 @@ function BelotGameTimeline({
                   data-testid="belot-game-timeline-row"
                 >
                   <th
-                    className="py-2 pr-2 text-left align-top font-medium text-white/70"
+                    className="belot-game-timeline-hand-col py-2 pr-2 text-left align-top font-medium text-white/70"
                     scope="row"
                   >
                     <span className="block">{index + 1}</span>
@@ -455,9 +458,9 @@ function BelotGameTimeline({
                     return (
                       <td
                         key={`${index}-${player.playerId}`}
-                        className="px-2 py-2 align-top"
+                        className="belot-game-timeline-player-cell px-2 py-2 align-top"
                       >
-                        <div className="grid grid-cols-[3ch_1.25rem_4ch] items-center justify-end gap-1">
+                        <div className="belot-game-timeline-score grid grid-cols-[3ch_1.25rem_4ch] items-center justify-end gap-1">
                           <span className="text-right text-[11px] uppercase leading-none text-white">
                             {isCaller && result.isMus ? messages.mus : ""}
                           </span>
