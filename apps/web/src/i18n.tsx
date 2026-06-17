@@ -377,7 +377,7 @@ export const messages: Record<Locale, Messages> = {
     youMustChooseTrumpOnMus: "You are on mus and must choose trump.",
     winner: (playerName) => `Winner: ${playerName}`,
     startingCards: "Starting cards",
-    remainingCards: "Remaining cards",
+    remainingCards: "Remaining",
     yourHand: "Your hand",
     playLegalCard: "play a legal card",
     hideDetails: "Hide details",
