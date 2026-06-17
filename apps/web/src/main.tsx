@@ -4,9 +4,12 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import { isStaticCpuOnlyBuild } from "./app/build-mode";
+import { preloadBelotImages } from "./game/card-assets";
 import { I18nProvider } from "./i18n";
 
 async function bootstrap() {
+  void preloadBelotImages();
+
   const { App } = isStaticCpuOnlyBuild
     ? { App: (await import("./app/StaticCpuApp")).StaticCpuApp }
     : { App: (await import("./app/FullApp")).FullApp };

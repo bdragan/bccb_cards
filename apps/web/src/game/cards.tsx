@@ -1,6 +1,7 @@
 import type { Card } from "@card-games/shared";
 
 import { useI18n } from "../i18n";
+import { cardBackImagePath, cardImagePath } from "./card-assets";
 
 function cardSizeClass({
   compact = false,
@@ -25,13 +26,14 @@ export function PlayingCardBack({
 
   return (
     <img
-      src="/cards/card-back.svg"
+      src={cardBackImagePath}
       alt={alt ?? messages.cardBack}
       className={`card-face ${cardSizeClass({
         compact,
         native,
       })} rounded-md bg-white object-contain`}
-      loading="lazy"
+      loading="eager"
+      decoding="async"
     />
   );
 }
@@ -60,7 +62,7 @@ export function PlayingCard({
     );
   }
 
-  const imageUrl = `/cards/hungarian/${card.id}.jpg`;
+  const imageUrl = cardImagePath(card);
   const label = messages.cardLabel(card.rank, card.suit);
 
   return (
@@ -68,7 +70,8 @@ export function PlayingCard({
       src={imageUrl}
       alt={label}
       className={`card-face ${sizeClass} rounded-md border border-ink/10 bg-white object-contain`}
-      loading="lazy"
+      loading="eager"
+      decoding="async"
     />
   );
 }

@@ -23,16 +23,10 @@ import {
   useState,
 } from "react";
 
+import { suitImagePaths } from "../game/card-assets";
 import { PlayingCard, PlayingCardBack } from "../game/cards";
 import { type Messages, useI18n } from "../i18n";
 import { Button } from "./Button";
-
-const suitImagePaths: Record<Suit, string> = {
-  acorns: "/suits/s.png",
-  bells: "/suits/d.png",
-  hearts: "/suits/h.png",
-  leaves: "/suits/c.png",
-};
 
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
 const rankOrder: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
@@ -201,7 +195,8 @@ function SuitImage({
       src={suitImagePaths[suit]}
       alt={messages.suits[suit]}
       className={`${className} object-contain`}
-      loading="lazy"
+      loading="eager"
+      decoding="async"
     />
   );
 }
