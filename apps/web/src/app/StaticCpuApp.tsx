@@ -61,6 +61,13 @@ function isCpuTurn(state: BelotState) {
   );
 }
 
+export function shouldConfirmStaticCpuLeave(
+  hasHumanProgress: boolean,
+  state: Pick<BelotState, "winnerPlayerId">,
+) {
+  return hasHumanProgress && !state.winnerPlayerId;
+}
+
 export function StaticCpuApp() {
   const { messages } = useI18n();
   const workerRef = useRef<Worker | null>(null);
@@ -89,13 +96,17 @@ export function StaticCpuApp() {
   }, [messages.cpu, messages.offlineYou]);
 
   const [belotState, setBelotState] = useState<BelotState>(() => createState());
+  const shouldConfirmBeforeLeaving = shouldConfirmStaticCpuLeave(
+    hasHumanProgress,
+    belotState,
+  );
 
   useEffect(() => {
     setBelotState(createState());
   }, [createState]);
 
   useEffect(() => {
-    if (!hasHumanProgress) {
+    if (!shouldConfirmBeforeLeaving) {
       return;
     }
 
@@ -109,7 +120,7 @@ export function StaticCpuApp() {
     return () => {
       window.removeEventListener("beforeunload", confirmBeforeLeaving);
     };
-  }, [hasHumanProgress]);
+  }, [shouldConfirmBeforeLeaving]);
 
   useEffect(() => {
     const worker = new Worker(

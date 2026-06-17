@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { StaticCpuApp } from "../app/StaticCpuApp";
+import {
+  shouldConfirmStaticCpuLeave,
+  StaticCpuApp,
+} from "../app/StaticCpuApp";
 import { I18nProvider } from "../i18n";
 
 class TestWorker {
@@ -79,5 +82,11 @@ describe("StaticCpuApp", () => {
       allowed: false,
       defaultPrevented: true,
     });
+  });
+
+  it("does not confirm refreshes after the game is finished", () => {
+    expect(
+      shouldConfirmStaticCpuLeave(true, { winnerPlayerId: "offline-human" }),
+    ).toBe(false);
   });
 });
