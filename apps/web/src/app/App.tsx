@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { api } from "../api/client";
 import { AuthScreen } from "../components/AuthScreen";
@@ -7,6 +7,7 @@ import { useAuthStore } from "../stores/auth-store";
 
 export function App() {
   const { token, user } = useAuthStore();
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (!token || user) {
@@ -19,9 +20,9 @@ export function App() {
       .catch(() => useAuthStore.getState().logout());
   }, [token, user]);
 
-  if (!token || !user) {
+  if ((token && !user) || (showAuth && !token)) {
     return <AuthScreen />;
   }
 
-  return <Dashboard />;
+  return <Dashboard onLogin={() => setShowAuth(true)} />;
 }

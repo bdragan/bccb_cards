@@ -157,7 +157,7 @@ export const messages: Record<Locale, Messages> = {
     lobbyAutoStart: (gameName) =>
       `Server pokreće igru ${gameName} automatski kada se pridruže najmanje dva igrača i svi su spremni.`,
     belotName: "Bela",
-    offlineYou: "Vi",
+    offlineYou: "Ja",
     cpu: "CPU",
     requestFailed: "Zahtev nije uspeo",
     registrationFailed: "Registracija nije uspela",
@@ -284,7 +284,7 @@ export const messages: Record<Locale, Messages> = {
     lobbyAutoStart: (gameName) =>
       `The server starts ${gameName} automatically when at least two players have joined and everyone is ready.`,
     belotName: "Belot",
-    offlineYou: "You",
+    offlineYou: "Me",
     cpu: "CPU",
     requestFailed: "Request failed",
     registrationFailed: "Registration failed",

@@ -14,7 +14,14 @@ import type {
   RoomPublicState,
   Suit,
 } from "@card-games/shared";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { api } from "../api/client";
 import { BelotTable } from "../components/BelotTable";
@@ -72,7 +79,7 @@ function isOfflineCpuTurn(state: BelotState) {
   );
 }
 
-export function Dashboard() {
+export function Dashboard({ onLogin }: { onLogin?: () => void }) {
   const { messages } = useI18n();
   const { token, user, logout } = useAuthStore();
   const [matches, setMatches] = useState<unknown[]>([]);
@@ -85,6 +92,7 @@ export function Dashboard() {
   const offlineCpuWorkerRef = useRef<Worker | null>(null);
   const offlineCpuRequestIdRef = useRef(0);
   const offlineCpuPendingStateRef = useRef<BelotState | null>(null);
+  const autoStartedOfflineBelotRef = useRef(false);
 
   useEffect(() => {
     if (!token) {
@@ -266,7 +274,7 @@ export function Dashboard() {
     });
   }
 
-  function createOfflineBelotState() {
+  const createOfflineBelotState = useCallback(() => {
     const humanPlayerId = user?.id ?? "offline-human";
     let nextState = createBelotInitialState([
       {
@@ -288,14 +296,23 @@ export function Dashboard() {
     });
 
     return nextState;
-  }
+  }, [messages.cpu, messages.offlineYou, user?.displayName, user?.id]);
 
-  function startOfflineBelot() {
+  const startOfflineBelot = useCallback(() => {
     setRoom(undefined);
     setGameState(undefined);
     setError(undefined);
     setOfflineBelotState(createOfflineBelotState());
-  }
+  }, [createOfflineBelotState]);
+
+  useEffect(() => {
+    if (autoStartedOfflineBelotRef.current || activeBelotGame || room) {
+      return;
+    }
+
+    autoStartedOfflineBelotRef.current = true;
+    startOfflineBelot();
+  }, [activeBelotGame, room, startOfflineBelot]);
 
   function applyOfflineBelotAction(action: BelotAction) {
     setOfflineBelotState((current) =>
@@ -351,7 +368,7 @@ export function Dashboard() {
           <div>
             <h1 className="text-xl font-bold">{messages.appTitle}</h1>
             <p className="text-sm text-slate-600">
-              {user?.displayName ?? messages.signedIn}
+              {user?.displayName ?? messages.offlineYou}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -364,9 +381,15 @@ export function Dashboard() {
                 {messages.leaveMatch}
               </Button>
             ) : null}
-            <Button type="button" onClick={logout}>
-              {messages.logout}
-            </Button>
+            {token ? (
+              <Button type="button" onClick={logout}>
+                {messages.logout}
+              </Button>
+            ) : (
+              <Button type="button" onClick={onLogin}>
+                {messages.login}
+              </Button>
+            )}
           </div>
         </div>
       </header>
