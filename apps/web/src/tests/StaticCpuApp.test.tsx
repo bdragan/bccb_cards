@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { StaticCpuApp } from "../app/StaticCpuApp";
@@ -15,11 +15,22 @@ class TestWorker {
 describe("StaticCpuApp", () => {
   beforeEach(() => {
     vi.stubGlobal("Worker", TestWorker);
+    vi.spyOn(Math, "random").mockReturnValue(0.75);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
+
+  function dispatchBeforeUnload() {
+    const event = new Event("beforeunload", { cancelable: true });
+
+    return {
+      allowed: window.dispatchEvent(event),
+      defaultPrevented: event.defaultPrevented,
+    };
+  }
 
   it("renders the CPU-only game without backend controls", async () => {
     render(
@@ -38,5 +49,35 @@ describe("StaticCpuApp", () => {
       screen.queryByRole("button", { name: "Login" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Room")).not.toBeInTheDocument();
+  });
+
+  it("does not confirm refreshes before the player acts", async () => {
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByRole("button", { name: "Pass" })).toBeEnabled();
+
+    expect(dispatchBeforeUnload()).toEqual({
+      allowed: true,
+      defaultPrevented: false,
+    });
+  });
+
+  it("confirms refreshes after the player acts", async () => {
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Pass" }));
+
+    expect(dispatchBeforeUnload()).toEqual({
+      allowed: false,
+      defaultPrevented: true,
+    });
   });
 });

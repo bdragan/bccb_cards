@@ -66,6 +66,7 @@ export function StaticCpuApp() {
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
   const pendingStateRef = useRef<BelotState | null>(null);
+  const [hasHumanProgress, setHasHumanProgress] = useState(false);
 
   const createState = useCallback(() => {
     let nextState = createBelotInitialState([
@@ -92,6 +93,23 @@ export function StaticCpuApp() {
   useEffect(() => {
     setBelotState(createState());
   }, [createState]);
+
+  useEffect(() => {
+    if (!hasHumanProgress) {
+      return;
+    }
+
+    function confirmBeforeLeaving(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", confirmBeforeLeaving);
+
+    return () => {
+      window.removeEventListener("beforeunload", confirmBeforeLeaving);
+    };
+  }, [hasHumanProgress]);
 
   useEffect(() => {
     const worker = new Worker(
@@ -206,6 +224,12 @@ export function StaticCpuApp() {
 
   function applyAction(action: BelotAction) {
     setBelotState((current) => applyBelotAction(current, action));
+    setHasHumanProgress(true);
+  }
+
+  function restartGame() {
+    setHasHumanProgress(false);
+    setBelotState(createState());
   }
 
   function applyTrumpDecision(
@@ -252,7 +276,7 @@ export function StaticCpuApp() {
               })
             }
             onNextHand={() => applyAction({ type: "next-hand" })}
-            onRestart={() => setBelotState(createState())}
+            onRestart={restartGame}
           />
         </BelotAssetsGate>
       </div>
