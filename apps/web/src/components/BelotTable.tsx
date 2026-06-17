@@ -598,7 +598,10 @@ function ResultCardRow({
   const suitGroups = groupCardsBySuit(sortCards(cards, trumpSuit));
 
   return (
-    <div className="flex items-start gap-3" data-testid="belot-result-card-row">
+    <div
+      className="belot-result-card-row flex items-start gap-3"
+      data-testid="belot-result-card-row"
+    >
       <p className="w-24 shrink-0 pt-8 text-sm font-semibold">{label}:</p>
       <div className="flex min-h-24 min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2 overflow-x-auto px-1 py-1">
         {suitGroups.map((group) => (
@@ -1109,7 +1112,10 @@ export function BelotTable({
             {state.trumpSuit ? (
               <div className="text-center">
                 <p className="mb-1 text-sm font-semibold">{messages.trump}</p>
-                <SuitImage suit={state.trumpSuit} className="h-12 w-12" />
+                <SuitImage
+                  suit={state.trumpSuit}
+                  className="belot-center-trump-suit h-12 w-12"
+                />
               </div>
             ) : null}
             {state.trumpSuit && state.upcard ? (
@@ -1186,7 +1192,10 @@ export function BelotTable({
                 <span className="inline-flex items-center gap-2">
                   {messages.accept}
                   {state.upcard ? (
-                    <SuitImage suit={state.upcard.suit} className="h-7 w-7" />
+                    <SuitImage
+                      suit={state.upcard.suit}
+                      className="belot-trump-button-suit h-7 w-7"
+                    />
                   ) : null}
                 </span>
               </Button>
@@ -1208,7 +1217,10 @@ export function BelotTable({
                     }
                     aria-label={messages.chooseSuit(messages.suits[suit])}
                   >
-                    <SuitImage suit={suit} className="h-9 w-9" />
+                    <SuitImage
+                      suit={suit}
+                      className="belot-trump-button-suit h-9 w-9"
+                    />
                   </Button>
                 ))
               : null}
@@ -1295,7 +1307,7 @@ export function BelotTable({
             />
           ) : null}
           <div
-            className="mt-4 rounded-md bg-white/10 p-3 text-white"
+            className="belot-starting-cards mt-4 rounded-md bg-white/10 p-3 text-white"
             data-testid="belot-starting-cards"
           >
             <h3 className="font-bold">{messages.startingCards}</h3>
@@ -1433,7 +1445,10 @@ export function BelotTable({
         {showPlayedHands ? (
           <div className="mt-3 rounded-md bg-white/10 p-3">
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-              <section className="min-w-0" data-testid="belot-played-tricks">
+              <section
+                className="belot-played-tricks min-w-0"
+                data-testid="belot-played-tricks"
+              >
                 <h3 className="text-sm font-semibold">
                   {messages.playedTricks}
                 </h3>
@@ -1463,11 +1478,11 @@ export function BelotTable({
                               {trick.cards.map((play) => (
                                 <div
                                   key={`${index}-${play.playerId}-${play.card.id}`}
-                                  className={
+                                  className={`belot-played-trick-card ${
                                     play.playerId === trick.winnerPlayerId
                                       ? ""
                                       : "opacity-45"
-                                  }
+                                  }`}
                                 >
                                   <TrumpMarkedCard
                                     card={play.card}
