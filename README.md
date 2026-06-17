@@ -54,6 +54,7 @@ pnpm dev
 pnpm test
 pnpm test:e2e
 pnpm build
+pnpm build:web:static
 pnpm lint
 pnpm typecheck
 pnpm format
@@ -73,3 +74,22 @@ Belot game in two browser contexts.
 4. Play through trump selection, declarations, tricks, and scoring.
 5. The backend stores the completed match.
 6. Match history is available from the dashboard.
+
+## Static CPU-Only Deployment
+
+The web app can be built as a static Belot-vs-CPU site with no API, database,
+auth, or Socket.IO dependency:
+
+```bash
+corepack pnpm build:web:static
+```
+
+This sets `VITE_STATIC_CPU_ONLY=true` for the Vite build. The output is written
+to `apps/web/dist` and can be deployed to Cloudflare Pages.
+
+Recommended Cloudflare Pages settings for this monorepo:
+
+```text
+Build command: corepack enable && corepack pnpm install --frozen-lockfile && corepack pnpm build:web:static
+Build output directory: apps/web/dist
+```

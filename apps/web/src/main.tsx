@@ -3,13 +3,21 @@ import "./app/styles.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import { App } from "./app/App";
+import { isStaticCpuOnlyBuild } from "./app/build-mode";
 import { I18nProvider } from "./i18n";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <I18nProvider>
-      <App />
-    </I18nProvider>
-  </React.StrictMode>,
-);
+async function bootstrap() {
+  const { App } = isStaticCpuOnlyBuild
+    ? { App: (await import("./app/StaticCpuApp")).StaticCpuApp }
+    : { App: (await import("./app/FullApp")).FullApp };
+
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    </React.StrictMode>,
+  );
+}
+
+void bootstrap();
