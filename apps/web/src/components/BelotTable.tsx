@@ -53,7 +53,7 @@ const trumpSelectionPhases: BelotPublicState["phase"][] = [
   "trump-round-two",
   "mus",
 ];
-const trumpSelectionPassButtonClassName = "min-w-[6.75rem]";
+const trumpSelectionPassButtonClassName = "min-w-[5.25rem]";
 
 type CardCollectionTransform = {
   x: number;
