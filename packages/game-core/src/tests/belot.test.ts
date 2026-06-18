@@ -1697,6 +1697,48 @@ describe("Belot", () => {
     ).toEqual(["X-acorns"]);
   });
 
+  it("discards trump ace instead of trump nine when both lose to trump jack", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "leaves"), card("IX", "leaves")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "leaves",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("U", "leaves") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      belotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["A-leaves"]);
+    expect(belotCpuCheapSearchCard(state.players[0].hand, state).id).toBe(
+      "A-leaves",
+    );
+  });
+
   it("keeps both connected response endpoints when only one endpoint wins", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),

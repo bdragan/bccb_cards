@@ -1830,11 +1830,15 @@ function trickWinner(plays: BelotTrickPlay[], trumpSuit: Suit) {
 }
 
 function cardHeuristic(card: Card, trumpSuit: Suit) {
+  const nonTrumpHighCardBonus =
+    card.suit !== trumpSuit
+      ? (card.rank === "A" ? 4 : 0) + (card.rank === "X" ? 2 : 0)
+      : 0;
+
   return (
     belotCardPoints(card, trumpSuit) +
     (card.suit === trumpSuit ? 10 : 0) +
-    (card.rank === "A" ? 4 : 0) +
-    (card.rank === "X" ? 2 : 0)
+    nonTrumpHighCardBonus
   );
 }
 
