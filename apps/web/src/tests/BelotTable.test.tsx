@@ -255,9 +255,11 @@ describe("BelotTable", () => {
       .closest("button")!;
     expect(markedButton).not.toHaveClass("ring-4");
     expect(within(markedButton).getByRole("img").parentElement).toHaveClass(
-      "ring-4",
+      "ring-2",
+      "md:ring-4",
       "ring-cyan-200",
-      "ring-offset-2",
+      "ring-offset-1",
+      "md:ring-offset-2",
       "ring-offset-ink",
     );
   });
@@ -584,9 +586,11 @@ describe("BelotTable", () => {
       expect(
         within(cardRows[0]).getAllByRole("img")[1].parentElement,
       ).toHaveClass(
-        "ring-4",
+        "ring-2",
+        "md:ring-4",
         "ring-cyan-200",
-        "ring-offset-2",
+        "ring-offset-1",
+        "md:ring-offset-2",
         "ring-offset-ink",
       );
     } finally {

@@ -261,14 +261,14 @@ function TrumpMarkedCard({
 
 function PickupCardFrame({
   pickedUp,
-  ringClassName = "ring-cyan-200 ring-offset-2 ring-offset-ink",
+  ringClassName = "ring-cyan-200 ring-offset-1 ring-offset-ink md:ring-offset-2",
   children,
 }: {
   pickedUp: boolean;
   ringClassName?: string;
   children: ReactNode;
 }) {
-  const ringClass = pickedUp ? `ring-4 ${ringClassName}` : "";
+  const ringClass = pickedUp ? `ring-2 md:ring-4 ${ringClassName}` : "";
 
   return (
     <span className={`inline-flex rounded-md ${ringClass}`}>{children}</span>
