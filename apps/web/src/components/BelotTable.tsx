@@ -271,7 +271,9 @@ function PickupCardFrame({
   const ringClass = pickedUp ? `ring-2 md:ring-4 ${ringClassName}` : "";
 
   return (
-    <span className={`inline-flex rounded-md ${ringClass}`}>{children}</span>
+    <span className={`inline-flex rounded md:rounded-md ${ringClass}`}>
+      {children}
+    </span>
   );
 }
 
