@@ -261,7 +261,7 @@ function TrumpMarkedCard({
 
 function PickupCardFrame({
   pickedUp,
-  ringClassName = "ring-sky-300",
+  ringClassName = "ring-cyan-200 ring-offset-2 ring-offset-ink",
   children,
 }: {
   pickedUp: boolean;
