@@ -256,6 +256,7 @@ describe("BelotTable", () => {
     expect(markedButton).not.toHaveClass("ring-4");
     expect(within(markedButton).getByRole("img").parentElement).toHaveClass(
       "ring-4",
+      "ring-blue-600",
     );
   });
 
@@ -580,7 +581,7 @@ describe("BelotTable", () => {
       ).not.toHaveClass("ring-4");
       expect(
         within(cardRows[0]).getAllByRole("img")[1].parentElement,
-      ).toHaveClass("ring-4");
+      ).toHaveClass("ring-4", "ring-blue-600");
     } finally {
       vi.useRealTimers();
     }

@@ -261,7 +261,7 @@ function TrumpMarkedCard({
 
 function PickupCardFrame({
   pickedUp,
-  ringClassName = "ring-amber-600",
+  ringClassName = "ring-blue-600",
   children,
 }: {
   pickedUp: boolean;
@@ -644,10 +644,7 @@ function ResultCardRow({
               return (
                 <div key={card.id} className="relative shrink-0 rounded-md">
                   <TrumpMarkedCard card={card} trumpSuit={trumpSuit}>
-                    <PickupCardFrame
-                      pickedUp={pickedUp}
-                      ringClassName="ring-amber-600"
-                    >
+                    <PickupCardFrame pickedUp={pickedUp}>
                       <PlayingCard card={card} compact />
                     </PickupCardFrame>
                   </TrumpMarkedCard>
