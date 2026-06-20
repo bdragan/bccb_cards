@@ -146,6 +146,15 @@ describe("BelotTable", () => {
     expect(screen.getByAltText("K of Leaves")).toBeInTheDocument();
   });
 
+  it("links to the Belot rules from the player's hand heading", () => {
+    renderTable();
+
+    const rulesLink = screen.getByRole("link", { name: "Rules" });
+
+    expect(rulesLink).toHaveAttribute("href", "/rules/belot-user-en.html");
+    expect(rulesLink).toHaveTextContent("?");
+  });
+
   it("separates the player's hand into suit groups horizontally", () => {
     renderTable();
 

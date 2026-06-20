@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="sr-Latn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pravila Bele 1v1</title>
+    <style>
+      :root {
+        color: #f8faf7;
+        background: #2f423e;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        background: #2f423e url("/images/backgrounds/background.png") repeat;
+        line-height: 1.6;
+      }
+
+      main {
+        width: min(960px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2rem 0 3rem;
+      }
+
+      article {
+        border: 1px solid rgb(255 255 255 / 16%);
+        border-radius: 8px;
+        background:
+          linear-gradient(rgb(31 122 77 / 82%), rgb(31 122 77 / 82%)),
+          url("/images/backgrounds/background.png") repeat;
+        padding: clamp(1rem, 4vw, 2rem);
+        box-shadow: 0 24px 70px rgb(0 0 0 / 24%);
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.2;
+      }
+
+      h1 {
+        margin: 0 0 1rem;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+      }
+
+      h2 {
+        margin: 2rem 0 0.75rem;
+        font-size: 1.35rem;
+      }
+
+      h3 {
+        margin: 1.5rem 0 0.5rem;
+        font-size: 1.05rem;
+      }
+
+      p,
+      ul,
+      ol {
+        margin: 0.75rem 0;
+      }
+
+      table {
+        width: 100%;
+        margin: 1rem 0;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 8px;
+        background: rgb(255 255 255 / 8%);
+      }
+
+      th,
+      td {
+        padding: 0.65rem 0.8rem;
+        border-bottom: 1px solid rgb(255 255 255 / 12%);
+        text-align: left;
+      }
+
+      th:last-child,
+      td:last-child {
+        text-align: right;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      a {
+        color: #bbf7d0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <h1>Pravila Bele 1v1</h1>
+
+        <p>Bela 1v1 je igra štihova za dva igrača. Svaka ruka ima jednu adutsku boju. Igrači osvajaju štihove, skupljaju poene iz karata, dobijaju poene za zvanja i rezultat ruke dodaju na ukupan skor. Partija traje dok jedan igrač ne dođe do 501 poena.</p>
+
+        <h2>Špil</h2>
+        <p>Igra se sa 32 karte:</p>
+        <ul>
+          <li>Boje: Žir, Tikva, Srce, List</li>
+          <li>Karte: VII, VIII, IX, X, U/J, O/Q, K, A</li>
+        </ul>
+
+        <h2>Cilj</h2>
+        <p>Posle svake ruke poeni se dodaju na ukupan skor igrača.</p>
+        <p>Prvi igrač koji ima najmanje 501 poen pobeđuje. Ako oba igrača pređu 501 u istoj ruci, pobeđuje igrač sa većim ukupnim skorom. Ako je skor izjednačen, igra se nastavlja dok jedan igrač ne bude ispred.</p>
+
+        <h2>Deljenje i prvi igrač</h2>
+        <p>Prvi delilac se bira nasumično. Delilac se menja posle svake ruke.</p>
+        <p>Igrač koji ne deli je prvi igrač u ruci. Prvi igrač:</p>
+        <ul>
+          <li>Prvi odlučuje pri biranju aduta</li>
+          <li>Vodi prvi štih</li>
+          <li>Mora da izabere adut ako ruka dođe do musa</li>
+        </ul>
+
+        <h2>Deljenje karata</h2>
+        <p>Na početku svake ruke:</p>
+        <ul>
+          <li>Svaki igrač dobija 8 karata.</li>
+          <li>Svaki igrač dobija još 2 skrivene karte za pokupljanje.</li>
+          <li>Jedna karta se okreće licem nagore kao presečena karta.</li>
+          <li>Ostatak špila se ne koristi u toj ruci.</li>
+        </ul>
+        <p>Kada se izabere adut, svaki igrač pokupi svoje 2 skrivene karte, pa igra sa 10 karata.</p>
+        <p>Presečena karta služi samo za biranje aduta. Ne igra se, ne može da se zove i ne menja se za adutsku VII.</p>
+
+        <h2>Biranje aduta</h2>
+        <p>Adut se bira u najviše tri koraka.</p>
+        <ol>
+          <li>Prvi krug: prvi igrač, pa drugi igrač, mogu da prihvate boju presečene karte kao adut.</li>
+          <li>Drugi krug: ako oba igrača kažu dalje, prvi igrač, pa drugi igrač, mogu da izaberu bilo koju boju osim boje presečene karte.</li>
+          <li>Mus: ako oba igrača opet kažu dalje, prvi igrač mora da izabere bilo koju boju osim boje presečene karte.</li>
+        </ol>
+        <p>Igrač koji izabere adut je zvao.</p>
+
+        <h2>Jačina karata i poeni</h2>
+        <p>Karte koje nisu adut, od najjače do najslabije:</p>
+        <table>
+          <thead><tr><th>Karta</th><th>Poeni</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>11</td></tr>
+            <tr><td>X</td><td>10</td></tr>
+            <tr><td>K</td><td>4</td></tr>
+            <tr><td>O/Q</td><td>3</td></tr>
+            <tr><td>U/J</td><td>2</td></tr>
+            <tr><td>IX</td><td>0</td></tr>
+            <tr><td>VIII</td><td>0</td></tr>
+            <tr><td>VII</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <p>Adutske karte, od najjače do najslabije:</p>
+        <table>
+          <thead><tr><th>Karta</th><th>Poeni</th></tr></thead>
+          <tbody>
+            <tr><td>U/J</td><td>20</td></tr>
+            <tr><td>IX</td><td>14</td></tr>
+            <tr><td>A</td><td>11</td></tr>
+            <tr><td>X</td><td>10</td></tr>
+            <tr><td>K</td><td>4</td></tr>
+            <tr><td>O/Q</td><td>3</td></tr>
+            <tr><td>VIII</td><td>0</td></tr>
+            <tr><td>VII</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <p>Igrač koji osvoji poslednji štih dobija još 10 poena iz igre.</p>
+
+        <h2>Zvanja</h2>
+        <p>Zvanja se računaju posle izbora aduta, a pre igre štihova. Igra primenjuje najjači dozvoljeni skup zvanja koja se ne preklapaju za svakog igrača. Karte koje su zvale vide oba igrača, ali one ostaju u ruci igrača dok se ne odigraju.</p>
+
+        <h3>Bela</h3>
+        <p>Adutski K i adutska O/Q zajedno vrede 20 poena.</p>
+
+        <h3>Nizovi</h3>
+        <p>Niz je 3 ili više uzastopnih karata u istoj boji, po ovom redosledu:</p>
+        <p>VII, VIII, IX, X, U/J, O/Q, K, A</p>
+        <table>
+          <thead><tr><th>Niz</th><th>Poeni</th></tr></thead>
+          <tbody>
+            <tr><td>3 karte</td><td>20</td></tr>
+            <tr><td>4 karte</td><td>50</td></tr>
+            <tr><td>5 ili više karata</td><td>100</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Četiri iste</h3>
+        <table>
+          <thead><tr><th>Zvanje</th><th>Poeni</th></tr></thead>
+          <tbody>
+            <tr><td>Četiri U/J</td><td>200</td></tr>
+            <tr><td>Četiri IX</td><td>150</td></tr>
+            <tr><td>Četiri A</td><td>100</td></tr>
+            <tr><td>Četiri X</td><td>100</td></tr>
+            <tr><td>Četiri K</td><td>100</td></tr>
+            <tr><td>Četiri O/Q</td><td>100</td></tr>
+          </tbody>
+        </table>
+        <p>Četiri VII i četiri VIII se ne boduju.</p>
+        <p>Jedna karta može da učestvuje samo u jednom običnom zvanju, odnosno u jednom nizu ili zvanju četiri iste. Bela je izuzetak: adutski K i adutska O/Q mogu istovremeno da budu u beli i u jednom običnom zvanju.</p>
+
+        <h2>Igra štihova</h2>
+        <p>Svaka ruka ima 10 štihova. Prvi igrač vodi prvi štih. Posle toga, pobednik svakog štiha vodi sledeći.</p>
+        <p>Kada odgovaraš na štih:</p>
+        <ul>
+          <li>Ako imaš boju kojom je štih započet, moraš odigrati tu boju.</li>
+          <li>Ako nemaš tu boju, ali imaš adut, moraš odigrati adut.</li>
+          <li>Ako nemaš ni traženu boju ni adut, možeš odigrati bilo koju kartu.</li>
+        </ul>
+        <p>Ako je odigran bar jedan adut, najjači adut osvaja štih. Inače, štih osvaja najjača karta u boji kojom je štih započet.</p>
+
+        <h2>Bodovanje ruke</h2>
+        <p>Svaki igrač prvo sabira:</p>
+        <ul>
+          <li>Poene iz osvojenih štihova, uključujući bonus od 10 poena za poslednji štih ako ga je osvojio</li>
+          <li>Poene iz zvanja</li>
+        </ul>
+        <p>Igrač koji je zvao uspeva samo ako ima veći ukupan broj poena od protivnika. Nerešeno znači da je igrač koji je zvao pao.</p>
+        <p>Ako igrač koji je zvao uspe, oba igrača upisuju svoje poene za ruku.</p>
+        <p>Ako igrač koji je zvao padne:</p>
+        <ul>
+          <li>Ako ipak ima više poena iz karata od protivnika, upisuje 0, a protivnik upisuje samo svoje poene.</li>
+          <li>Ako ima isto ili manje poena iz karata, upisuje 0, a protivnik upisuje poene oba igrača.</li>
+          <li>Ako je ruka bila mus i igrač koji je zvao ima isto ili manje poena iz karata, on upisuje -20, a protivnik upisuje samo svoje poene.</li>
+        </ul>
+
+        <h2>Šuster</h2>
+        <p>Igrač koji ne osvoji nijedan štih u ruci je šuster.</p>
+        <p>Njegovi poeni iz zvanja se ne računaju njemu, već se daju protivniku. Šuster igrač dobija i dodatnih -100 poena za tu ruku. Ukupan skor može biti manji od nule.</p>
+      </article>
+    </main>
+  </body>
+</html>

@@ -129,6 +129,7 @@ export type Messages = {
   playedTricks: string;
   trickWinner: (trickNumber: number, playerName?: string) => string;
   noTricksCompleted: string;
+  rules: string;
 };
 
 export const messages: Record<Locale, Messages> = {
@@ -264,6 +265,7 @@ export const messages: Record<Locale, Messages> = {
     trickWinner: (trickNumber, playerName) =>
       `Štih ${trickNumber}${playerName ? ` · ${playerName}` : ""}`,
     noTricksCompleted: "Još nema završenih štihova.",
+    rules: "Pravila",
   },
   en: {
     localeName: "English",
@@ -389,6 +391,7 @@ export const messages: Record<Locale, Messages> = {
     trickWinner: (trickNumber, playerName) =>
       `Trick ${trickNumber}${playerName ? ` · ${playerName}` : ""}`,
     noTricksCompleted: "No tricks completed yet.",
+    rules: "Rules",
   },
 };
 

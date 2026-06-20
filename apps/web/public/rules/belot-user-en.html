@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Belot 1v1 Rules</title>
+    <style>
+      :root {
+        color: #f8faf7;
+        background: #2f423e;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        background: #2f423e url("/images/backgrounds/background.png") repeat;
+        line-height: 1.6;
+      }
+
+      main {
+        width: min(960px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2rem 0 3rem;
+      }
+
+      article {
+        border: 1px solid rgb(255 255 255 / 16%);
+        border-radius: 8px;
+        background:
+          linear-gradient(rgb(31 122 77 / 82%), rgb(31 122 77 / 82%)),
+          url("/images/backgrounds/background.png") repeat;
+        padding: clamp(1rem, 4vw, 2rem);
+        box-shadow: 0 24px 70px rgb(0 0 0 / 24%);
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.2;
+      }
+
+      h1 {
+        margin: 0 0 1rem;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+      }
+
+      h2 {
+        margin: 2rem 0 0.75rem;
+        font-size: 1.35rem;
+      }
+
+      h3 {
+        margin: 1.5rem 0 0.5rem;
+        font-size: 1.05rem;
+      }
+
+      p,
+      ul,
+      ol {
+        margin: 0.75rem 0;
+      }
+
+      table {
+        width: 100%;
+        margin: 1rem 0;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 8px;
+        background: rgb(255 255 255 / 8%);
+      }
+
+      th,
+      td {
+        padding: 0.65rem 0.8rem;
+        border-bottom: 1px solid rgb(255 255 255 / 12%);
+        text-align: left;
+      }
+
+      th:last-child,
+      td:last-child {
+        text-align: right;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      a {
+        color: #bbf7d0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <h1>Belot 1v1 Rules</h1>
+
+        <p>Belot 1v1 is a two-player trick-taking card game. Each hand has one trump suit. Players win tricks, collect card points, score declarations, and add the hand score to their total. The game is played until a player reaches 501 points.</p>
+
+        <h2>Deck</h2>
+        <p>The game uses 32 cards:</p>
+        <ul>
+          <li>Suits: Acorns, Bells, Hearts, Leaves</li>
+          <li>Ranks: VII, VIII, IX, X, U/J, O/Q, K, A</li>
+        </ul>
+
+        <h2>Goal</h2>
+        <p>After each hand, scores are added to the players' totals.</p>
+        <p>The first player to reach at least 501 points wins. If both players reach 501 in the same hand, the higher total wins. If the totals are tied, play continues until one player is ahead.</p>
+
+        <h2>Dealer and First Player</h2>
+        <p>The first dealer is chosen randomly. The dealer changes after every hand.</p>
+        <p>The non-dealer is the first player for the hand. The first player:</p>
+        <ul>
+          <li>Decides first during trump selection</li>
+          <li>Leads the first trick</li>
+          <li>Must choose trump if the hand reaches mus</li>
+        </ul>
+
+        <h2>Deal</h2>
+        <p>At the start of each hand:</p>
+        <ul>
+          <li>Each player receives 8 cards.</li>
+          <li>Each player also receives 2 hidden pickup cards.</li>
+          <li>One card is turned face up as the upcard.</li>
+          <li>The rest of the deck stays unused for that hand.</li>
+        </ul>
+        <p>After trump is chosen, each player picks up their 2 hidden cards, so each player plays with 10 cards.</p>
+        <p>The upcard is only used for trump selection. It is not played, cannot be declared, and is not exchanged for the trump VII.</p>
+
+        <h2>Trump Selection</h2>
+        <p>Trump is chosen in up to three steps.</p>
+        <ol>
+          <li>First round: the first player, then the second player, may accept the upcard suit as trump.</li>
+          <li>Second round: if both pass, the first player, then the second player, may choose any suit except the upcard suit.</li>
+          <li>Mus: if both pass again, the first player must choose any suit except the upcard suit.</li>
+        </ol>
+        <p>The player who chooses trump is the caller.</p>
+
+        <h2>Card Strength and Points</h2>
+        <p>Non-trump cards, strongest to weakest:</p>
+        <table>
+          <thead><tr><th>Rank</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>11</td></tr>
+            <tr><td>X</td><td>10</td></tr>
+            <tr><td>K</td><td>4</td></tr>
+            <tr><td>O/Q</td><td>3</td></tr>
+            <tr><td>U/J</td><td>2</td></tr>
+            <tr><td>IX</td><td>0</td></tr>
+            <tr><td>VIII</td><td>0</td></tr>
+            <tr><td>VII</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <p>Trump cards, strongest to weakest:</p>
+        <table>
+          <thead><tr><th>Rank</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>U/J</td><td>20</td></tr>
+            <tr><td>IX</td><td>14</td></tr>
+            <tr><td>A</td><td>11</td></tr>
+            <tr><td>X</td><td>10</td></tr>
+            <tr><td>K</td><td>4</td></tr>
+            <tr><td>O/Q</td><td>3</td></tr>
+            <tr><td>VIII</td><td>0</td></tr>
+            <tr><td>VII</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <p>The winner of the last trick gets 10 extra card points.</p>
+
+        <h2>Declarations</h2>
+        <p>Declarations are scored after trump is chosen and before trick play begins. The game applies the highest-scoring valid set of non-overlapping declarations for each player. Declared cards are shown to both players, but they stay in the player's hand until played.</p>
+
+        <h3>Belote</h3>
+        <p>The trump K and trump O/Q together score 20 points.</p>
+
+        <h3>Sequences</h3>
+        <p>A sequence is 3 or more consecutive cards in the same suit, using this order:</p>
+        <p>VII, VIII, IX, X, U/J, O/Q, K, A</p>
+        <table>
+          <thead><tr><th>Sequence</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>3 cards</td><td>20</td></tr>
+            <tr><td>4 cards</td><td>50</td></tr>
+            <tr><td>5 or more cards</td><td>100</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Four of a Kind</h3>
+        <table>
+          <thead><tr><th>Declaration</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>Four U/J</td><td>200</td></tr>
+            <tr><td>Four IX</td><td>150</td></tr>
+            <tr><td>Four A</td><td>100</td></tr>
+            <tr><td>Four X</td><td>100</td></tr>
+            <tr><td>Four K</td><td>100</td></tr>
+            <tr><td>Four O/Q</td><td>100</td></tr>
+          </tbody>
+        </table>
+        <p>Four VII and four VIII do not score.</p>
+        <p>A card can be used in only one ordinary declaration, meaning one sequence or four-of-a-kind. Belote is the exception: the trump K and trump O/Q may also be part of one ordinary declaration.</p>
+
+        <h2>Trick Play</h2>
+        <p>Each hand has 10 tricks. The first player leads the first trick. After that, the winner of each trick leads the next one.</p>
+        <p>When responding to a trick:</p>
+        <ul>
+          <li>If you have the lead suit, you must play that suit.</li>
+          <li>If you do not have the lead suit but have trump, you must play trump.</li>
+          <li>If you have neither the lead suit nor trump, you may play any card.</li>
+        </ul>
+        <p>If any trump is played, the strongest trump wins the trick. Otherwise, the strongest card in the lead suit wins.</p>
+
+        <h2>Hand Scoring</h2>
+        <p>Each player first counts:</p>
+        <ul>
+          <li>Card points from won tricks, including the 10-point last-trick bonus if won</li>
+          <li>Declaration points</li>
+        </ul>
+        <p>The caller succeeds only if the caller's total is higher than the opponent's total. A tie means the caller falls.</p>
+        <p>If the caller succeeds, both players score their own totals for the hand.</p>
+        <p>If the caller falls:</p>
+        <ul>
+          <li>If the caller still has more card points than the opponent, the caller scores 0 and the opponent scores their own total.</li>
+          <li>If the caller has equal or fewer card points, the caller scores 0 and the opponent scores both players' totals.</li>
+          <li>If the hand was mus and the caller has equal or fewer card points, the caller scores -20 and the opponent scores only their own total.</li>
+        </ul>
+
+        <h2>Schuster</h2>
+        <p>A player who wins no tricks in a hand is schuster.</p>
+        <p>That player's declaration points do not count for them; they are given to the other player instead. The schuster player also gets an extra -100 points for the hand. Total scores can go below zero.</p>
+      </article>
+    </main>
+  </body>
+</html>

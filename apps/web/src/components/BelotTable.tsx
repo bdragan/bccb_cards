@@ -736,7 +736,11 @@ export function BelotTable({
   onNextHand: () => void;
   onRestart: () => void;
 }) {
-  const { messages } = useI18n();
+  const { locale, messages } = useI18n();
+  const rulesHref =
+    locale === "sr"
+      ? "/rules/belot-user-sr.html"
+      : "/rules/belot-user-en.html";
   const currentPlayer = state.players.find(
     (player) => player.playerId === currentPlayerId,
   );
@@ -1375,7 +1379,17 @@ export function BelotTable({
       ) : currentHand.length ? (
         <div className="mt-4">
           <p className="mb-2 text-sm font-semibold">
-            {messages.yourHand}
+            <span>{messages.yourHand}</span>
+            <a
+              href={rulesHref}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={messages.rules}
+              title={messages.rules}
+              className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/50 text-xs font-bold leading-none text-white/85 hover:border-white hover:text-white focus:outline-none focus:ring-2 focus:ring-white/70"
+            >
+              ?
+            </a>
             {state.currentTurnPlayerId === currentPlayerId
               ? ` · ${messages.playLegalCard}`
               : ""}
