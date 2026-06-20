@@ -10,6 +10,7 @@ import {
 import type { BelotDeclaration, Suit } from "@card-games/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { trackEvent } from "../analytics/posthog";
 import { BelotTable } from "../components/BelotTable";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { useI18n } from "../i18n";
@@ -23,6 +24,22 @@ const cpuPlayerId = "offline-cpu";
 const cpuDecisionDelayMs = 250;
 const cpuPlayDelayMs = 450;
 const cpuCompletedTrickLeadDelayMs = 2_000;
+
+function playerKind(playerId: string | undefined) {
+  if (playerId === humanPlayerId) {
+    return "human";
+  }
+
+  if (playerId === cpuPlayerId) {
+    return "cpu";
+  }
+
+  return undefined;
+}
+
+function elapsedSeconds(startedAt: number) {
+  return Math.round((Date.now() - startedAt) / 1000);
+}
 
 function cpuActionDelay(state: BelotState) {
   if (
@@ -73,6 +90,11 @@ export function StaticCpuApp() {
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
   const pendingStateRef = useRef<BelotState | null>(null);
+  const gameStartedAtRef = useRef(Date.now());
+  const trackedHandCountRef = useRef(0);
+  const firstCardPlayTrackedRef = useRef(false);
+  const gameCompletedTrackedRef = useRef(false);
+  const trackedErrorRef = useRef<string | undefined>(undefined);
   const [hasHumanProgress, setHasHumanProgress] = useState(false);
 
   const createState = useCallback(() => {
@@ -102,8 +124,71 @@ export function StaticCpuApp() {
   );
 
   useEffect(() => {
+    trackEvent("game_loaded");
+  }, []);
+
+  useEffect(() => {
     setBelotState(createState());
   }, [createState]);
+
+  useEffect(() => {
+    const handCount =
+      belotState.handResults?.length ?? (belotState.lastHandResult ? 1 : 0);
+
+    if (handCount > trackedHandCountRef.current) {
+      const lastHandResult =
+        belotState.handResults?.at(-1) ?? belotState.lastHandResult;
+
+      trackEvent("hand_completed", {
+        hand_number: handCount,
+        phase: belotState.phase,
+        duration_seconds: elapsedSeconds(gameStartedAtRef.current),
+        trump_suit: lastHandResult?.trumpSuit,
+        caller: playerKind(lastHandResult?.callerPlayerId),
+        hand_winner: playerKind(lastHandResult?.lastTrickWinnerPlayerId),
+        human_hand_score:
+          lastHandResult?.handScoreByPlayer[humanPlayerId] ?? 0,
+        cpu_hand_score: lastHandResult?.handScoreByPlayer[cpuPlayerId] ?? 0,
+        human_total_score:
+          belotState.players.find((player) => player.playerId === humanPlayerId)
+            ?.totalScore ?? 0,
+        cpu_total_score:
+          belotState.players.find((player) => player.playerId === cpuPlayerId)
+            ?.totalScore ?? 0,
+      });
+
+      trackedHandCountRef.current = handCount;
+    }
+
+    if (
+      belotState.phase === "finished" &&
+      belotState.winnerPlayerId &&
+      !gameCompletedTrackedRef.current
+    ) {
+      trackEvent("game_completed", {
+        duration_seconds: elapsedSeconds(gameStartedAtRef.current),
+        hand_count: handCount,
+        winner: playerKind(belotState.winnerPlayerId),
+        human_total_score:
+          belotState.players.find((player) => player.playerId === humanPlayerId)
+            ?.totalScore ?? 0,
+        cpu_total_score:
+          belotState.players.find((player) => player.playerId === cpuPlayerId)
+            ?.totalScore ?? 0,
+      });
+
+      gameCompletedTrackedRef.current = true;
+    }
+
+    if (belotState.phase === "error" && belotState.error !== trackedErrorRef.current) {
+      trackEvent("game_error", {
+        phase: belotState.phase,
+        error: belotState.error,
+        duration_seconds: elapsedSeconds(gameStartedAtRef.current),
+      });
+      trackedErrorRef.current = belotState.error;
+    }
+  }, [belotState]);
 
   useEffect(() => {
     if (!shouldConfirmBeforeLeaving) {
@@ -234,11 +319,44 @@ export function StaticCpuApp() {
   );
 
   function applyAction(action: BelotAction) {
+    if (!hasHumanProgress) {
+      trackEvent("game_started", {
+        first_action: action.type,
+        phase: belotState.phase,
+      });
+    }
+
+    if (
+      action.type === "play-card" &&
+      action.playerId === humanPlayerId &&
+      !firstCardPlayTrackedRef.current
+    ) {
+      trackEvent("first_card_played", {
+        completed_tricks: belotState.completedTricks.length,
+        hand_number:
+          (belotState.handResults?.length ??
+            (belotState.lastHandResult ? 1 : 0)) + 1,
+      });
+      firstCardPlayTrackedRef.current = true;
+    }
+
     setBelotState((current) => applyBelotAction(current, action));
     setHasHumanProgress(true);
   }
 
   function restartGame() {
+    trackEvent("new_game_started", {
+      previous_duration_seconds: elapsedSeconds(gameStartedAtRef.current),
+      previous_hand_count:
+        belotState.handResults?.length ?? (belotState.lastHandResult ? 1 : 0),
+      previous_winner: playerKind(belotState.winnerPlayerId),
+    });
+
+    gameStartedAtRef.current = Date.now();
+    trackedHandCountRef.current = 0;
+    firstCardPlayTrackedRef.current = false;
+    gameCompletedTrackedRef.current = false;
+    trackedErrorRef.current = undefined;
     setHasHumanProgress(false);
     setBelotState(createState());
   }
