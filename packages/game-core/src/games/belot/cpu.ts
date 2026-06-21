@@ -70,6 +70,7 @@ type TrumpSuitCandidate = {
 type TrumpRolloutSample = {
   cpuHiddenCards: Card[];
   opponentHand: Card[];
+  unusedCards: Card[];
 };
 
 type TrumpCallThresholds = {
@@ -514,10 +515,19 @@ function createTrumpRolloutSamples(
     rng,
   );
 
-  return samples.map((sample) => ({
-    cpuHiddenCards: sample.cpuHiddenCards,
-    opponentHand: sample.opponentHand,
-  }));
+  return samples.map((sample) => {
+    const sampledCardIds = new Set(
+      [...sample.cpuHiddenCards, ...sample.opponentHand].map(
+        (card) => card.id,
+      ),
+    );
+
+    return {
+      cpuHiddenCards: sample.cpuHiddenCards,
+      opponentHand: sample.opponentHand,
+      unusedCards: unknownPool.filter((card) => !sampledCardIds.has(card.id)),
+    };
+  });
 }
 
 function createTrumpRolloutState(
@@ -548,6 +558,7 @@ function createTrumpRolloutState(
   return {
     ...state,
     phase: "trick-play" as const,
+    unusedCards: sample.unusedCards,
     players: state.players.map((player) =>
       player.playerId === cpuPlayerId
         ? { ...player, hand: sampledCpuHand, hiddenCards: [] }
