@@ -1,9 +1,7 @@
-import type { Card, Suit } from "@card-games/shared";
+import type { Card } from "@card-games/shared";
 
 import {
   applyBelotAction,
-  belotCardPoints,
-  compareBelotCards,
   legalBelotCards,
 } from "./belot";
 import type { BelotState, BelotTrickPlay } from "./types";
@@ -35,6 +33,7 @@ export type BelotHandPlaySearchContext = {
 
 export type BelotHandPlaySearchResult = {
   value: number;
+  callerFell?: boolean;
 };
 
 export type BelotHandPlayTranspositionBound = "exact" | "lower" | "upper";
@@ -42,6 +41,7 @@ export type BelotHandPlayTranspositionBound = "exact" | "lower" | "upper";
 export type BelotHandPlayTranspositionEntry = {
   bound: BelotHandPlayTranspositionBound;
   value: number;
+  callerFell?: boolean;
 };
 
 export function createBelotHandPlaySearchContext(
@@ -104,18 +104,6 @@ export function belotHandPlayAlphaBetaResult(
     return evaluateSearchLeaf(state, maximizingPlayerId);
   }
 
-  const bounds = shouldUseRawPointBounds(state)
-    ? rawGamePointDeltaBounds(state, maximizingPlayerId)
-    : undefined;
-
-  if (bounds && bounds.upper <= alpha) {
-    return { value: alpha };
-  }
-
-  if (bounds && bounds.lower >= beta) {
-    return { value: beta };
-  }
-
   if (shouldUseCheapSearchMove(state, depth, context)) {
     const card = context.policy.cheapSearchCard(legalCards, state);
     const next = applyBelotAction(state, {
@@ -146,7 +134,10 @@ export function belotHandPlayAlphaBetaResult(
 
     if (transpositionEntry) {
       if (transpositionEntry.bound === "exact") {
-        return { value: transpositionEntry.value };
+        return {
+          value: transpositionEntry.value,
+          callerFell: transpositionEntry.callerFell,
+        };
       }
 
       if (transpositionEntry.bound === "lower") {
@@ -207,7 +198,7 @@ export function belotHandPlayAlphaBetaResult(
     rememberBelotHandPlayTransposition(
       context,
       transpositionKey,
-      best.value,
+      best,
       originalAlpha,
       originalBeta,
     );
@@ -219,15 +210,15 @@ export function belotHandPlayAlphaBetaResult(
 function rememberBelotHandPlayTransposition(
   context: BelotHandPlaySearchContext,
   key: string,
-  value: number,
+  result: BelotHandPlaySearchResult,
   alpha: number,
   beta: number,
 ) {
   let bound: BelotHandPlayTranspositionBound = "exact";
 
-  if (value <= alpha) {
+  if (result.value <= alpha) {
     bound = "upper";
-  } else if (value >= beta) {
+  } else if (result.value >= beta) {
     bound = "lower";
   }
 
@@ -242,7 +233,11 @@ function rememberBelotHandPlayTransposition(
     }
   }
 
-  context.transpositionTable.set(key, { bound, value });
+  context.transpositionTable.set(key, {
+    bound,
+    value: result.value,
+    callerFell: bound === "exact" ? result.callerFell : undefined,
+  });
 }
 
 function belotHandPlayTranspositionKey(
@@ -341,19 +336,16 @@ function remainingSearchPlies(state: BelotState) {
   return state.players.reduce((sum, player) => sum + player.hand.length, 0);
 }
 
-function shouldUseRawPointBounds(state: BelotState) {
-  return (
-    state.currentTrick.length === 0 &&
-    state.players.every((player) => player.hand.length <= 4)
-  );
-}
-
 function evaluateSearchLeaf(
   state: BelotState,
   maximizingPlayerId: string,
 ): BelotHandPlaySearchResult {
   return {
-    value: evaluateRawGamePointDelta(state, maximizingPlayerId),
+    value: evaluateState(state, maximizingPlayerId),
+    callerFell:
+      state.callerPlayerId === maximizingPlayerId
+        ? state.lastHandResult?.callerFell
+        : undefined,
   };
 }
 
@@ -368,135 +360,33 @@ function searchResultBetter(
       : candidate.value < current.value;
   }
 
-  return false;
+  const candidateAvoidedFall = callerAvoidedFall(candidate);
+  const currentAvoidedFall = callerAvoidedFall(current);
+
+  if (candidateAvoidedFall === currentAvoidedFall) {
+    return false;
+  }
+
+  return maximizing ? candidateAvoidedFall : !candidateAvoidedFall;
 }
 
-function evaluateRawGamePointDelta(
-  state: BelotState,
-  maximizingPlayerId: string,
-) {
+function callerAvoidedFall(result: BelotHandPlaySearchResult) {
+  return result.callerFell === undefined
+    ? result.value >= 0
+    : !result.callerFell;
+}
+
+function evaluateState(state: BelotState, maximizingPlayerId: string) {
   const maximizingPlayer = playerById(state, maximizingPlayerId);
   const opponent = state.players.find(
     (player) => player.playerId !== maximizingPlayerId,
   );
 
-  if (!opponent || !state.trumpSuit) {
+  if (!opponent) {
     return 0;
   }
 
-  const gamePointsByPlayer =
-    state.lastHandResult?.gamePointsByPlayer ??
-    Object.fromEntries(
-      state.players.map((player) => [
-        player.playerId,
-        player.wonCards.reduce(
-          (sum, card) => sum + belotCardPoints(card, state.trumpSuit!),
-          0,
-        ),
-      ]),
-    );
-
-  return (
-    (gamePointsByPlayer[maximizingPlayer.playerId] ?? 0) -
-    (gamePointsByPlayer[opponent.playerId] ?? 0)
-  );
-}
-
-function rawGamePointDeltaBounds(
-  state: BelotState,
-  maximizingPlayerId: string,
-) {
-  const maximizingPlayer = playerById(state, maximizingPlayerId);
-  const opponent = state.players.find(
-    (player) => player.playerId !== maximizingPlayerId,
-  );
-
-  if (!opponent || !state.trumpSuit) {
-    return { lower: 0, upper: 0 };
-  }
-
-  const trumpSuit = state.trumpSuit;
-  let maximizingPlayerPoints = rawWonCardPoints(
-    maximizingPlayer.wonCards,
-    trumpSuit,
-  );
-  let opponentPoints = rawWonCardPoints(opponent.wonCards, trumpSuit);
-  let remainingPointMass = 10;
-  let highestTrump: { card: Card; playerId: string } | undefined;
-  let secondHighestTrump: { card: Card; playerId: string } | undefined;
-
-  const addRemainingCard = (card: Card, playerId: string) => {
-    remainingPointMass += belotCardPoints(card, trumpSuit);
-
-    if (card.suit !== trumpSuit) {
-      return;
-    }
-
-    const entry = { card, playerId };
-
-    if (
-      !highestTrump ||
-      compareBelotCards(card, highestTrump.card, trumpSuit) > 0
-    ) {
-      secondHighestTrump = highestTrump;
-      highestTrump = entry;
-      return;
-    }
-
-    if (
-      !secondHighestTrump ||
-      compareBelotCards(card, secondHighestTrump.card, trumpSuit) > 0
-    ) {
-      secondHighestTrump = entry;
-    }
-  };
-
-  for (const play of state.currentTrick) {
-    addRemainingCard(play.card, play.playerId);
-  }
-
-  for (const player of state.players) {
-    for (const card of player.hand) {
-      addRemainingCard(card, player.playerId);
-    }
-  }
-
-  if (highestTrump) {
-    const highestTrumpPoints = belotCardPoints(highestTrump.card, trumpSuit);
-
-    remainingPointMass -= highestTrumpPoints;
-    if (highestTrump.playerId === maximizingPlayerId) {
-      maximizingPlayerPoints += highestTrumpPoints;
-    } else {
-      opponentPoints += highestTrumpPoints;
-    }
-
-    if (
-      secondHighestTrump &&
-      secondHighestTrump.playerId === highestTrump.playerId
-    ) {
-      const secondHighestTrumpPoints = belotCardPoints(
-        secondHighestTrump.card,
-        trumpSuit,
-      );
-
-      remainingPointMass -= secondHighestTrumpPoints;
-      if (secondHighestTrump.playerId === maximizingPlayerId) {
-        maximizingPlayerPoints += secondHighestTrumpPoints;
-      } else {
-        opponentPoints += secondHighestTrumpPoints;
-      }
-    }
-  }
-
-  return {
-    lower: maximizingPlayerPoints - (opponentPoints + remainingPointMass),
-    upper: maximizingPlayerPoints + remainingPointMass - opponentPoints,
-  };
-}
-
-function rawWonCardPoints(cards: Card[], trumpSuit: Suit) {
-  return cards.reduce((sum, card) => sum + belotCardPoints(card, trumpSuit), 0);
+  return maximizingPlayer.totalScore - opponent.totalScore;
 }
 
 function playerById(state: BelotState, playerId: string) {

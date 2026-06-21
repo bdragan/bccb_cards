@@ -90,6 +90,7 @@ type BelotRootSampleSearchResult = {
   bestCardId: string;
   bestValue: number;
   searchedCardIds: string[];
+  values: Array<{ cardId: string; value: number }>;
 };
 
 export function belotCpuMonteCarloSampleLimit(
@@ -662,6 +663,7 @@ function chooseCardForTrick(
     unusedCards: [],
   });
   const rootCardStats = createRootCardSampleStats(searchCards);
+  const scores = new Map(searchCards.map((card) => [card.id, 0]));
 
   for (const sample of samples) {
     const sampleSearchCards = belotCpuSearchCards(searchCards, sample);
@@ -669,21 +671,39 @@ function chooseCardForTrick(
       maxSearchPlies,
       belotCpuHandPlaySearchPolicy,
     );
-
-    updateRootCardSampleStats(
+    const sampleResult = searchRootCardsForSample(
+      sample,
+      cpuPlayerId,
+      sampleSearchCards,
       rootCardStats,
-      searchRootCardsForSample(
-        sample,
-        cpuPlayerId,
-        sampleSearchCards,
-        rootCardStats,
-        maxSearchPlies,
-        searchContext,
-      ),
+      maxSearchPlies,
+      searchContext,
     );
+
+    for (const result of sampleResult.values) {
+      scores.set(result.cardId, (scores.get(result.cardId) ?? 0) + result.value);
+    }
+
+    updateRootCardSampleStats(rootCardStats, sampleResult);
   }
 
-  return belotCpuOrderRootCardsForSearch(searchCards, state, rootCardStats)[0];
+  return searchCards.slice().sort((left, right) => {
+    const scoreDelta = (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0);
+
+    if (scoreDelta !== 0) {
+      return scoreDelta;
+    }
+
+    const heuristicDelta =
+      cardSearchOrderingScore(right, state, true) -
+      cardSearchOrderingScore(left, state, true);
+
+    if (heuristicDelta !== 0) {
+      return heuristicDelta;
+    }
+
+    return left.id.localeCompare(right.id);
+  })[0];
 }
 
 function searchRootCardsForSample(
@@ -694,10 +714,10 @@ function searchRootCardsForSample(
   maxSearchPlies: number,
   searchContext: BelotHandPlaySearchContext,
 ): BelotRootSampleSearchResult {
-  let alpha = -belotHandPlaySearchMaxUtility;
   let bestCardId = rootCards[0]?.id;
   let bestValue = -belotHandPlaySearchMaxUtility;
   const searchedCardIds: string[] = [];
+  const values: Array<{ cardId: string; value: number }> = [];
 
   if (!bestCardId) {
     throw new Error("CPU has no root cards to search");
@@ -717,21 +737,21 @@ function searchRootCardsForSample(
       next,
       cpuPlayerId,
       maxSearchPlies - 1,
-      alpha,
+      -belotHandPlaySearchMaxUtility,
       belotHandPlaySearchMaxUtility,
       searchContext,
     );
 
     searchedCardIds.push(card.id);
+    values.push({ cardId: card.id, value });
 
     if (value > bestValue) {
       bestCardId = card.id;
       bestValue = value;
-      alpha = value;
     }
   }
 
-  return { bestCardId, bestValue, searchedCardIds };
+  return { bestCardId, bestValue, searchedCardIds, values };
 }
 
 export function belotCpuSearchCards(cards: Card[], state: BelotState) {
