@@ -1882,6 +1882,53 @@ describe("Belot", () => {
     ).toEqual(["VII-hearts", "A-hearts"]);
   });
 
+  it("uses unused sample cards to bridge non-trump search ranges", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("VII", "hearts"),
+            card("IX", "hearts"),
+            card("U", "hearts"),
+            card("O", "hearts"),
+            card("X", "hearts"),
+            card("A", "hearts"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      unusedCards: [card("VIII", "hearts"), card("K", "hearts")],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      belotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["VII-hearts", "A-hearts"]);
+  });
+
   it("searches trump connected ranges in trump strength order", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),

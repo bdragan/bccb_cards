@@ -605,7 +605,10 @@ function chooseCardForTrick(
     ),
     rng,
   );
-  const searchCards = belotCpuSearchCards(legalCards, state);
+  const searchCards = belotCpuSearchCards(legalCards, {
+    ...state,
+    unusedCards: [],
+  });
   const rootCardStats = createRootCardSampleStats(searchCards);
   const searchContext = createBelotHandPlaySearchContext(
     maxSearchPlies,
@@ -944,6 +947,8 @@ function addSearchCardRangeEndpoints(
 function knownPlayedOrDeadCards(state: BelotState) {
   const cards: Card[] = [];
 
+  cards.push(...(state.unusedCards ?? []));
+
   if (state.upcard) {
     cards.push(state.upcard);
   }
@@ -991,11 +996,14 @@ function createDeterminizedStates(
     state,
     opponent.playerId,
   );
-  const unknownPool = unknownCardsForCpu(
+  const unknownCards = unknownCardsForCpu(
     state,
     cpuPlayerId,
     opponentKnownCards,
-  ).filter((card) => !impossibleOpponentCardIds.has(card.id));
+  );
+  const unknownPool = unknownCards.filter(
+    (card) => !impossibleOpponentCardIds.has(card.id),
+  );
   const samples =
     unknownNeeded > 0
       ? sampleUniqueCardCombinations(
@@ -1008,9 +1016,14 @@ function createDeterminizedStates(
 
   return samples.map((sampledUnknownCards) => {
     const sampledOpponentHand = [...opponentKnownCards, ...sampledUnknownCards];
+    const sampledCardIds = new Set(sampledUnknownCards.map((card) => card.id));
+    const sampledUnusedCards = unknownCards.filter(
+      (card) => !sampledCardIds.has(card.id),
+    );
 
     return {
       ...state,
+      unusedCards: sampledUnusedCards,
       players: state.players.map((player) =>
         player.playerId === opponent.playerId
           ? { ...player, hand: sampledOpponentHand }
