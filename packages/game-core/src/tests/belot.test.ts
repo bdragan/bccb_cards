@@ -895,6 +895,54 @@ describe("Belot", () => {
     ).toEqual(["A-acorns", "X-acorns", "VII-acorns"]);
   });
 
+  it("orders trump-short leading cards by cheapest opponent-void non-trump suit first", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("VII", "bells"),
+            card("A", "acorns"),
+            card("X", "leaves"),
+            card("IX", "hearts"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [
+            card("VII", "acorns"),
+            card("VIII", "hearts"),
+            card("U", "hearts"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      belotCpuOrderCardsForSearch(state.players[0].hand, state, true).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["VII-bells", "IX-hearts", "A-acorns", "X-leaves"]);
+  });
+
   it("orders root CPU cards by previous Monte Carlo sample success", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),

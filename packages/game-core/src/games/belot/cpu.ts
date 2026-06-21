@@ -1652,7 +1652,19 @@ export function belotCpuOrderCardsForSearch(
     return cards;
   }
 
+  const prioritizedCard = leadingTrumpShortVoidForceCard(cards, state);
+
   return cards.slice().sort((left, right) => {
+    if (prioritizedCard) {
+      if (left.id === prioritizedCard.id && right.id !== prioritizedCard.id) {
+        return -1;
+      }
+
+      if (right.id === prioritizedCard.id && left.id !== prioritizedCard.id) {
+        return 1;
+      }
+    }
+
     const leftScore = cardSearchOrderingScore(left, state, maximizing);
     const rightScore = cardSearchOrderingScore(right, state, maximizing);
 
@@ -1662,6 +1674,50 @@ export function belotCpuOrderCardsForSearch(
 
     return left.id.localeCompare(right.id);
   });
+}
+
+function leadingTrumpShortVoidForceCard(cards: Card[], state: BelotState) {
+  if (
+    !state.trumpSuit ||
+    state.currentTrick.length > 0 ||
+    !state.currentTurnPlayerId
+  ) {
+    return undefined;
+  }
+
+  const currentPlayer = playerById(state, state.currentTurnPlayerId);
+  const opponent = state.players.find(
+    (player) => player.playerId !== state.currentTurnPlayerId,
+  );
+
+  if (!opponent) {
+    return undefined;
+  }
+
+  const currentPlayerTrumpCount = countTrumpCards(
+    currentPlayer.hand,
+    state.trumpSuit,
+  );
+  const opponentTrumpCount = countTrumpCards(opponent.hand, state.trumpSuit);
+
+  if (currentPlayerTrumpCount >= opponentTrumpCount) {
+    return undefined;
+  }
+
+  const opponentSuits = new Set(opponent.hand.map((card) => card.suit));
+  const voidForcingCards = cards.filter(
+    (card) => card.suit !== state.trumpSuit && !opponentSuits.has(card.suit),
+  );
+
+  if (voidForcingCards.length === 0) {
+    return undefined;
+  }
+
+  return voidForcingCards
+    .slice()
+    .sort((left, right) =>
+      compareCardsByCheapValue(left, right, state.trumpSuit!),
+    )[0];
 }
 
 const belotCpuHandPlaySearchPolicy: BelotHandPlaySearchPolicy = {
