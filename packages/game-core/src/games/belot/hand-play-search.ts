@@ -6,27 +6,41 @@ import {
   compareBelotCards,
   legalBelotCards,
 } from "./belot";
-import type { BelotState } from "./types";
+import type { BelotState, BelotTrickPlay } from "./types";
 
 export const belotHandPlaySearchMaxUtility = 1_000_000;
+const maxBelotHandPlayTranspositionEntries = 16_384;
+const minBelotHandPlayTranspositionDepth = 2;
+const belotCardBitById = new Map<string, number>(
+  ["acorns", "bells", "hearts", "leaves"].flatMap((suit, suitIndex) =>
+    ["VII", "VIII", "IX", "X", "U", "O", "K", "A"].map((rank, rankIndex) => [
+      `${rank}-${suit}`,
+      2 ** (suitIndex * 8 + rankIndex),
+    ]),
+  ),
+);
 
 export type BelotHandPlaySearchPolicy = {
   cheapOpeningSearchPlies: number;
   searchCards: (cards: Card[], state: BelotState) => Card[];
-  orderCards: (
-    cards: Card[],
-    state: BelotState,
-    maximizing: boolean,
-  ) => Card[];
+  orderCards: (cards: Card[], state: BelotState, maximizing: boolean) => Card[];
   cheapSearchCard: (cards: Card[], state: BelotState) => Card;
 };
 
 export type BelotHandPlaySearchContext = {
   closingSearchPlies: number;
   policy: BelotHandPlaySearchPolicy;
+  transpositionTable: Map<string, BelotHandPlayTranspositionEntry>;
 };
 
 export type BelotHandPlaySearchResult = {
+  value: number;
+};
+
+export type BelotHandPlayTranspositionBound = "exact" | "lower" | "upper";
+
+export type BelotHandPlayTranspositionEntry = {
+  bound: BelotHandPlayTranspositionBound;
   value: number;
 };
 
@@ -37,6 +51,7 @@ export function createBelotHandPlaySearchContext(
   return {
     closingSearchPlies: Math.max(0, depth - policy.cheapOpeningSearchPlies),
     policy,
+    transpositionTable: new Map(),
   };
 }
 
@@ -119,6 +134,33 @@ export function belotHandPlayAlphaBetaResult(
     );
   }
 
+  const originalAlpha = alpha;
+  const originalBeta = beta;
+  const transpositionKey =
+    depth >= minBelotHandPlayTranspositionDepth
+      ? belotHandPlayTranspositionKey(state, maximizingPlayerId, depth)
+      : undefined;
+
+  if (transpositionKey) {
+    const transpositionEntry = context.transpositionTable.get(transpositionKey);
+
+    if (transpositionEntry) {
+      if (transpositionEntry.bound === "exact") {
+        return { value: transpositionEntry.value };
+      }
+
+      if (transpositionEntry.bound === "lower") {
+        alpha = Math.max(alpha, transpositionEntry.value);
+      } else {
+        beta = Math.min(beta, transpositionEntry.value);
+      }
+
+      if (alpha >= beta) {
+        return { value: transpositionEntry.value };
+      }
+    }
+  }
+
   const searchCards = context.policy.searchCards(legalCards, state);
   const maximizing = state.currentTurnPlayerId === maximizingPlayerId;
   let best: BelotHandPlaySearchResult = {
@@ -161,7 +203,124 @@ export function belotHandPlayAlphaBetaResult(
     }
   }
 
+  if (transpositionKey) {
+    rememberBelotHandPlayTransposition(
+      context,
+      transpositionKey,
+      best.value,
+      originalAlpha,
+      originalBeta,
+    );
+  }
+
   return best;
+}
+
+function rememberBelotHandPlayTransposition(
+  context: BelotHandPlaySearchContext,
+  key: string,
+  value: number,
+  alpha: number,
+  beta: number,
+) {
+  let bound: BelotHandPlayTranspositionBound = "exact";
+
+  if (value <= alpha) {
+    bound = "upper";
+  } else if (value >= beta) {
+    bound = "lower";
+  }
+
+  if (
+    !context.transpositionTable.has(key) &&
+    context.transpositionTable.size >= maxBelotHandPlayTranspositionEntries
+  ) {
+    const oldestKey = context.transpositionTable.keys().next().value;
+
+    if (oldestKey) {
+      context.transpositionTable.delete(oldestKey);
+    }
+  }
+
+  context.transpositionTable.set(key, { bound, value });
+}
+
+function belotHandPlayTranspositionKey(
+  state: BelotState,
+  maximizingPlayerId: string,
+  depth: number,
+) {
+  return [
+    depth,
+    state.phase,
+    maximizingPlayerId,
+    state.currentTurnPlayerId ?? "",
+    state.trumpSuit ?? "",
+    state.callerPlayerId ?? "",
+    state.isMus ? 1 : 0,
+    cardMaskKey(state.unusedCards),
+    state.upcard?.id ?? "",
+    trickKey(state.currentTrick),
+    state.completedTricks.length,
+    state.completedTricks.at(-1)?.winnerPlayerId ?? "",
+    state.players.map(playerSearchKey).join(";"),
+    handResultKey(state.lastHandResult),
+  ].join("|");
+}
+
+function playerSearchKey(player: BelotState["players"][number]) {
+  return [
+    player.playerId,
+    cardMaskKey(player.hand),
+    cardMaskKey(player.wonCards),
+    player.tricksWon,
+  ].join(":");
+}
+
+function cardMaskKey(cards: Card[] | undefined) {
+  let mask = 0;
+
+  for (const card of cards ?? []) {
+    const bit = belotCardBitById.get(card.id);
+
+    if (bit !== undefined) {
+      mask += bit;
+    }
+  }
+
+  return mask.toString(36);
+}
+
+function trickKey(plays: BelotTrickPlay[]) {
+  return plays.map((play) => `${play.playerId}:${play.card.id}`).join(",");
+}
+
+function handResultKey(result: BelotState["lastHandResult"]) {
+  if (!result) {
+    return "";
+  }
+
+  return [
+    result.callerPlayerId,
+    result.opponentPlayerId,
+    result.trumpSuit ?? "",
+    numberMapKey(result.gamePointsByPlayer),
+    numberMapKey(result.declarationPointsByPlayer),
+    numberMapKey(result.totalPointsByPlayer),
+    numberMapKey(result.handScoreByPlayer),
+    result.schusterPlayerIds.slice().sort().join(","),
+    result.callerFell ? 1 : 0,
+    result.callerFellOnGame ? 1 : 0,
+    result.isMus ? 1 : 0,
+    result.lastTrickWinnerPlayerId,
+  ].join(":");
+}
+
+function numberMapKey(pointsByPlayer: Record<string, number>) {
+  return Object.entries(pointsByPlayer)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([playerId, points]) => `${playerId}:${points}`)
+    .join(",");
 }
 
 function shouldUseCheapSearchMove(
@@ -337,10 +496,7 @@ function rawGamePointDeltaBounds(
 }
 
 function rawWonCardPoints(cards: Card[], trumpSuit: Suit) {
-  return cards.reduce(
-    (sum, card) => sum + belotCardPoints(card, trumpSuit),
-    0,
-  );
+  return cards.reduce((sum, card) => sum + belotCardPoints(card, trumpSuit), 0);
 }
 
 function playerById(state: BelotState, playerId: string) {

@@ -2,6 +2,11 @@ import type { Card, Rank, Suit } from "@card-games/shared";
 import { describe, expect, it } from "vitest";
 
 import type { BelotState } from "../games/belot";
+import type { BelotHandPlaySearchPolicy } from "../games/belot/hand-play-search";
+import {
+  belotHandPlayAlphaBetaValue,
+  createBelotHandPlaySearchContext,
+} from "../games/belot/hand-play-search";
 import {
   applyBelotAction,
   autoSelectBelotDeclarations,
@@ -131,10 +136,7 @@ describe("Belot", () => {
       (player) => player.playerId === state.trumpTurnPlayerId,
     )!;
     const firstPickupCardIds = firstPlayer.hiddenCards.map((card) => card.id);
-    const publicBeforePickup = getBelotPublicState(
-      state,
-      firstPlayer.playerId,
-    );
+    const publicBeforePickup = getBelotPublicState(state, firstPlayer.playerId);
     const firstPublicBeforePickup = publicBeforePickup.players.find(
       (player) => player.playerId === firstPlayer.playerId,
     )!;
@@ -1258,6 +1260,121 @@ describe("Belot", () => {
         trumpOnlyLeadState,
       ).id,
     ).toBe("U-hearts");
+  });
+
+  it("reuses alpha-beta values from the Belot hand-play transposition table", () => {
+    let searchCardCalls = 0;
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 0,
+      searchCards: (cards) => {
+        searchCardCalls += 1;
+        return cards;
+      },
+      orderCards: (cards) => cards,
+      cheapSearchCard: (cards) => cards[0],
+    };
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns"), card("X", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const context = createBelotHandPlaySearchContext(2, policy);
+
+    const firstValue = belotHandPlayAlphaBetaValue(
+      state,
+      "p1",
+      2,
+      -1_000_000,
+      1_000_000,
+      context,
+    );
+    const secondValue = belotHandPlayAlphaBetaValue(
+      state,
+      "p1",
+      2,
+      -1_000_000,
+      1_000_000,
+      context,
+    );
+
+    expect(secondValue).toBe(firstValue);
+    expect(searchCardCalls).toBe(1);
+    expect(context.transpositionTable.size).toBeGreaterThan(0);
+  });
+
+  it("does not bypass cheap Belot search moves through transposition hits", () => {
+    let cheapSearchCardCalls = 0;
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 0,
+      searchCards: (cards) => cards,
+      orderCards: (cards) => cards,
+      cheapSearchCard: (cards) => {
+        cheapSearchCardCalls += 1;
+        return cards[0];
+      },
+    };
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns"), card("X", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const context = createBelotHandPlaySearchContext(1, policy);
+
+    belotHandPlayAlphaBetaValue(state, "p1", 1, -1_000_000, 1_000_000, context);
+    belotHandPlayAlphaBetaValue(state, "p1", 1, -1_000_000, 1_000_000, context);
+
+    expect(cheapSearchCardCalls).toBe(2);
+    expect(context.transpositionTable.size).toBe(0);
   });
 
   it.skip("plays VIII hearts from the screenshot trick-two lead in at least three of five CPU probes", () => {

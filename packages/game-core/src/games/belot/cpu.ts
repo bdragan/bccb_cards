@@ -108,9 +108,7 @@ export function belotCpuMonteCarloSampleLimit(
   );
 }
 
-export function belotCpuTrumpMonteCarloSamples(
-  options: BelotCpuOptions = {},
-) {
+export function belotCpuTrumpMonteCarloSamples(options: BelotCpuOptions = {}) {
   return (
     options.trumpMonteCarloSamples ??
     (options.monteCarloSamples ?? defaultMonteCarloSamples) *
@@ -498,20 +496,21 @@ function averageTrumpRolloutScore(
     options.trumpSearchPlies ??
     options.maxSearchPlies ??
     defaultBelotCpuMaxSearchPlies;
-  const searchContext = createBelotHandPlaySearchContext(
-    searchPlies,
-    belotCpuHandPlaySearchPolicy,
-  );
-  const results = rolloutStates.map((sample) =>
-    belotHandPlayAlphaBetaResult(
+  const results = rolloutStates.map((sample) => {
+    const searchContext = createBelotHandPlaySearchContext(
+      searchPlies,
+      belotCpuHandPlaySearchPolicy,
+    );
+
+    return belotHandPlayAlphaBetaResult(
       sample,
       cpuPlayerId,
       searchPlies,
       -belotHandPlaySearchMaxUtility,
       belotHandPlaySearchMaxUtility,
       searchContext,
-    ),
-  );
+    );
+  });
   const successes = results.filter((result, index) =>
     trumpCandidateSucceedsFromRawGamePointDelta(
       rolloutStates[index],
@@ -561,9 +560,7 @@ function createTrumpRolloutSamples(
 
   return samples.map((sample) => {
     const sampledCardIds = new Set(
-      [...sample.cpuHiddenCards, ...sample.opponentHand].map(
-        (card) => card.id,
-      ),
+      [...sample.cpuHiddenCards, ...sample.opponentHand].map((card) => card.id),
     );
 
     return {
@@ -665,13 +662,13 @@ function chooseCardForTrick(
     unusedCards: [],
   });
   const rootCardStats = createRootCardSampleStats(searchCards);
-  const searchContext = createBelotHandPlaySearchContext(
-    maxSearchPlies,
-    belotCpuHandPlaySearchPolicy,
-  );
 
   for (const sample of samples) {
     const sampleSearchCards = belotCpuSearchCards(searchCards, sample);
+    const searchContext = createBelotHandPlaySearchContext(
+      maxSearchPlies,
+      belotCpuHandPlaySearchPolicy,
+    );
 
     updateRootCardSampleStats(
       rootCardStats,
@@ -1987,9 +1984,7 @@ function compareCardsByCheapValue(left: Card, right: Card, trumpSuit: Suit) {
 function highestCheapValueCard(cards: Card[], trumpSuit: Suit) {
   return cards
     .slice()
-    .sort((left, right) =>
-      compareCardsByCheapValue(right, left, trumpSuit),
-    )[0];
+    .sort((left, right) => compareCardsByCheapValue(right, left, trumpSuit))[0];
 }
 
 function playerById(state: BelotState, playerId: string) {
