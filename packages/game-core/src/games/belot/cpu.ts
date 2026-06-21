@@ -9,15 +9,15 @@ import {
   compareBelotCards,
   legalBelotCards,
 } from "./belot";
+import type {
+  BelotHandPlaySearchContext,
+  BelotHandPlaySearchPolicy,
+} from "./hand-play-search";
 import {
   belotHandPlayAlphaBetaResult,
   belotHandPlayAlphaBetaValue,
   belotHandPlaySearchMaxUtility,
   createBelotHandPlaySearchContext,
-} from "./hand-play-search";
-import type {
-  BelotHandPlaySearchContext,
-  BelotHandPlaySearchPolicy,
 } from "./hand-play-search";
 import type {
   BelotAction,
@@ -191,24 +191,20 @@ function chooseTrumpAction(
     options.trumpMinSuccessRate ?? defaultTrumpMinSuccessRate;
 
   if (state.phase === "trump-round-one" && state.upcard) {
-    const candidates = trumpSuitCandidates(
+    const samples = createTrumpRolloutSamples(
       state,
       player.playerId,
-      suits,
-      false,
-      options,
+      Math.max(1, belotCpuTrumpMonteCarloSamples(options)),
       rng,
     );
-    const upcardCandidate = candidates.find(
-      (candidate) => candidate.suit === state.upcard?.suit,
+    const upcardCandidate = trumpSuitCandidate(
+      state,
+      player.playerId,
+      state.upcard.suit,
+      false,
+      options,
+      samples,
     );
-    const otherSuitCandidates = candidates.filter(
-      (candidate) => candidate.suit !== state.upcard?.suit,
-    );
-
-    if (!upcardCandidate) {
-      throw new Error("Upcard trump candidate is not available");
-    }
 
     const trumpCardCount = countTrumpCards(player.hand, state.upcard.suit);
     const thresholds = {
@@ -230,14 +226,13 @@ function chooseTrumpAction(
     const isFirstTrumpRoundTurn = state.trumpPasses.length === 0;
     const hasBetterOtherSuit =
       isFirstTrumpRoundTurn &&
-      otherSuitCandidates.some(
-        (candidate) =>
-          candidate.score.successRate > upcardCandidate.score.successRate &&
-          shouldCallTrump({
-            score: candidate.score,
-            trumpCardCount: candidate.trumpCardCount,
-            thresholds,
-          }),
+      hasBetterRoundOneTrumpSuit(
+        state,
+        player.playerId,
+        upcardCandidate,
+        thresholds,
+        options,
+        samples,
       );
 
     return hasBetterOtherSuit
@@ -283,6 +278,41 @@ function chooseTrumpAction(
   return undefined;
 }
 
+function hasBetterRoundOneTrumpSuit(
+  state: BelotState,
+  cpuPlayerId: string,
+  upcardCandidate: TrumpSuitCandidate,
+  thresholds: TrumpCallThresholds,
+  options: BelotCpuOptions,
+  samples: TrumpRolloutSample[],
+) {
+  if (!state.upcard) {
+    return false;
+  }
+
+  return suits
+    .filter((suit) => suit !== state.upcard?.suit)
+    .some((suit) => {
+      const candidate = trumpSuitCandidate(
+        state,
+        cpuPlayerId,
+        suit,
+        false,
+        options,
+        samples,
+      );
+
+      return (
+        candidate.score.successRate > upcardCandidate.score.successRate &&
+        shouldCallTrump({
+          score: candidate.score,
+          trumpCardCount: candidate.trumpCardCount,
+          thresholds,
+        })
+      );
+    });
+}
+
 function trumpSuitCandidates(
   state: BelotState,
   cpuPlayerId: string,
@@ -291,7 +321,6 @@ function trumpSuitCandidates(
   options: BelotCpuOptions,
   rng: () => number,
 ) {
-  const cpu = playerById(state, cpuPlayerId);
   const samples = createTrumpRolloutSamples(
     state,
     cpuPlayerId,
@@ -299,18 +328,9 @@ function trumpSuitCandidates(
     rng,
   );
   const candidates = candidateSuits
-    .map((suit) => ({
-      suit,
-      score: scoreTrumpCandidate(
-        state,
-        cpuPlayerId,
-        suit,
-        isMus,
-        options,
-        samples,
-      ),
-      trumpCardCount: countTrumpCards(cpu.hand, suit),
-    }))
+    .map((suit) =>
+      trumpSuitCandidate(state, cpuPlayerId, suit, isMus, options, samples),
+    )
     .sort(compareTrumpCandidates);
 
   if (candidates.length === 0) {
@@ -318,6 +338,30 @@ function trumpSuitCandidates(
   }
 
   return candidates;
+}
+
+function trumpSuitCandidate(
+  state: BelotState,
+  cpuPlayerId: string,
+  suit: Suit,
+  isMus: boolean,
+  options: BelotCpuOptions,
+  samples: TrumpRolloutSample[],
+): TrumpSuitCandidate {
+  const cpu = playerById(state, cpuPlayerId);
+
+  return {
+    suit,
+    score: scoreTrumpCandidate(
+      state,
+      cpuPlayerId,
+      suit,
+      isMus,
+      options,
+      samples,
+    ),
+    trumpCardCount: countTrumpCards(cpu.hand, suit),
+  };
 }
 
 function scoreTrumpCandidate(
@@ -470,7 +514,7 @@ function averageTrumpRolloutScore(
   );
   const successes = results.filter((result, index) =>
     trumpCandidateSucceedsFromRawGamePointDelta(
-      rolloutStates[index]!,
+      rolloutStates[index],
       cpuPlayerId,
       result.value,
     ),
@@ -852,7 +896,7 @@ export function belotCpuCheapSearchCard(
   }
 
   if (!state.trumpSuit) {
-    return cards[0]!;
+    return cards[0];
   }
 
   if (state.currentTrick.length > 0) {
@@ -871,7 +915,7 @@ export function belotCpuCheapSearchCard(
       .slice()
       .sort((left, right) =>
         compareCardsByCheapValue(left, right, state.trumpSuit!),
-      )[0]!;
+      )[0];
   }
 
   const nonTrumpCards = cards.filter((card) => card.suit !== state.trumpSuit);
@@ -1452,7 +1496,7 @@ function addImpossibleCheapCardsFromCostlyLostResponses(
   ];
 
   for (let trickIndex = 0; trickIndex < trickHistory.length; trickIndex += 1) {
-    const trick = trickHistory[trickIndex]!;
+    const trick = trickHistory[trickIndex];
     const responseIndex = trick.cards.findIndex(
       (play) => play.playerId === opponentPlayerId,
     );
@@ -1506,7 +1550,7 @@ function hasSubsequentCheaperOpponentCard(
   trumpSuit: Suit,
 ) {
   for (let index = trickIndex + 1; index < trickHistory.length; index += 1) {
-    const subsequentPlay = trickHistory[index]!.cards.find(
+    const subsequentPlay = trickHistory[index].cards.find(
       (play) => play.playerId === opponentPlayerId,
     );
 
@@ -1945,7 +1989,7 @@ function highestCheapValueCard(cards: Card[], trumpSuit: Suit) {
     .slice()
     .sort((left, right) =>
       compareCardsByCheapValue(right, left, trumpSuit),
-    )[0]!;
+    )[0];
 }
 
 function playerById(state: BelotState, playerId: string) {

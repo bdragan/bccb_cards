@@ -189,7 +189,7 @@ describe("Belot", () => {
     );
     const firstCard = afterDeclarations.players.find(
       (player) => player.playerId === firstPlayer.playerId,
-    )!.hand[0]!;
+    )!.hand[0];
     const afterFirstPlay = applyBelotAction(afterDeclarations, {
       type: "play-card",
       playerId: firstPlayer.playerId,
