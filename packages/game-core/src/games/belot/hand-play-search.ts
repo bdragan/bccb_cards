@@ -9,7 +9,7 @@ import {
 import type { BelotState, BelotTrickPlay } from "./types";
 
 export const belotHandPlaySearchMaxUtility = 1_000_000;
-const maxBelotHandPlayTranspositionEntries = 16_384;
+const maxBelotHandPlayTranspositionEntries = 1_000_000;
 const minBelotHandPlayTranspositionDepth = 2;
 const belotCardBitById = new Map<string, number>(
   ["acorns", "bells", "hearts", "leaves"].flatMap((suit, suitIndex) =>
