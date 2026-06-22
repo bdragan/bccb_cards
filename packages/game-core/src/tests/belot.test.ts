@@ -16,6 +16,7 @@ import {
   belotCpuOrderCardsForSearch,
   belotCpuOrderRootCardsForSearch,
   belotCpuSearchCards,
+  belotCpuTrumpCandidateSucceeded,
   belotCpuTrumpMonteCarloSamples,
   calculateBelotHandResult,
   chooseBelotCpuAction,
@@ -1078,6 +1079,12 @@ describe("Belot", () => {
         trumpMonteCarloSamples: 7,
       }),
     ).toBe(7);
+  });
+
+  it("uses positive hand-score delta for trump rollout success", () => {
+    expect(belotCpuTrumpCandidateSucceeded({ value: 100 })).toBe(true);
+    expect(belotCpuTrumpCandidateSucceeded({ value: 0 })).toBe(false);
+    expect(belotCpuTrumpCandidateSucceeded({ value: -100 })).toBe(false);
   });
 
   it("uses cheap Belot search moves for distant rollout plies", () => {

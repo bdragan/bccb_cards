@@ -314,12 +314,12 @@ function hasBetterRoundOneTrumpSuit(
       );
 
       return (
-        candidate.score.successRate > upcardCandidate.score.successRate &&
         shouldCallTrump({
           score: candidate.score,
           trumpCardCount: candidate.trumpCardCount,
           thresholds,
-        })
+        }) &&
+        compareAcceptedTrumpCandidates(candidate, upcardCandidate) < 0
       );
     });
 }
@@ -406,7 +406,7 @@ function bestAcceptedTrumpCandidate(
       }),
     )
     .sort((left, right) =>
-      compareAcceptedTrumpCandidates(left, right, thresholds),
+      compareAcceptedTrumpCandidates(left, right),
     )[0];
 }
 
@@ -453,24 +453,7 @@ function countTrumpCards(hand: Card[], trumpSuit: Suit) {
 function compareAcceptedTrumpCandidates(
   left: TrumpSuitCandidate,
   right: TrumpSuitCandidate,
-  thresholds: TrumpCallThresholds,
 ) {
-  const tierDelta =
-    trumpAcceptanceTier({
-      score: right.score,
-      trumpCardCount: right.trumpCardCount,
-      thresholds,
-    }) -
-    trumpAcceptanceTier({
-      score: left.score,
-      trumpCardCount: left.trumpCardCount,
-      thresholds,
-    });
-
-  if (tierDelta !== 0) {
-    return tierDelta;
-  }
-
   return compareTrumpCandidates(left, right);
 }
 
@@ -478,17 +461,17 @@ function compareTrumpCandidates(
   left: TrumpSuitCandidate,
   right: TrumpSuitCandidate,
 ) {
-  const successRateDelta = right.score.successRate - left.score.successRate;
-
-  if (successRateDelta !== 0) {
-    return successRateDelta;
-  }
-
   const expectedValueDelta =
     right.score.expectedValue - left.score.expectedValue;
 
   if (expectedValueDelta !== 0) {
     return expectedValueDelta;
+  }
+
+  const successRateDelta = right.score.successRate - left.score.successRate;
+
+  if (successRateDelta !== 0) {
+    return successRateDelta;
   }
 
   return right.trumpCardCount - left.trumpCardCount;
@@ -524,13 +507,7 @@ function averageTrumpRolloutScore(
       searchContext,
     );
   });
-  const successes = results.filter((result, index) =>
-    trumpCandidateSucceedsFromRawGamePointDelta(
-      rolloutStates[index],
-      cpuPlayerId,
-      result.value,
-    ),
-  ).length;
+  const successes = results.filter(belotCpuTrumpCandidateSucceeded).length;
 
   return {
     expectedValue:
@@ -1718,62 +1695,8 @@ function knownUnplayedOpponentCards(
   );
 }
 
-function trumpCandidateSucceedsFromRawGamePointDelta(
-  state: BelotState,
-  cpuPlayerId: string,
-  rawGamePointDelta: number,
-) {
-  if (!state.trumpSuit || state.callerPlayerId !== cpuPlayerId) {
-    throw new Error("Trump candidate success requires CPU to be caller");
-  }
-
-  const opponent = state.players.find(
-    (player) => player.playerId !== cpuPlayerId,
-  );
-
-  if (!opponent) {
-    throw new Error("CPU opponent is not available");
-  }
-
-  const totalGamePoints = totalPlayableGamePoints(state);
-  const cpuGame = (totalGamePoints + rawGamePointDelta) / 2;
-  const opponentGame = totalGamePoints - cpuGame;
-  const cpuTotal = cpuGame + fixedDeclarationPoints(state, cpuPlayerId);
-  const opponentTotal =
-    opponentGame + fixedDeclarationPoints(state, opponent.playerId);
-
-  return cpuTotal > opponentTotal;
-}
-
-function totalPlayableGamePoints(state: BelotState) {
-  if (!state.trumpSuit) {
-    return 0;
-  }
-
-  let total = 10;
-
-  for (const player of state.players) {
-    for (const card of player.hand) {
-      total += belotCardPoints(card, state.trumpSuit);
-    }
-
-    for (const card of player.wonCards) {
-      total += belotCardPoints(card, state.trumpSuit);
-    }
-  }
-
-  for (const play of state.currentTrick) {
-    total += belotCardPoints(play.card, state.trumpSuit);
-  }
-
-  return total;
-}
-
-function fixedDeclarationPoints(state: BelotState, playerId: string) {
-  return (state.declarationsByPlayer[playerId] ?? []).reduce(
-    (sum, declaration) => sum + declaration.points,
-    0,
-  );
+export function belotCpuTrumpCandidateSucceeded(result: { value: number }) {
+  return result.value > 0;
 }
 
 export function belotCpuOrderCardsForSearch(
