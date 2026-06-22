@@ -39,6 +39,11 @@ input {
   grid-template-columns: minmax(0, 1fr) 9rem minmax(0, 1fr);
 }
 
+.belot-center-trump-suit {
+  width: 2.7rem;
+  height: 2.7rem;
+}
+
 @media (max-width: 767px) {
   .belot-table {
     padding: 0.5rem;
@@ -99,8 +104,8 @@ input {
   }
 
   .belot-center-trump-suit {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.575rem;
+    height: 1.575rem;
   }
 
   .belot-trump-button-suit {

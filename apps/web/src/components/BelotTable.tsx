@@ -1204,22 +1204,6 @@ export function BelotTable({
         {playerPanels[0]}
         <div className="belot-center-panel min-w-0 rounded-md bg-white/10 p-3">
           <div className="flex flex-col items-center gap-4">
-            {state.trumpSuit ? (
-              <div className="text-center">
-                <p className="mb-1 text-sm font-semibold">{messages.trump}</p>
-                <SuitImage
-                  suit={state.trumpSuit}
-                  className="belot-center-trump-suit h-12 w-12"
-                />
-              </div>
-            ) : null}
-            {state.trumpSuit && state.upcard ? (
-              <div
-                aria-hidden="true"
-                className="h-px w-full bg-white/15"
-                data-testid="belot-trump-upcard-separator"
-              />
-            ) : null}
             {state.upcard ? (
               <div className="text-center">
                 <p className="mb-1 text-sm font-semibold">{messages.upcard}</p>
@@ -1229,6 +1213,22 @@ export function BelotTable({
                 >
                   <PlayingCard card={state.upcard} compact />
                 </TrumpMarkedCard>
+              </div>
+            ) : null}
+            {state.trumpSuit && state.upcard ? (
+              <div
+                aria-hidden="true"
+                className="h-px w-full bg-white/15"
+                data-testid="belot-trump-upcard-separator"
+              />
+            ) : null}
+            {state.trumpSuit ? (
+              <div className="text-center">
+                <p className="mb-1 text-sm font-semibold">{messages.trump}</p>
+                <SuitImage
+                  suit={state.trumpSuit}
+                  className="belot-center-trump-suit"
+                />
               </div>
             ) : null}
             {showHandResult && state.lastHandResult ? (
