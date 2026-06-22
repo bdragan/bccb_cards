@@ -14,6 +14,7 @@ import {
   autoSelectBelotDeclarations,
   belotCardPoints,
   belotCpuCheapSearchCard,
+  belotCpuForcedSearchCard,
   belotCpuMonteCarloSampleLimit,
   belotCpuOrderCardsForSearch,
   belotCpuOrderRootCardsForSearch,
@@ -948,6 +949,87 @@ describe("Belot", () => {
     ).toEqual(["VII-bells", "IX-hearts", "A-acorns", "X-leaves"]);
   });
 
+  it("forces opponent-void cheap discards when a searched response can play anything", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("A", "bells"),
+            card("X", "bells"),
+            card("IX", "bells"),
+            card("VII", "leaves"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("K", "leaves"), card("VIII", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(belotCpuForcedSearchCard(state.players[0].hand, state)?.id).toBe(
+      "IX-bells",
+    );
+
+    const noCheapVoidSuitDiscardState: BelotState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("A", "bells"),
+                card("X", "bells"),
+                card("VII", "leaves"),
+              ],
+            }
+          : player,
+      ),
+    };
+
+    expect(
+      belotCpuForcedSearchCard(
+        noCheapVoidSuitDiscardState.players[0].hand,
+        noCheapVoidSuitDiscardState,
+      ),
+    ).toBeUndefined();
+
+    const hasTrumpState: BelotState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [card("IX", "bells"), card("VII", "hearts")],
+            }
+          : player,
+      ),
+    };
+
+    expect(
+      belotCpuForcedSearchCard(hasTrumpState.players[0].hand, hasTrumpState),
+    ).toBeUndefined();
+  });
+
   it("orders root CPU cards by previous Monte Carlo sample success", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
@@ -1363,7 +1445,63 @@ describe("Belot", () => {
         trumpOnlyLeadState,
       ).id,
     ).toBe("U-hearts");
+  });
 
+  it("applies forced Belot search cards before normal alpha-beta ordering", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("IX", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 100,
+      searchCards: () => {
+        throw new Error("forced search cards should bypass search pruning");
+      },
+      orderCards: () => {
+        throw new Error("forced search cards should bypass ordering");
+      },
+      cheapSearchCard: () => {
+        throw new Error("this state should not use cheap search");
+      },
+      forcedSearchCard: belotCpuForcedSearchCard,
+    };
+
+    expect(() =>
+      belotHandPlayAlphaBetaValue(
+        state,
+        "p1",
+        1,
+        -belotHandPlaySearchMaxUtility,
+        belotHandPlaySearchMaxUtility,
+        createBelotHandPlaySearchContext(1, policy),
+      ),
+    ).not.toThrow();
   });
 
   it("reuses alpha-beta values from the Belot hand-play transposition table", () => {

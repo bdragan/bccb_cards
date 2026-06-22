@@ -23,6 +23,7 @@ export type BelotHandPlaySearchPolicy = {
   searchCards: (cards: Card[], state: BelotState) => Card[];
   orderCards: (cards: Card[], state: BelotState, maximizing: boolean) => Card[];
   cheapSearchCard: (cards: Card[], state: BelotState) => Card;
+  forcedSearchCard?: (cards: Card[], state: BelotState) => Card | undefined;
 };
 
 export type BelotHandPlaySearchContext = {
@@ -116,6 +117,25 @@ export function belotHandPlayAlphaBetaResult(
       next,
       maximizingPlayerId,
       depth,
+      alpha,
+      beta,
+      context,
+    );
+  }
+
+  const forcedCard = context.policy.forcedSearchCard?.(legalCards, state);
+
+  if (forcedCard) {
+    const next = applyBelotAction(state, {
+      type: "play-card",
+      playerId: currentPlayer.playerId,
+      cardId: forcedCard.id,
+    });
+
+    return belotHandPlayAlphaBetaResult(
+      next,
+      maximizingPlayerId,
+      depth - 1,
       alpha,
       beta,
       context,

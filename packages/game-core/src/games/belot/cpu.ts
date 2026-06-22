@@ -1794,6 +1794,66 @@ export function belotCpuOrderCardsForSearch(
   });
 }
 
+export function belotCpuForcedSearchCard(cards: Card[], state: BelotState) {
+  const opponentVoidDiscard = opponentVoidSuitCheapDiscard(cards, state);
+
+  if (opponentVoidDiscard) {
+    return opponentVoidDiscard;
+  }
+
+  return undefined;
+}
+
+function opponentVoidSuitCheapDiscard(cards: Card[], state: BelotState) {
+  if (
+    !state.trumpSuit ||
+    state.currentTrick.length === 0 ||
+    !state.currentTurnPlayerId
+  ) {
+    return undefined;
+  }
+
+  const leadSuit = state.currentTrick[0]?.card.suit;
+
+  if (!leadSuit) {
+    return undefined;
+  }
+
+  const currentPlayer = playerById(state, state.currentTurnPlayerId);
+
+  if (
+    currentPlayer.hand.some(
+      (card) => card.suit === leadSuit || card.suit === state.trumpSuit,
+    )
+  ) {
+    return undefined;
+  }
+
+  const opponent = state.players.find(
+    (player) => player.playerId !== state.currentTurnPlayerId,
+  );
+
+  if (!opponent) {
+    return undefined;
+  }
+
+  const opponentSuits = new Set(opponent.hand.map((card) => card.suit));
+  const candidates = cards.filter(
+    (card) =>
+      card.rank !== "A" && card.rank !== "X" && !opponentSuits.has(card.suit),
+  );
+
+  if (candidates.length === 0) {
+    return undefined;
+  }
+
+  return candidates
+    .slice()
+    .sort((left, right) =>
+      compareCardsByCheapValue(left, right, state.trumpSuit!),
+    )[0];
+}
+
 function leadingTrumpShortVoidForceCard(cards: Card[], state: BelotState) {
   if (
     !state.trumpSuit ||
@@ -1843,6 +1903,7 @@ const belotCpuHandPlaySearchPolicy: BelotHandPlaySearchPolicy = {
   searchCards: belotCpuSearchCards,
   orderCards: belotCpuOrderCardsForSearch,
   cheapSearchCard: belotCpuCheapSearchCard,
+  forcedSearchCard: belotCpuForcedSearchCard,
 };
 
 export function belotCpuOrderRootCardsForSearch(
