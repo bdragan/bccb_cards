@@ -41,10 +41,11 @@ export type BelotCpuOptions = {
 export const defaultBelotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
 const trumpMonteCarloSampleMultiplier = 1.5;
-const defaultTrumpMinSuccessRate = 0.8;
+const defaultTrumpMinSuccessRate = 0.85;
 const defaultTrumpHighSuccessRate = 0.9;
 const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
+const trumpMinSuccessRateDiscountPerNonTrumpAce = 0.02;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
@@ -72,6 +73,7 @@ type TrumpSuitCandidate = {
   suit: Suit;
   score: TrumpCandidateScore;
   trumpCardCount: number;
+  minSuccessRate: number;
 };
 
 type TrumpRolloutSample = {
@@ -227,7 +229,7 @@ function chooseTrumpAction(
     const shouldAcceptUpcard = shouldCallTrump({
       score: upcardCandidate.score,
       trumpCardCount,
-      thresholds,
+      thresholds: thresholdsForTrumpCandidate(upcardCandidate, thresholds),
     });
 
     if (!shouldAcceptUpcard) {
@@ -317,7 +319,7 @@ function hasBetterRoundOneTrumpSuit(
         shouldCallTrump({
           score: candidate.score,
           trumpCardCount: candidate.trumpCardCount,
-          thresholds,
+          thresholds: thresholdsForTrumpCandidate(candidate, thresholds),
         }) &&
         compareAcceptedTrumpCandidates(candidate, upcardCandidate) < 0
       );
@@ -372,6 +374,11 @@ function trumpSuitCandidate(
       samples,
     ),
     trumpCardCount: countTrumpCards(cpu.hand, suit),
+    minSuccessRate: adjustedTrumpMinSuccessRate(
+      options.trumpMinSuccessRate ?? defaultTrumpMinSuccessRate,
+      cpu.hand,
+      suit,
+    ),
   };
 }
 
@@ -402,7 +409,7 @@ function bestAcceptedTrumpCandidate(
       shouldCallTrump({
         score: candidate.score,
         trumpCardCount: candidate.trumpCardCount,
-        thresholds,
+        thresholds: thresholdsForTrumpCandidate(candidate, thresholds),
       }),
     )
     .sort((left, right) =>
@@ -416,6 +423,32 @@ function shouldCallTrump(input: {
   thresholds: TrumpCallThresholds;
 }) {
   return trumpAcceptanceTier(input) > 0;
+}
+
+function thresholdsForTrumpCandidate(
+  candidate: TrumpSuitCandidate,
+  thresholds: TrumpCallThresholds,
+): TrumpCallThresholds {
+  return {
+    ...thresholds,
+    minSuccessRate: candidate.minSuccessRate,
+  };
+}
+
+function adjustedTrumpMinSuccessRate(
+  minSuccessRate: number,
+  visibleHand: Card[],
+  trumpSuit: Suit,
+) {
+  const nonTrumpAceCount = visibleHand.filter(
+    (card) => card.rank === "A" && card.suit !== trumpSuit,
+  ).length;
+
+  return Math.max(
+    0,
+    minSuccessRate -
+      nonTrumpAceCount * trumpMinSuccessRateDiscountPerNonTrumpAce,
+  );
 }
 
 function trumpAcceptanceTier(input: {

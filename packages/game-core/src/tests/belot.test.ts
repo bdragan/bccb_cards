@@ -2497,6 +2497,63 @@ describe("Belot", () => {
     });
   });
 
+  it("passes the screenshot weak trump hand before pickup cards are known", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trump-round-two",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("O", "acorns"),
+            card("X", "acorns"),
+            card("VII", "bells"),
+            card("K", "bells"),
+            card("X", "bells"),
+            card("VIII", "hearts"),
+            card("O", "leaves"),
+            card("K", "leaves"),
+          ],
+          hiddenCards: [card("IX", "hearts"), card("IX", "leaves")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [
+            card("VIII", "acorns"),
+            card("K", "acorns"),
+            card("IX", "bells"),
+            card("O", "hearts"),
+            card("A", "hearts"),
+            card("U", "hearts"),
+            card("U", "leaves"),
+            card("X", "leaves"),
+          ],
+          hiddenCards: [card("VII", "acorns"), card("A", "bells")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("U", "acorns"),
+      trumpTurnPlayerId: "p2",
+      firstPlayerId: "p1",
+      trumpRound: 2,
+      trumpPasses: ["p1"],
+    };
+
+    expect(
+      chooseBelotCpuAction(state, "p2", { rng: seededRng(8) }),
+    ).toEqual({
+      type: "trump-pass",
+      playerId: "p2",
+    });
+  });
+
   it("allows the CPU to pass the second trump round but still choose on mus", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
