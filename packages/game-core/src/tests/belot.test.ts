@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import type { BelotState } from "../games/belot";
 import type { BelotHandPlaySearchPolicy } from "../games/belot/hand-play-search";
 import {
+  belotHandPlayAlphaBetaResult,
   belotHandPlayAlphaBetaValue,
+  belotHandPlaySearchMaxUtility,
   createBelotHandPlaySearchContext,
 } from "../games/belot/hand-play-search";
 import {
@@ -1087,6 +1089,100 @@ describe("Belot", () => {
     expect(belotCpuTrumpCandidateSucceeded({ value: -100 })).toBe(false);
   });
 
+  it("evaluates the focused leaves trump rollout sample as successful", () => {
+    const opponentHand = [
+      card("VIII", "acorns"),
+      card("VII", "bells"),
+      card("IX", "hearts"),
+      card("O", "hearts"),
+      card("IX", "acorns"),
+      card("IX", "leaves"),
+      card("U", "bells"),
+      card("VII", "acorns"),
+      card("A", "hearts"),
+      card("X", "acorns"),
+    ];
+    const cpuHand = [
+      card("O", "acorns"),
+      card("A", "acorns"),
+      card("IX", "bells"),
+      card("VII", "leaves"),
+      card("VIII", "leaves"),
+      card("O", "leaves"),
+      card("K", "leaves"),
+      card("A", "leaves"),
+      card("X", "hearts"),
+      card("VII", "hearts"),
+    ];
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: opponentHand,
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: cpuHand,
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      unusedCards: [
+        card("U", "acorns"),
+        card("K", "bells"),
+        card("K", "hearts"),
+        card("X", "bells"),
+        card("X", "leaves"),
+        card("U", "leaves"),
+        card("O", "bells"),
+        card("VIII", "hearts"),
+        card("K", "acorns"),
+        card("A", "bells"),
+        card("VIII", "bells"),
+      ],
+      upcard: card("U", "hearts"),
+      trumpSuit: "leaves",
+      callerPlayerId: "p2",
+      isMus: false,
+      firstPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      completedTricks: [],
+      declarationsByPlayer: {
+        p1: autoSelectBelotDeclarations(opponentHand, "leaves"),
+        p2: autoSelectBelotDeclarations(cpuHand, "leaves"),
+      },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 4,
+      searchCards: belotCpuSearchCards,
+      orderCards: belotCpuOrderCardsForSearch,
+      cheapSearchCard: belotCpuCheapSearchCard,
+    };
+    const result = belotHandPlayAlphaBetaResult(
+      state,
+      "p2",
+      defaultBelotCpuMaxSearchPlies,
+      -belotHandPlaySearchMaxUtility,
+      belotHandPlaySearchMaxUtility,
+      createBelotHandPlaySearchContext(defaultBelotCpuMaxSearchPlies, policy),
+    );
+
+    expect(result.callerFell).toBe(false);
+    expect(result.value).toBeGreaterThan(0);
+  });
+
   it("uses cheap Belot search moves for distant rollout plies", () => {
     const respondingState: BelotState = {
       ...createBelotInitialState(players),
@@ -1268,88 +1364,6 @@ describe("Belot", () => {
       ).id,
     ).toBe("U-hearts");
 
-    const focusedTrumpSampleHands = {
-      p1: [
-        card("VIII", "acorns"),
-        card("VII", "bells"),
-        card("IX", "hearts"),
-        card("O", "hearts"),
-        card("IX", "acorns"),
-        card("IX", "leaves"),
-        card("U", "bells"),
-        card("VII", "acorns"),
-        card("A", "hearts"),
-        card("X", "acorns"),
-      ],
-      p2: [
-        card("O", "acorns"),
-        card("A", "acorns"),
-        card("IX", "bells"),
-        card("VII", "leaves"),
-        card("VIII", "leaves"),
-        card("O", "leaves"),
-        card("K", "leaves"),
-        card("A", "leaves"),
-        card("X", "hearts"),
-        card("VII", "hearts"),
-      ],
-    };
-    const focusedTrumpSampleState: BelotState = {
-      ...createBelotInitialState(players),
-      phase: "trick-play",
-      players: [
-        {
-          ...players[0],
-          ready: true,
-          hand: focusedTrumpSampleHands.p1,
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 0,
-        },
-        {
-          ...players[1],
-          ready: true,
-          hand: focusedTrumpSampleHands.p2,
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 0,
-        },
-      ],
-      trumpSuit: "leaves",
-      callerPlayerId: "p2",
-      currentTurnPlayerId: "p1",
-      currentTrick: [],
-      declarationsByPlayer: {
-        p1: autoSelectBelotDeclarations(focusedTrumpSampleHands.p1, "leaves"),
-        p2: autoSelectBelotDeclarations(focusedTrumpSampleHands.p2, "leaves"),
-      },
-      publicCardsByPlayer: { p1: [], p2: [] },
-    };
-    const beforeHighHeartLead = [
-      { playerId: "p1", cardId: "IX-leaves" },
-      { playerId: "p2", cardId: "VII-leaves" },
-      { playerId: "p1", cardId: "VII-bells" },
-      { playerId: "p2", cardId: "IX-bells" },
-      { playerId: "p2", cardId: "A-acorns" },
-      { playerId: "p1", cardId: "VII-acorns" },
-    ].reduce(
-      (current, play) =>
-        applyBelotAction(current, {
-          type: "play-card",
-          playerId: play.playerId,
-          cardId: play.cardId,
-        }),
-      focusedTrumpSampleState,
-    );
-    const focusedCpu = beforeHighHeartLead.players.find(
-      (player) => player.playerId === "p2",
-    )!;
-
-    expect(
-      belotCpuCheapSearchCard(focusedCpu.hand, beforeHighHeartLead).id,
-    ).toBe("O-acorns");
   });
 
   it("reuses alpha-beta values from the Belot hand-play transposition table", () => {
