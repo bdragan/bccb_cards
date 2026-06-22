@@ -1001,7 +1001,14 @@ export function belotCpuCheapSearchCard(
     );
 
     if (sharedSuitNonTrumpCards.length) {
-      return highestCheapValueCard(sharedSuitNonTrumpCards, state.trumpSuit);
+      return highestCheapValueCard(
+        lowestPriorityHighCardsOpponentCanTake(
+          sharedSuitNonTrumpCards,
+          opponent.hand,
+          state.trumpSuit,
+        ),
+        state.trumpSuit,
+      );
     }
 
     const currentPlayerTrumpCount = countTrumpCards(
@@ -1014,14 +1021,30 @@ export function belotCpuCheapSearchCard(
       const trumpCards = cards.filter((card) => card.suit === state.trumpSuit);
 
       if (trumpCards.length) {
-        return highestCheapValueCard(trumpCards, state.trumpSuit);
+        return highestCheapValueCard(
+          lowestPriorityHighCardsOpponentCanTake(
+            trumpCards,
+            opponent.hand,
+            state.trumpSuit,
+          ),
+          state.trumpSuit,
+        );
       }
     }
   }
 
   const candidates = nonTrumpCards.length ? nonTrumpCards : cards;
 
-  return highestCheapValueCard(candidates, state.trumpSuit);
+  return highestCheapValueCard(
+    opponent
+      ? lowestPriorityHighCardsOpponentCanTake(
+          candidates,
+          opponent.hand,
+          state.trumpSuit,
+        )
+      : candidates,
+    state.trumpSuit,
+  );
 }
 
 function addSearchCardRangeEndpoints(
@@ -2107,15 +2130,34 @@ function trickWinner(plays: BelotTrickPlay[], trumpSuit: Suit) {
 }
 
 function cardHeuristic(card: Card, trumpSuit: Suit) {
-  const nonTrumpHighCardBonus =
-    card.suit !== trumpSuit
-      ? (card.rank === "A" ? 4 : 0) + (card.rank === "X" ? 2 : 0)
-      : 0;
+  return belotCardPoints(card, trumpSuit);
+}
 
-  return (
-    belotCardPoints(card, trumpSuit) +
-    (card.suit === trumpSuit ? 10 : 0) +
-    nonTrumpHighCardBonus
+function lowestPriorityHighCardsOpponentCanTake(
+  cards: Card[],
+  opponentCards: Card[],
+  trumpSuit: Suit,
+) {
+  const saferCards = cards.filter(
+    (card) => !highValueCardOpponentCanTake(card, opponentCards, trumpSuit),
+  );
+
+  return saferCards.length ? saferCards : cards;
+}
+
+function highValueCardOpponentCanTake(
+  card: Card,
+  opponentCards: Card[],
+  trumpSuit: Suit,
+) {
+  if (belotCardPoints(card, trumpSuit) < 10) {
+    return false;
+  }
+
+  return opponentCards.some(
+    (opponentCard) =>
+      opponentCard.suit === card.suit &&
+      compareBelotCards(opponentCard, card, trumpSuit) > 0,
   );
 }
 

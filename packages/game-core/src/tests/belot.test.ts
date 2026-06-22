@@ -1267,6 +1267,89 @@ describe("Belot", () => {
         trumpOnlyLeadState,
       ).id,
     ).toBe("U-hearts");
+
+    const focusedTrumpSampleHands = {
+      p1: [
+        card("VIII", "acorns"),
+        card("VII", "bells"),
+        card("IX", "hearts"),
+        card("O", "hearts"),
+        card("IX", "acorns"),
+        card("IX", "leaves"),
+        card("U", "bells"),
+        card("VII", "acorns"),
+        card("A", "hearts"),
+        card("X", "acorns"),
+      ],
+      p2: [
+        card("O", "acorns"),
+        card("A", "acorns"),
+        card("IX", "bells"),
+        card("VII", "leaves"),
+        card("VIII", "leaves"),
+        card("O", "leaves"),
+        card("K", "leaves"),
+        card("A", "leaves"),
+        card("X", "hearts"),
+        card("VII", "hearts"),
+      ],
+    };
+    const focusedTrumpSampleState: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: focusedTrumpSampleHands.p1,
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: focusedTrumpSampleHands.p2,
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "leaves",
+      callerPlayerId: "p2",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: {
+        p1: autoSelectBelotDeclarations(focusedTrumpSampleHands.p1, "leaves"),
+        p2: autoSelectBelotDeclarations(focusedTrumpSampleHands.p2, "leaves"),
+      },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const beforeHighHeartLead = [
+      { playerId: "p1", cardId: "IX-leaves" },
+      { playerId: "p2", cardId: "VII-leaves" },
+      { playerId: "p1", cardId: "VII-bells" },
+      { playerId: "p2", cardId: "IX-bells" },
+      { playerId: "p2", cardId: "A-acorns" },
+      { playerId: "p1", cardId: "VII-acorns" },
+    ].reduce(
+      (current, play) =>
+        applyBelotAction(current, {
+          type: "play-card",
+          playerId: play.playerId,
+          cardId: play.cardId,
+        }),
+      focusedTrumpSampleState,
+    );
+    const focusedCpu = beforeHighHeartLead.players.find(
+      (player) => player.playerId === "p2",
+    )!;
+
+    expect(
+      belotCpuCheapSearchCard(focusedCpu.hand, beforeHighHeartLead).id,
+    ).toBe("O-acorns");
   });
 
   it("reuses alpha-beta values from the Belot hand-play transposition table", () => {
