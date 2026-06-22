@@ -48,6 +48,10 @@ const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
+const rootSearchFullSampleRatio = 0.2;
+const rootSearchMinFullSamples = 8;
+const rootSearchFocusedCandidateCount = 4;
+const rootSearchMinFocusedSampleRatio = 0.8;
 const belotDeck = createDeck();
 const trumpSearchRankGroups: Rank[][] = [
   ["VII", "VIII", "O", "K", "X", "A", "IX", "U"],
@@ -84,6 +88,11 @@ export type BelotCpuRootCardSampleStats = {
   sampleCount: number;
   successCount: number;
   totalWinningValue: number;
+};
+
+type BelotCpuRootCardValueStats = {
+  sampleCount: number;
+  totalValue: number;
 };
 
 type BelotRootSampleSearchResult = {
@@ -663,10 +672,34 @@ function chooseCardForTrick(
     unusedCards: [],
   });
   const rootCardStats = createRootCardSampleStats(searchCards);
-  const scores = new Map(searchCards.map((card) => [card.id, 0]));
+  const rootCardValueStats = createRootCardValueStats(searchCards);
+  const fullSearchSampleCount = rootFullSearchSampleCount(samples.length);
+  let focusedRootCardIds: Set<string> | undefined;
 
-  for (const sample of samples) {
+  for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
+    const sample = samples[sampleIndex];
     const sampleSearchCards = belotCpuSearchCards(searchCards, sample);
+
+    if (
+      sampleIndex === fullSearchSampleCount &&
+      searchCards.length > rootSearchFocusedCandidateCount
+    ) {
+      focusedRootCardIds = new Set(
+        rootFocusedCardIds(
+          searchCards,
+          rootCardValueStats,
+          state,
+          fullSearchSampleCount,
+        ),
+      );
+    }
+
+    const focusedSearchCards = rootCardsForSampleSearch(
+      sampleSearchCards,
+      focusedRootCardIds,
+      rootCardValueStats,
+      sample,
+    );
     const searchContext = createBelotHandPlaySearchContext(
       maxSearchPlies,
       belotCpuHandPlaySearchPolicy,
@@ -674,21 +707,27 @@ function chooseCardForTrick(
     const sampleResult = searchRootCardsForSample(
       sample,
       cpuPlayerId,
-      sampleSearchCards,
+      focusedSearchCards,
       rootCardStats,
       maxSearchPlies,
       searchContext,
     );
 
     for (const result of sampleResult.values) {
-      scores.set(result.cardId, (scores.get(result.cardId) ?? 0) + result.value);
+      updateRootCardValueStats(rootCardValueStats, result.cardId, result.value);
     }
 
     updateRootCardSampleStats(rootCardStats, sampleResult);
   }
 
-  return searchCards.slice().sort((left, right) => {
-    const scoreDelta = (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0);
+  const finalCards = focusedRootCardIds
+    ? searchCards.filter((card) => focusedRootCardIds.has(card.id))
+    : searchCards;
+
+  return finalCards.slice().sort((left, right) => {
+    const scoreDelta =
+      averageRootCardValue(rootCardValueStats.get(right.id)) -
+      averageRootCardValue(rootCardValueStats.get(left.id));
 
     if (scoreDelta !== 0) {
       return scoreDelta;
@@ -1868,6 +1907,134 @@ function createRootCardSampleStats(cards: Card[]) {
       },
     ]),
   );
+}
+
+function createRootCardValueStats(cards: Card[]) {
+  return new Map<string, BelotCpuRootCardValueStats>(
+    cards.map((card) => [
+      card.id,
+      {
+        sampleCount: 0,
+        totalValue: 0,
+      },
+    ]),
+  );
+}
+
+function updateRootCardValueStats(
+  stats: Map<string, BelotCpuRootCardValueStats>,
+  cardId: string,
+  value: number,
+) {
+  const current = stats.get(cardId) ?? {
+    sampleCount: 0,
+    totalValue: 0,
+  };
+
+  stats.set(cardId, {
+    sampleCount: current.sampleCount + 1,
+    totalValue: current.totalValue + value,
+  });
+}
+
+function rootFullSearchSampleCount(sampleCount: number) {
+  return Math.min(
+    sampleCount,
+    Math.max(
+      rootSearchMinFullSamples,
+      Math.ceil(sampleCount * rootSearchFullSampleRatio),
+    ),
+  );
+}
+
+function rootFocusedCardIds(
+  cards: Card[],
+  valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
+  state: BelotState,
+  fullSearchSampleCount: number,
+) {
+  const keepCardIds = new Set(
+    orderRootCardsByAverageValue(cards, valueStats, state)
+      .slice(0, rootSearchFocusedCandidateCount)
+      .map((card) => card.id),
+  );
+  const minFocusedSampleCount = Math.ceil(
+    fullSearchSampleCount * rootSearchMinFocusedSampleRatio,
+  );
+
+  for (const card of cards) {
+    if ((valueStats.get(card.id)?.sampleCount ?? 0) < minFocusedSampleCount) {
+      keepCardIds.add(card.id);
+    }
+  }
+
+  return [...keepCardIds];
+}
+
+function rootCardsForSampleSearch(
+  cards: Card[],
+  focusedRootCardIds: ReadonlySet<string> | undefined,
+  valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
+  state: BelotState,
+) {
+  if (!focusedRootCardIds || cards.length <= rootSearchFocusedCandidateCount) {
+    return cards;
+  }
+
+  const focusedCards = cards.filter((card) => focusedRootCardIds.has(card.id));
+
+  if (focusedCards.length > 0) {
+    return focusedCards;
+  }
+
+  return orderRootCardsByAverageValue(cards, valueStats, state).slice(
+    0,
+    rootSearchFocusedCandidateCount,
+  );
+}
+
+function orderRootCardsByAverageValue(
+  cards: Card[],
+  valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
+  state: BelotState,
+) {
+  return cards
+    .slice()
+    .sort((left, right) => {
+      const scoreDelta =
+        averageRootCardValue(valueStats.get(right.id)) -
+        averageRootCardValue(valueStats.get(left.id));
+
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      const sampleCountDelta =
+        (valueStats.get(left.id)?.sampleCount ?? 0) -
+        (valueStats.get(right.id)?.sampleCount ?? 0);
+
+      if (sampleCountDelta !== 0) {
+        return sampleCountDelta;
+      }
+
+      const heuristicDelta =
+        cardSearchOrderingScore(right, state, true) -
+        cardSearchOrderingScore(left, state, true);
+
+      if (heuristicDelta !== 0) {
+        return heuristicDelta;
+      }
+
+      return left.id.localeCompare(right.id);
+    });
+}
+
+function averageRootCardValue(
+  stats: BelotCpuRootCardValueStats | undefined,
+) {
+  return stats && stats.sampleCount > 0
+    ? stats.totalValue / stats.sampleCount
+    : -belotHandPlaySearchMaxUtility;
 }
 
 function updateRootCardSampleStats(
