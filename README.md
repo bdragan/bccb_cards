@@ -87,6 +87,13 @@ corepack pnpm build:web:static
 This sets `VITE_STATIC_CPU_ONLY=true` for the Vite build. The output is written
 to `apps/web/dist` and can be deployed to Cloudflare Pages.
 
+To show the CPU player's hand in the static build for debugging CPU decisions,
+enable the debug flag when building:
+
+```bash
+VITE_STATIC_CPU_HAND_DEBUG=true corepack pnpm build:web:static
+```
+
 Recommended Cloudflare Pages settings for this monorepo:
 
 ```text

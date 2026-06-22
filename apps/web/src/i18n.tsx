@@ -123,6 +123,7 @@ export type Messages = {
   startingCards: string;
   remainingCards: string;
   yourHand: string;
+  cpuDebugHand: string;
   playLegalCard: string;
   hideDetails: string;
   showDetails: string;
@@ -242,8 +243,7 @@ export const messages: Record<Locale, Messages> = {
     upcardSuit: "boja presečene karte",
     playerDecidingUpcard: (playerName) =>
       `${playerName} odlučuje da li prihvata boju presečene karte.`,
-    youDecidingUpcard:
-      "Ti odlučuješ da li prihvataš boju presečene karte.",
+    youDecidingUpcard: "Ti odlučuješ da li prihvataš boju presečene karte.",
     bothPlayersPassedSuit: (suit) => `Oba igrača: Dalje za ${suit}.`,
     playerPassedChoosingAnotherSuit: (playerName) =>
       `${playerName}: Dalje za drugu boju.`,
@@ -258,6 +258,7 @@ export const messages: Record<Locale, Messages> = {
     startingCards: "Početne karte",
     remainingCards: "Tesla",
     yourHand: "Tvoje karte",
+    cpuDebugHand: "AI karte",
     playLegalCard: "odigraj dozvoljenu kartu",
     hideDetails: "Sakrij detalje",
     showDetails: "Prikaži detalje",
@@ -384,6 +385,7 @@ export const messages: Record<Locale, Messages> = {
     startingCards: "Starting cards",
     remainingCards: "Remaining",
     yourHand: "Your hand",
+    cpuDebugHand: "AI hand",
     playLegalCard: "play a legal card",
     hideDetails: "Hide details",
     showDetails: "Show details",

@@ -173,6 +173,40 @@ describe("BelotTable", () => {
     ]);
   });
 
+  it("can render a non-interactive debug hand above the play area", () => {
+    render(
+      <BelotTable
+        state={baseState}
+        currentPlayerId="p1"
+        onTrumpDecision={vi.fn()}
+        onDeclare={vi.fn()}
+        onPlayCard={vi.fn()}
+        onNextHand={vi.fn()}
+        onRestart={vi.fn()}
+        debugHand={{
+          label: "AI hand",
+          cards: [
+            card("A", "bells"),
+            card("VII", "acorns"),
+            card("IX", "hearts"),
+          ],
+        }}
+      />,
+    );
+
+    const debugHand = screen.getByTestId("belot-debug-cpu-hand");
+
+    expect(within(debugHand).getByText("AI hand")).toBeInTheDocument();
+    expect(
+      within(debugHand)
+        .getAllByTestId("belot-debug-cpu-hand-card")
+        .map((item) => within(item).getByRole("img").getAttribute("alt")),
+    ).toEqual(["VII of Acorns", "A of Bells", "IX of Hearts"]);
+    expect(
+      within(debugHand).queryAllByRole("button", { hidden: true }),
+    ).toHaveLength(0);
+  });
+
   it("sorts hand suit groups by Belot point value after trump is selected", () => {
     renderTable({
       ...baseState,

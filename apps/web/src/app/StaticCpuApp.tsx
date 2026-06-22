@@ -18,6 +18,7 @@ import type {
   BelotCpuWorkerRequest,
   BelotCpuWorkerResponse,
 } from "../workers/belot-cpu.worker";
+import { isStaticCpuHandDebugBuild } from "./build-mode";
 
 const humanPlayerId = "offline-human";
 const cpuPlayerId = "offline-cpu";
@@ -146,8 +147,7 @@ export function StaticCpuApp() {
         trump_suit: lastHandResult?.trumpSuit,
         caller: playerKind(lastHandResult?.callerPlayerId),
         hand_winner: playerKind(lastHandResult?.lastTrickWinnerPlayerId),
-        human_hand_score:
-          lastHandResult?.handScoreByPlayer[humanPlayerId] ?? 0,
+        human_hand_score: lastHandResult?.handScoreByPlayer[humanPlayerId] ?? 0,
         cpu_hand_score: lastHandResult?.handScoreByPlayer[cpuPlayerId] ?? 0,
         human_total_score:
           belotState.players.find((player) => player.playerId === humanPlayerId)
@@ -180,7 +180,10 @@ export function StaticCpuApp() {
       gameCompletedTrackedRef.current = true;
     }
 
-    if (belotState.phase === "error" && belotState.error !== trackedErrorRef.current) {
+    if (
+      belotState.phase === "error" &&
+      belotState.error !== trackedErrorRef.current
+    ) {
       trackEvent("game_error", {
         phase: belotState.phase,
         error: belotState.error,
@@ -317,6 +320,9 @@ export function StaticCpuApp() {
     () => getBelotPublicState(belotState, humanPlayerId),
     [belotState],
   );
+  const debugCpuHand = isStaticCpuHandDebugBuild
+    ? belotState.players.find((player) => player.playerId === cpuPlayerId)
+    : undefined;
 
   function applyAction(action: BelotAction) {
     if (!hasHumanProgress) {
@@ -406,6 +412,15 @@ export function StaticCpuApp() {
             }
             onNextHand={() => applyAction({ type: "next-hand" })}
             onRestart={restartGame}
+            debugHand={
+              debugCpuHand
+                ? {
+                    label: messages.cpuDebugHand,
+                    cards: debugCpuHand.hand,
+                    pickupCardIds: debugCpuHand.pickupCardIds,
+                  }
+                : undefined
+            }
           />
         </BelotAssetsGate>
       </div>

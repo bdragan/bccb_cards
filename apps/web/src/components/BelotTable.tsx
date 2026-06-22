@@ -54,6 +54,12 @@ type CardCollectionTransform = {
   y: number;
 };
 
+type BelotDebugHand = {
+  label: string;
+  cards: Card[];
+  pickupCardIds?: string[];
+};
+
 function compareCardsWithinSuit(left: Card, right: Card, trumpSuit?: Suit) {
   if (trumpSuit) {
     const pointComparison =
@@ -663,6 +669,64 @@ function ResultCardRow({
   );
 }
 
+function DebugHandPanel({
+  debugHand,
+  trumpSuit,
+}: {
+  debugHand: BelotDebugHand;
+  trumpSuit?: Suit;
+}) {
+  const { messages } = useI18n();
+  const pickupCardIds = new Set(debugHand.pickupCardIds ?? []);
+  const suitGroups = groupCardsBySuit(sortCards(debugHand.cards, trumpSuit));
+
+  return (
+    <section
+      className="mt-4 rounded-md border border-yellow-300/40 bg-yellow-300/10 p-3"
+      data-testid="belot-debug-cpu-hand"
+    >
+      <h3 className="text-sm font-semibold text-yellow-100">
+        {debugHand.label}
+      </h3>
+      <div className="mt-2 flex min-h-24 flex-wrap gap-x-4 gap-y-2 overflow-x-auto px-1 py-1">
+        {suitGroups.length ? (
+          suitGroups.map((group) => (
+            <div
+              key={group.suit}
+              className="belot-debug-hand-suit-group flex flex-wrap gap-2"
+            >
+              {group.cards.map((card) => {
+                const pickedUp = pickupCardIds.has(card.id);
+
+                return (
+                  <div
+                    key={card.id}
+                    className="relative shrink-0 rounded-md"
+                    data-testid="belot-debug-cpu-hand-card"
+                  >
+                    <TrumpMarkedCard card={card} trumpSuit={trumpSuit}>
+                      <PickupCardFrame pickedUp={pickedUp}>
+                        <PlayingCard card={card} compact />
+                      </PickupCardFrame>
+                    </TrumpMarkedCard>
+                    {pickedUp ? (
+                      <span className="sr-only">
+                        {messages.hiddenPickupCard}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-white/70">{messages.drawn}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function HiddenPickupPlaceholder({
   index,
   reserveMarkerRow = false,
@@ -722,6 +786,7 @@ export function BelotTable({
   onPlayCard,
   onNextHand,
   onRestart,
+  debugHand,
 }: {
   state: BelotPublicState;
   currentPlayerId?: string;
@@ -735,12 +800,11 @@ export function BelotTable({
   onPlayCard: (cardId: string) => void;
   onNextHand: () => void;
   onRestart: () => void;
+  debugHand?: BelotDebugHand;
 }) {
   const { locale, messages } = useI18n();
   const rulesHref =
-    locale === "sr"
-      ? "/rules/belot-user-sr.html"
-      : "/rules/belot-user-en.html";
+    locale === "sr" ? "/rules/belot-user-sr.html" : "/rules/belot-user-en.html";
   const currentPlayer = state.players.find(
     (player) => player.playerId === currentPlayerId,
   );
@@ -1211,6 +1275,10 @@ export function BelotTable({
         </div>
         {playerPanels[1]}
       </div>
+
+      {debugHand ? (
+        <DebugHandPanel debugHand={debugHand} trumpSuit={state.trumpSuit} />
+      ) : null}
 
       {state.trumpTurnPlayerId === currentPlayerId ? (
         <div className="mt-4 rounded-md bg-white/10 p-3 text-white">
