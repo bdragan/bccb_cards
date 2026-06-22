@@ -2342,6 +2342,64 @@ describe("Belot", () => {
     });
   });
 
+  it("chooses a strong positive-value second-round trump suit when picking second", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trump-round-two",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("X", "acorns"),
+            card("U", "acorns"),
+            card("K", "acorns"),
+            card("VII", "bells"),
+            card("VIII", "bells"),
+            card("X", "bells"),
+            card("U", "bells"),
+            card("A", "bells"),
+          ],
+          hiddenCards: [card("VII", "hearts"), card("VIII", "hearts")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [
+            card("O", "acorns"),
+            card("A", "acorns"),
+            card("IX", "bells"),
+            card("VII", "leaves"),
+            card("VIII", "leaves"),
+            card("O", "leaves"),
+            card("K", "leaves"),
+            card("A", "leaves"),
+          ],
+          hiddenCards: [card("VII", "acorns"), card("VIII", "acorns")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("U", "hearts"),
+      trumpTurnPlayerId: "p2",
+      firstPlayerId: "p1",
+      trumpRound: 2,
+      trumpPasses: ["p1"],
+    };
+
+    expect(
+      chooseBelotCpuAction(state, "p2", { rng: seededRng(8) }),
+    ).toEqual({
+      type: "trump-choose-suit",
+      playerId: "p2",
+      suit: "leaves",
+    });
+  });
+
   it("allows the CPU to pass the second trump round but still choose on mus", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
