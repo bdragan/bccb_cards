@@ -1,4 +1,4 @@
-import type { Card, Rank, Suit } from "@card-games/shared";
+import type { BelotDeclaration, Card, Rank, Suit } from "@card-games/shared";
 import { suits } from "@card-games/shared";
 
 import { createDeck, shuffleDeck } from "../../cards/deck";
@@ -182,9 +182,9 @@ export function inferBelotCpuImpossibleOpponentCardIds(
   state: BelotState,
   opponentPlayerId: string,
 ) {
-  return [
-    ...impossibleOpponentCardIdsFromPlayHistory(state, opponentPlayerId),
-  ].sort((left, right) => left.localeCompare(right));
+  return [...impossibleOpponentCardIds(state, opponentPlayerId)].sort(
+    (left, right) => left.localeCompare(right),
+  );
 }
 
 function chooseTrumpAction(
@@ -1175,7 +1175,7 @@ function createDeterminizedStates(
     0,
     opponent.hand.length - opponentKnownCards.length,
   );
-  const impossibleOpponentCardIds = impossibleOpponentCardIdsFromPlayHistory(
+  const impossibleOpponentCardIdsForSample = impossibleOpponentCardIds(
     state,
     opponent.playerId,
   );
@@ -1185,7 +1185,7 @@ function createDeterminizedStates(
     opponentKnownCards,
   );
   const unknownPool = unknownCards.filter(
-    (card) => !impossibleOpponentCardIds.has(card.id),
+    (card) => !impossibleOpponentCardIdsForSample.has(card.id),
   );
   const samples =
     unknownNeeded > 0
@@ -1528,6 +1528,25 @@ function cardSetKey(cards: Card[]) {
     .join(",");
 }
 
+function impossibleOpponentCardIds(
+  state: BelotState,
+  opponentPlayerId: string,
+) {
+  const impossibleCardIds = impossibleOpponentCardIdsFromPlayHistory(
+    state,
+    opponentPlayerId,
+  );
+
+  for (const cardId of impossibleOpponentCardIdsFromDeclarations(
+    state,
+    opponentPlayerId,
+  )) {
+    impossibleCardIds.add(cardId);
+  }
+
+  return impossibleCardIds;
+}
+
 function impossibleOpponentCardIdsFromPlayHistory(
   state: BelotState,
   opponentPlayerId: string,
@@ -1561,6 +1580,80 @@ function impossibleOpponentCardIdsFromPlayHistory(
   );
 
   return impossibleCardIds;
+}
+
+function impossibleOpponentCardIdsFromDeclarations(
+  state: BelotState,
+  opponentPlayerId: string,
+) {
+  const impossibleCardIds = new Set<string>();
+  const trumpSuit = state.trumpSuit;
+  const declared = state.declarationsByPlayer[opponentPlayerId];
+
+  if (!trumpSuit || !declared) {
+    return impossibleCardIds;
+  }
+
+  const actualPoints = sumBelotDeclarationPoints(declared);
+  const knownCards = knownOpponentOriginalHandCards(state, opponentPlayerId);
+  const knownCardIds = new Set(knownCards.map((card) => card.id));
+
+  for (const card of belotDeck) {
+    if (knownCardIds.has(card.id)) {
+      continue;
+    }
+
+    const possibleDeclarations = autoSelectBelotDeclarations(
+      [...knownCards, card],
+      trumpSuit,
+    );
+
+    if (sumBelotDeclarationPoints(possibleDeclarations) > actualPoints) {
+      impossibleCardIds.add(card.id);
+    }
+  }
+
+  return impossibleCardIds;
+}
+
+function knownOpponentOriginalHandCards(
+  state: BelotState,
+  opponentPlayerId: string,
+) {
+  const knownCardsById = new Map<string, Card>();
+
+  for (const declaration of state.declarationsByPlayer[opponentPlayerId] ?? []) {
+    for (const card of declaration.cards) {
+      knownCardsById.set(card.id, card);
+    }
+  }
+
+  for (const card of state.publicCardsByPlayer[opponentPlayerId] ?? []) {
+    knownCardsById.set(card.id, card);
+  }
+
+  for (const play of state.currentTrick) {
+    if (play.playerId === opponentPlayerId) {
+      knownCardsById.set(play.card.id, play.card);
+    }
+  }
+
+  for (const trick of state.completedTricks) {
+    for (const play of trick.cards) {
+      if (play.playerId === opponentPlayerId) {
+        knownCardsById.set(play.card.id, play.card);
+      }
+    }
+  }
+
+  return [...knownCardsById.values()];
+}
+
+function sumBelotDeclarationPoints(declarations: BelotDeclaration[]) {
+  return declarations.reduce(
+    (sum, declaration) => sum + declaration.points,
+    0,
+  );
 }
 
 function addImpossibleCardsFromResponse(

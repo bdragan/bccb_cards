@@ -3249,6 +3249,318 @@ describe("Belot", () => {
     expect(impossibleCards.has("IX-acorns")).toBe(false);
   });
 
+  it("infers undeclared four-of-kind cards are unavailable from declarations and later plays", () => {
+    const declaredCards = [
+      card("IX", "hearts"),
+      card("X", "hearts"),
+      card("U", "hearts"),
+    ];
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 2,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "acorns") },
+            { playerId: "p2", card: card("IX", "acorns") },
+          ],
+        },
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "bells") },
+            { playerId: "p2", card: card("IX", "bells") },
+          ],
+        },
+      ],
+      declarationsByPlayer: {
+        p1: [],
+        p2: [
+          {
+            type: "SEQUENCE_3",
+            cards: declaredCards,
+            points: 20,
+          },
+        ],
+      },
+      publicCardsByPlayer: { p1: [], p2: declaredCards },
+    };
+    const impossibleCards = new Set(
+      inferBelotCpuImpossibleOpponentCardIds(state, "p2"),
+    );
+
+    expect(impossibleCards.has("IX-leaves")).toBe(true);
+    expect(impossibleCards.has("VIII-leaves")).toBe(false);
+  });
+
+  it("infers cards that would extend a declared sequence are unavailable", () => {
+    const declaredCards = [
+      card("U", "acorns"),
+      card("O", "acorns"),
+      card("K", "acorns"),
+    ];
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      declarationsByPlayer: {
+        p1: [],
+        p2: [
+          {
+            type: "SEQUENCE_3",
+            cards: declaredCards,
+            points: 20,
+          },
+        ],
+      },
+      publicCardsByPlayer: { p1: [], p2: declaredCards },
+    };
+    const impossibleCards = new Set(
+      inferBelotCpuImpossibleOpponentCardIds(state, "p2"),
+    );
+
+    expect(impossibleCards.has("X-acorns")).toBe(true);
+    expect(impossibleCards.has("A-acorns")).toBe(true);
+    expect(impossibleCards.has("IX-acorns")).toBe(false);
+  });
+
+  it("uses later played cards to infer missing cards from undeclared longer sequences", () => {
+    const declaredCards = [
+      card("X", "bells"),
+      card("U", "bells"),
+      card("O", "bells"),
+    ];
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 2,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: [
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "acorns") },
+            { playerId: "p2", card: card("VII", "bells") },
+          ],
+        },
+        {
+          winnerPlayerId: "p1",
+          cards: [
+            { playerId: "p1", card: card("A", "leaves") },
+            { playerId: "p2", card: card("VIII", "bells") },
+          ],
+        },
+      ],
+      declarationsByPlayer: {
+        p1: [],
+        p2: [
+          {
+            type: "SEQUENCE_3",
+            cards: declaredCards,
+            points: 20,
+          },
+        ],
+      },
+      publicCardsByPlayer: { p1: [], p2: declaredCards },
+    };
+    const impossibleCards = new Set(
+      inferBelotCpuImpossibleOpponentCardIds(state, "p2"),
+    );
+
+    expect(impossibleCards.has("IX-bells")).toBe(true);
+    expect(impossibleCards.has("A-bells")).toBe(false);
+  });
+
+  it("infers sequence edge cards are unavailable when no declarations were made", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 2,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: [
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p2", card: card("VIII", "bells") },
+            { playerId: "p1", card: card("A", "bells") },
+          ],
+        },
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p2", card: card("IX", "bells") },
+            { playerId: "p1", card: card("K", "bells") },
+          ],
+        },
+      ],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const impossibleCards = new Set(
+      inferBelotCpuImpossibleOpponentCardIds(state, "p2"),
+    );
+
+    expect(impossibleCards.has("VII-bells")).toBe(true);
+    expect(impossibleCards.has("X-bells")).toBe(true);
+  });
+
+  it("keeps sequence edge cards possible when four-of-kind declaration explains the overlap", () => {
+    const declaredCards = [
+      card("IX", "acorns"),
+      card("IX", "bells"),
+      card("IX", "hearts"),
+      card("IX", "leaves"),
+    ];
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 2,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      completedTricks: [
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p2", card: card("VIII", "bells") },
+            { playerId: "p1", card: card("A", "bells") },
+          ],
+        },
+        {
+          winnerPlayerId: "p2",
+          cards: [
+            { playerId: "p2", card: card("IX", "bells") },
+            { playerId: "p1", card: card("K", "bells") },
+          ],
+        },
+      ],
+      declarationsByPlayer: {
+        p1: [],
+        p2: [
+          {
+            type: "FOUR_NINES",
+            cards: declaredCards,
+            points: 150,
+          },
+        ],
+      },
+      publicCardsByPlayer: { p1: [], p2: declaredCards },
+    };
+    const impossibleCards = new Set(
+      inferBelotCpuImpossibleOpponentCardIds(state, "p2"),
+    );
+
+    expect(impossibleCards.has("VII-bells")).toBe(false);
+    expect(impossibleCards.has("X-bells")).toBe(false);
+  });
+
   it("passes the caller when caller total is strictly greater", () => {
     const result = calculateBelotHandResult(
       scoringState({
