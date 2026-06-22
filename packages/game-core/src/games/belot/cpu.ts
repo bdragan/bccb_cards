@@ -42,7 +42,7 @@ export const defaultBelotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
 const trumpMonteCarloSampleMultiplier = 1.5;
 const defaultTrumpMinSuccessRate = 0.85;
-const defaultTrumpHighSuccessRate = 0.9;
+const defaultTrumpHighSuccessRate = 0.95;
 const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
 const trumpMinSuccessRateDiscountPerNonTrumpAce = 0.02;
@@ -74,6 +74,7 @@ type TrumpSuitCandidate = {
   score: TrumpCandidateScore;
   trumpCardCount: number;
   minSuccessRate: number;
+  highSuccessRate: number;
 };
 
 type TrumpRolloutSample = {
@@ -374,8 +375,13 @@ function trumpSuitCandidate(
       samples,
     ),
     trumpCardCount: countTrumpCards(cpu.hand, suit),
-    minSuccessRate: adjustedTrumpMinSuccessRate(
+    minSuccessRate: adjustedTrumpSuccessRate(
       options.trumpMinSuccessRate ?? defaultTrumpMinSuccessRate,
+      cpu.hand,
+      suit,
+    ),
+    highSuccessRate: adjustedTrumpSuccessRate(
+      options.trumpHighSuccessRate ?? defaultTrumpHighSuccessRate,
       cpu.hand,
       suit,
     ),
@@ -432,11 +438,12 @@ function thresholdsForTrumpCandidate(
   return {
     ...thresholds,
     minSuccessRate: candidate.minSuccessRate,
+    highSuccessRate: candidate.highSuccessRate,
   };
 }
 
-function adjustedTrumpMinSuccessRate(
-  minSuccessRate: number,
+function adjustedTrumpSuccessRate(
+  successRate: number,
   visibleHand: Card[],
   trumpSuit: Suit,
 ) {
@@ -446,7 +453,7 @@ function adjustedTrumpMinSuccessRate(
 
   return Math.max(
     0,
-    minSuccessRate -
+    successRate -
       nonTrumpAceCount * trumpMinSuccessRateDiscountPerNonTrumpAce,
   );
 }
