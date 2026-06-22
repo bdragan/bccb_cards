@@ -48,10 +48,13 @@ const defaultTrumpMinExpectedValue = 0;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
-const rootSearchFullSampleRatio = 0.2;
-const rootSearchMinFullSamples = 8;
-const rootSearchFocusedCandidateCount = 4;
+const rootSearchBroadSampleRatio = 0.2;
+const rootSearchNarrowSampleRatio = 0.5;
+const rootSearchMinStageSamples = 8;
+const rootSearchBroadCandidateCount = 4;
+const rootSearchNarrowCandidateCount = 2;
 const rootSearchMinFocusedSampleRatio = 0.8;
+const rootSearchNarrowValueMargin = 5;
 const belotDeck = createDeck();
 const trumpSearchRankGroups: Rank[][] = [
   ["VII", "VIII", "O", "K", "X", "A", "IX", "U"],
@@ -673,7 +676,14 @@ function chooseCardForTrick(
   });
   const rootCardStats = createRootCardSampleStats(searchCards);
   const rootCardValueStats = createRootCardValueStats(searchCards);
-  const fullSearchSampleCount = rootFullSearchSampleCount(samples.length);
+  const broadSearchSampleCount = rootSearchStageSampleCount(
+    samples.length,
+    rootSearchBroadSampleRatio,
+  );
+  const narrowSearchSampleCount = rootSearchStageSampleCount(
+    samples.length,
+    rootSearchNarrowSampleRatio,
+  );
   let focusedRootCardIds: Set<string> | undefined;
 
   for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
@@ -681,15 +691,38 @@ function chooseCardForTrick(
     const sampleSearchCards = belotCpuSearchCards(searchCards, sample);
 
     if (
-      sampleIndex === fullSearchSampleCount &&
-      searchCards.length > rootSearchFocusedCandidateCount
+      sampleIndex === broadSearchSampleCount &&
+      searchCards.length > rootSearchBroadCandidateCount
     ) {
       focusedRootCardIds = new Set(
         rootFocusedCardIds(
           searchCards,
           rootCardValueStats,
           state,
-          fullSearchSampleCount,
+          broadSearchSampleCount,
+          rootSearchBroadCandidateCount,
+        ),
+      );
+    }
+
+    if (
+      focusedRootCardIds &&
+      narrowSearchSampleCount > broadSearchSampleCount &&
+      sampleIndex === narrowSearchSampleCount &&
+      focusedRootCardIds.size > rootSearchNarrowCandidateCount
+    ) {
+      const focusedSearchCards = searchCards.filter((card) =>
+        focusedRootCardIds?.has(card.id),
+      );
+
+      focusedRootCardIds = new Set(
+        rootFocusedCardIds(
+          focusedSearchCards,
+          rootCardValueStats,
+          state,
+          narrowSearchSampleCount,
+          rootSearchNarrowCandidateCount,
+          rootSearchNarrowValueMargin,
         ),
       );
     }
@@ -1937,12 +1970,12 @@ function updateRootCardValueStats(
   });
 }
 
-function rootFullSearchSampleCount(sampleCount: number) {
+function rootSearchStageSampleCount(sampleCount: number, ratio: number) {
   return Math.min(
     sampleCount,
     Math.max(
-      rootSearchMinFullSamples,
-      Math.ceil(sampleCount * rootSearchFullSampleRatio),
+      rootSearchMinStageSamples,
+      Math.ceil(sampleCount * ratio),
     ),
   );
 }
@@ -1951,18 +1984,31 @@ function rootFocusedCardIds(
   cards: Card[],
   valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
   state: BelotState,
-  fullSearchSampleCount: number,
+  observationSampleCount: number,
+  candidateCount: number,
+  valueMargin = 0,
 ) {
+  const orderedCards = orderRootCardsByAverageValue(cards, valueStats, state);
   const keepCardIds = new Set(
-    orderRootCardsByAverageValue(cards, valueStats, state)
-      .slice(0, rootSearchFocusedCandidateCount)
-      .map((card) => card.id),
+    orderedCards.slice(0, candidateCount).map((card) => card.id),
   );
   const minFocusedSampleCount = Math.ceil(
-    fullSearchSampleCount * rootSearchMinFocusedSampleRatio,
+    observationSampleCount * rootSearchMinFocusedSampleRatio,
   );
+  const cutoffCard = orderedCards[candidateCount - 1];
+  const cutoffValue = cutoffCard
+    ? averageRootCardValue(valueStats.get(cutoffCard.id))
+    : undefined;
 
-  for (const card of cards) {
+  for (const card of orderedCards) {
+    if (
+      cutoffValue !== undefined &&
+      averageRootCardValue(valueStats.get(card.id)) >=
+        cutoffValue - valueMargin
+    ) {
+      keepCardIds.add(card.id);
+    }
+
     if ((valueStats.get(card.id)?.sampleCount ?? 0) < minFocusedSampleCount) {
       keepCardIds.add(card.id);
     }
@@ -1977,7 +2023,7 @@ function rootCardsForSampleSearch(
   valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
   state: BelotState,
 ) {
-  if (!focusedRootCardIds || cards.length <= rootSearchFocusedCandidateCount) {
+  if (!focusedRootCardIds) {
     return cards;
   }
 
@@ -1989,7 +2035,7 @@ function rootCardsForSampleSearch(
 
   return orderRootCardsByAverageValue(cards, valueStats, state).slice(
     0,
-    rootSearchFocusedCandidateCount,
+    Math.max(1, Math.min(cards.length, focusedRootCardIds.size)),
   );
 }
 
