@@ -1059,6 +1059,12 @@ export function belotCpuCheapSearchCard(
     : undefined;
 
   if (currentPlayer && opponent) {
+    const forcedLeadCard = leadingTrumpShortVoidForceCard(cards, state);
+
+    if (forcedLeadCard) {
+      return forcedLeadCard;
+    }
+
     const opponentSuits = new Set(opponent.hand.map((card) => card.suit));
     const sharedSuitNonTrumpCards = nonTrumpCards.filter((card) =>
       opponentSuits.has(card.suit),
@@ -2124,6 +2130,12 @@ export function belotCpuOrderCardsForSearch(
 }
 
 export function belotCpuForcedSearchCard(cards: Card[], state: BelotState) {
+  const leadingTrumpShortVoidCard = leadingTrumpShortVoidForceCard(cards, state);
+
+  if (leadingTrumpShortVoidCard) {
+    return leadingTrumpShortVoidCard;
+  }
+
   const opponentVoidDiscard = opponentVoidSuitCheapDiscard(cards, state);
 
   if (opponentVoidDiscard) {
@@ -2213,7 +2225,11 @@ function leadingTrumpShortVoidForceCard(cards: Card[], state: BelotState) {
 
   const opponentSuits = new Set(opponent.hand.map((card) => card.suit));
   const voidForcingCards = cards.filter(
-    (card) => card.suit !== state.trumpSuit && !opponentSuits.has(card.suit),
+    (card) =>
+      card.suit !== state.trumpSuit &&
+      card.rank !== "A" &&
+      card.rank !== "X" &&
+      !opponentSuits.has(card.suit),
   );
 
   if (voidForcingCards.length === 0) {

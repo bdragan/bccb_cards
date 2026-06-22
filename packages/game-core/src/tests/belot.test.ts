@@ -1030,6 +1030,79 @@ describe("Belot", () => {
     ).toBeUndefined();
   });
 
+  it("forces cheap void leads when the sampled opponent has more trumps", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("VII", "hearts"),
+            card("X", "bells"),
+            card("A", "acorns"),
+            card("K", "acorns"),
+            card("VII", "leaves"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [
+            card("IX", "hearts"),
+            card("X", "hearts"),
+            card("VII", "bells"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(belotCpuForcedSearchCard(state.players[0].hand, state)?.id).toBe(
+      "VII-leaves",
+    );
+    expect(belotCpuCheapSearchCard(state.players[0].hand, state).id).toBe(
+      "VII-leaves",
+    );
+
+    const onlyAceOrTenVoidLeadState: BelotState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("VII", "hearts"),
+                card("X", "bells"),
+                card("A", "acorns"),
+              ],
+            }
+          : player,
+      ),
+    };
+
+    expect(
+      belotCpuForcedSearchCard(
+        onlyAceOrTenVoidLeadState.players[0].hand,
+        onlyAceOrTenVoidLeadState,
+      ),
+    ).toBeUndefined();
+  });
+
   it("orders root CPU cards by previous Monte Carlo sample success", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
@@ -1394,6 +1467,63 @@ describe("Belot", () => {
       },
       cheapSearchCard: () => {
         throw new Error("this state should not use cheap search");
+      },
+      forcedSearchCard: belotCpuForcedSearchCard,
+    };
+
+    expect(() =>
+      belotHandPlayAlphaBetaValue(
+        state,
+        "p1",
+        1,
+        -belotHandPlaySearchMaxUtility,
+        belotHandPlaySearchMaxUtility,
+        createBelotHandPlaySearchContext(1, policy),
+      ),
+    ).not.toThrow();
+  });
+
+  it("applies forced Belot search cards before cheap alpha-beta moves", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("VII", "leaves"), card("A", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("IX", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 0,
+      searchCards: (cards) => cards,
+      orderCards: (cards) => cards,
+      cheapSearchCard: (cards, cheapState) => {
+        if (cheapState.currentTurnPlayerId === "p1") {
+          throw new Error("forced lead should bypass cheap search");
+        }
+
+        return cards[0];
       },
       forcedSearchCard: belotCpuForcedSearchCard,
     };

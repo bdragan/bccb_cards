@@ -105,24 +105,6 @@ export function belotHandPlayAlphaBetaResult(
     return evaluateSearchLeaf(state, maximizingPlayerId);
   }
 
-  if (shouldUseCheapSearchMove(state, depth, context)) {
-    const card = context.policy.cheapSearchCard(legalCards, state);
-    const next = applyBelotAction(state, {
-      type: "play-card",
-      playerId: currentPlayer.playerId,
-      cardId: card.id,
-    });
-
-    return belotHandPlayAlphaBetaResult(
-      next,
-      maximizingPlayerId,
-      depth,
-      alpha,
-      beta,
-      context,
-    );
-  }
-
   const forcedCard = context.policy.forcedSearchCard?.(legalCards, state);
 
   if (forcedCard) {
@@ -136,6 +118,24 @@ export function belotHandPlayAlphaBetaResult(
       next,
       maximizingPlayerId,
       depth - 1,
+      alpha,
+      beta,
+      context,
+    );
+  }
+
+  if (shouldUseCheapSearchMove(state, depth, context)) {
+    const card = context.policy.cheapSearchCard(legalCards, state);
+    const next = applyBelotAction(state, {
+      type: "play-card",
+      playerId: currentPlayer.playerId,
+      cardId: card.id,
+    });
+
+    return belotHandPlayAlphaBetaResult(
+      next,
+      maximizingPlayerId,
+      depth,
       alpha,
       beta,
       context,
