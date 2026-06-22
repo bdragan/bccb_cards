@@ -1575,7 +1575,7 @@ describe("Belot", () => {
     );
   });
 
-  it.skip("plays X leaves from the screenshot trick-three response in at least three of five CPU probes", () => {
+  it("plays X leaves from the screenshot trick-three response in at least three of five CPU probes", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
       phase: "trick-play",
