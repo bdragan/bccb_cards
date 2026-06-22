@@ -841,14 +841,14 @@ export function belotCpuSearchCards(cards: Card[], state: BelotState) {
     return cards;
   }
 
-  const responseCards = cheapestLosingResponseCardsBySuit(cards, state);
+  const candidateCards = belotCpuNormalSearchCandidateCards(cards, state);
 
-  if (responseCards.length <= 1) {
-    return responseCards;
+  if (candidateCards.length <= 1) {
+    return candidateCards;
   }
 
   const keepCardIds = new Set<string>();
-  const candidateCardIds = new Set(responseCards.map((card) => card.id));
+  const candidateCardIds = new Set(candidateCards.map((card) => card.id));
   const connectedCardIds = new Set([
     ...candidateCardIds,
     ...knownPlayedOrDeadCards(state).map((card) => card.id),
@@ -881,14 +881,15 @@ export function belotCpuSearchCards(cards: Card[], state: BelotState) {
     }
   }
 
-  return responseCards.filter((card) => keepCardIds.has(card.id));
+  return candidateCards.filter((card) => keepCardIds.has(card.id));
 }
 
-function cheapestLosingResponseCardsBySuit(cards: Card[], state: BelotState) {
+function belotCpuNormalSearchCandidateCards(cards: Card[], state: BelotState) {
   if (!state.trumpSuit || state.currentTrick.length === 0) {
     return cards;
   }
 
+  const leadSuit = state.currentTrick[0]?.card.suit;
   const keepCardIds = new Set<string>();
   const cheapestLosingCardsBySuit = new Map<Suit, Card>();
   const preferredNonTrumpWinningResponseCard = nonTrumpWinningResponseAceOrTen(
@@ -906,6 +907,11 @@ function cheapestLosingResponseCardsBySuit(cards: Card[], state: BelotState) {
         continue;
       }
 
+      keepCardIds.add(card.id);
+      continue;
+    }
+
+    if (leadSuit && card.suit === leadSuit && leadSuit !== state.trumpSuit) {
       keepCardIds.add(card.id);
       continue;
     }

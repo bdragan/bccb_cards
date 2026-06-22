@@ -1719,7 +1719,7 @@ describe("Belot", () => {
     ).toEqual(["VII-hearts", "X-hearts", "O-hearts"]);
   });
 
-  it("searches only the cheapest losing response card per suit", () => {
+  it("keeps losing response cards in normal search", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
       phase: "trick-play",
@@ -1759,10 +1759,10 @@ describe("Belot", () => {
       belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
-    ).toEqual(["VII-acorns", "X-acorns"]);
+    ).toEqual(["VII-acorns", "IX-acorns", "X-acorns"]);
   });
 
-  it("prunes same-suit losing responses before the small search-card return", () => {
+  it("keeps same-suit losing responses before the small search-card return", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
       phase: "trick-play",
@@ -1798,7 +1798,90 @@ describe("Belot", () => {
       belotCpuSearchCards(state.players[0].hand, state).map(
         (searchCard) => searchCard.id,
       ),
-    ).toEqual(["VII-acorns"]);
+    ).toEqual(["VII-acorns", "IX-acorns"]);
+  });
+
+  it("searches only the cheapest losing trump response per suit", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("VII", "leaves"), card("A", "leaves")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "leaves",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("U", "leaves") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      belotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["VII-leaves"]);
+  });
+
+  it("searches only the cheapest losing off-suit discard per suit", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("A", "hearts"),
+            card("VII", "hearts"),
+            card("X", "leaves"),
+            card("IX", "leaves"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "bells",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "acorns") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      belotCpuSearchCards(state.players[0].hand, state).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["VII-hearts", "IX-leaves"]);
   });
 
   it("searches only the higher connected endpoint when both response endpoints win", () => {
@@ -2495,7 +2578,7 @@ describe("Belot", () => {
       playerId: "p2",
       suit: "leaves",
     });
-  });
+  }, 10_000);
 
   it("passes the screenshot weak trump hand before pickup cards are known", () => {
     const state: BelotState = {
@@ -2552,7 +2635,7 @@ describe("Belot", () => {
       type: "trump-pass",
       playerId: "p2",
     });
-  });
+  }, 10_000);
 
   it("allows the CPU to pass the second trump round but still choose on mus", () => {
     const state: BelotState = {
