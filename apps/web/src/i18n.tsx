@@ -256,7 +256,7 @@ export const messages: Record<Locale, Messages> = {
     youMustChooseTrumpOnMus: "Ti si na musu i moraš izabrati adut.",
     winner: (playerName) => `Pobednik: ${playerName}`,
     startingCards: "Početne karte",
-    remainingCards: "Tesla",
+    remainingCards: "Van igre",
     yourHand: "Tvoje karte",
     cpuDebugHand: "AI karte",
     playLegalCard: "odigraj dozvoljenu kartu",
