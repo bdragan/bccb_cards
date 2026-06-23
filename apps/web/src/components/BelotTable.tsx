@@ -164,25 +164,26 @@ function trumpSelectionPreviewSuits(state: BelotPublicState) {
 }
 
 function trumpSelectionBonusPreview(hand: Card[], state: BelotPublicState) {
-  let bestDeclarations: BelotDeclaration[] = [];
+  const previewCardIds = new Set<string>();
   let bestPoints = 0;
 
   for (const suit of trumpSelectionPreviewSuits(state)) {
     const declarations = autoSelectBelotDeclarations(hand, suit);
     const points = declarationPoints(declarations);
 
+    for (const declaration of declarations) {
+      for (const card of declaration.cards) {
+        previewCardIds.add(card.id);
+      }
+    }
+
     if (points > bestPoints) {
-      bestDeclarations = declarations;
       bestPoints = points;
     }
   }
 
   return {
-    cardIds: new Set(
-      bestDeclarations.flatMap((declaration) =>
-        declaration.cards.map((card) => card.id),
-      ),
-    ),
+    cardIds: previewCardIds,
     points: bestPoints,
   };
 }

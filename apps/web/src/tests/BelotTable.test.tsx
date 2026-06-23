@@ -423,6 +423,52 @@ describe("BelotTable", () => {
     );
   });
 
+  it("marks second-round belote bonuses for every possible trump suit but shows only the max total", () => {
+    renderTable({
+      ...baseState,
+      phase: "trump-round-two",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p1",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+      declarationsByPlayer: {},
+      publicCardsByPlayer: { p1: [], p2: [] },
+      upcard: card("K", "leaves"),
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("O", "acorns"),
+                card("K", "acorns"),
+                card("O", "bells"),
+                card("K", "bells"),
+              ],
+              handCount: 4,
+            }
+          : player,
+      ),
+    });
+
+    const bonusCards = screen
+      .getAllByTestId("belot-bonus-card")
+      .map((container) =>
+        within(container).getByRole("img").getAttribute("alt"),
+      );
+
+    expect(bonusCards).toEqual([
+      "O of Acorns",
+      "K of Acorns",
+      "O of Bells",
+      "K of Bells",
+    ]);
+    expect(screen.getByTestId("belot-hand-bonus-total")).toHaveTextContent(
+      "20 bonus pts",
+    );
+  });
+
   it("removes the pre-pickup bonus indicators after trump selection", () => {
     renderTable({
       ...baseState,
