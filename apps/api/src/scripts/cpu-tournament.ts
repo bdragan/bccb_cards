@@ -20,7 +20,7 @@ import { createDeck } from "@card-games/game-core";
 import type { Card } from "@card-games/shared";
 
 const participantDepths = [6, 8, 10, 12, 14] as const;
-const gamesPerMatchup = 3;
+const gamesPerMatchup = 4;
 const monteCarloSamples = 64;
 const maxGameActions = 10_000;
 
@@ -29,7 +29,6 @@ type TournamentJob = {
   gameNumber: number;
   depthA: number;
   depthB: number;
-  seed: number;
 };
 
 type TournamentGameResult = {
@@ -74,18 +73,6 @@ type TournamentFile = {
 
 function cpuPlayerId(depth: number) {
   return `cpu-depth-${depth}`;
-}
-
-function mulberry32(seed: number) {
-  let value = seed >>> 0;
-
-  return () => {
-    value += 0x6d2b79f5;
-    let result = value;
-    result = Math.imul(result ^ (result >>> 15), result | 1);
-    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
-    return ((result ^ (result >>> 14)) >>> 0) / 4_294_967_296;
-  };
 }
 
 function shuffled<T>(values: readonly T[], rng: () => number) {
@@ -240,8 +227,7 @@ function nextCpuAction(
 
 function runGame(job: TournamentJob): TournamentGameResult {
   const startedAt = Date.now();
-  const rng = mulberry32(job.seed);
-  const originalRandom = Math.random;
+  const rng = Math.random;
   const playerAId = cpuPlayerId(job.depthA);
   const playerBId = cpuPlayerId(job.depthB);
   const depthsByPlayerId = new Map([
@@ -249,82 +235,73 @@ function runGame(job: TournamentJob): TournamentGameResult {
     [playerBId, job.depthB],
   ]);
 
-  Math.random = rng;
+  let state = createBelotInitialState([
+    {
+      playerId: playerAId,
+      displayName: `CPU depth ${job.depthA}`,
+    },
+    {
+      playerId: playerBId,
+      displayName: `CPU depth ${job.depthB}`,
+    },
+  ]);
 
-  try {
-    let state = createBelotInitialState([
-      {
-        playerId: playerAId,
-        displayName: `CPU depth ${job.depthA}`,
-      },
-      {
-        playerId: playerBId,
-        displayName: `CPU depth ${job.depthB}`,
-      },
-    ]);
-
-    for (const player of state.players) {
-      state = applyBelotAction(state, {
-        type: "set-ready",
-        playerId: player.playerId,
-        ready: true,
-      });
-    }
-
-    let actionCount = 0;
-
-    while (state.phase !== "finished") {
-      if (actionCount >= maxGameActions) {
-        throw new Error(`Game exceeded ${maxGameActions} actions`);
-      }
-
-      state =
-        state.phase === "hand-complete"
-          ? applyBelotAction(state, { type: "next-hand" })
-          : applyBelotAction(
-              state,
-              nextCpuAction(state, depthsByPlayerId, rng),
-            );
-      actionCount += 1;
-
-      if (state.phase === "error") {
-        throw new Error(state.error ?? "Belot game entered an error state");
-      }
-    }
-
-    if (!state.winnerPlayerId) {
-      throw new Error("Finished game has no winner");
-    }
-
-    const winnerDepth = depthsByPlayerId.get(state.winnerPlayerId);
-
-    if (!winnerDepth) {
-      throw new Error("Winner has no configured search depth");
-    }
-
-    return {
-      id: job.id,
-      gameNumber: job.gameNumber,
-      depths: [job.depthA, job.depthB],
-      players: state.players.map((player) => ({
-        playerId: player.playerId,
-        displayName: player.displayName,
-        searchDepth: depthsByPlayerId.get(player.playerId)!,
-      })),
-      winnerDepth,
-      winnerPlayerId: state.winnerPlayerId,
-      finalScoresByDepth: Object.fromEntries(
-        state.players.map((player) => [
-          String(depthsByPlayerId.get(player.playerId)),
-          player.totalScore,
-        ]),
-      ),
-      handResults: state.handResults ?? [],
-      durationMs: Date.now() - startedAt,
-    };
-  } finally {
-    Math.random = originalRandom;
+  for (const player of state.players) {
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: player.playerId,
+      ready: true,
+    });
   }
+
+  let actionCount = 0;
+
+  while (state.phase !== "finished") {
+    if (actionCount >= maxGameActions) {
+      throw new Error(`Game exceeded ${maxGameActions} actions`);
+    }
+
+    state =
+      state.phase === "hand-complete"
+        ? applyBelotAction(state, { type: "next-hand" })
+        : applyBelotAction(state, nextCpuAction(state, depthsByPlayerId, rng));
+    actionCount += 1;
+
+    if (state.phase === "error") {
+      throw new Error(state.error ?? "Belot game entered an error state");
+    }
+  }
+
+  if (!state.winnerPlayerId) {
+    throw new Error("Finished game has no winner");
+  }
+
+  const winnerDepth = depthsByPlayerId.get(state.winnerPlayerId);
+
+  if (!winnerDepth) {
+    throw new Error("Winner has no configured search depth");
+  }
+
+  return {
+    id: job.id,
+    gameNumber: job.gameNumber,
+    depths: [job.depthA, job.depthB],
+    players: state.players.map((player) => ({
+      playerId: player.playerId,
+      displayName: player.displayName,
+      searchDepth: depthsByPlayerId.get(player.playerId)!,
+    })),
+    winnerDepth,
+    winnerPlayerId: state.winnerPlayerId,
+    finalScoresByDepth: Object.fromEntries(
+      state.players.map((player) => [
+        String(depthsByPlayerId.get(player.playerId)),
+        player.totalScore,
+      ]),
+    ),
+    handResults: state.handResults ?? [],
+    durationMs: Date.now() - startedAt,
+  };
 }
 
 function createJobs(): TournamentJob[] {
@@ -339,7 +316,6 @@ function createJobs(): TournamentJob[] {
           gameNumber,
           depthA: participantDepths[left],
           depthB: participantDepths[right],
-          seed: (0x9e3779b9 * id) >>> 0,
         });
       }
     }
