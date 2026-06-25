@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import type { BelotState } from "../games/belot";
 import type { BelotHandPlaySearchPolicy } from "../games/belot/hand-play-search";
 import {
-  belotHandPlayAlphaBetaResult,
   belotHandPlayAlphaBetaValue,
   belotHandPlaySearchMaxUtility,
   createBelotHandPlaySearchContext,
@@ -2689,6 +2688,89 @@ describe("Belot", () => {
           trumpHighSuccessRate: Number.POSITIVE_INFINITY,
           trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
         },
+      ),
+    ).toEqual({
+      type: "trump-accept-upcard",
+      playerId: "p1",
+    });
+  });
+
+  it("requires the high trump success rate near victory with a large lead", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trump-round-one",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("A", "hearts"),
+            card("X", "hearts"),
+            card("K", "hearts"),
+          ],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 421,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 261,
+        },
+      ],
+      upcard: card("U", "hearts"),
+      trumpTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+      trumpPasses: ["p2"],
+    };
+    const options = {
+      trumpMinSuccessRate: 0,
+      trumpHighSuccessRate: Number.POSITIVE_INFINITY,
+      trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+      trumpMonteCarloSamples: 1,
+      trumpSearchPlies: 1,
+    };
+
+    expect(chooseBelotCpuAction(state, "p1", options)).toEqual({
+      type: "trump-pass",
+      playerId: "p1",
+    });
+
+    expect(
+      chooseBelotCpuAction(
+        {
+          ...state,
+          players: state.players.map((player) =>
+            player.playerId === "p1"
+              ? { ...player, totalScore: 420 }
+              : { ...player, totalScore: 260 },
+          ),
+        },
+        "p1",
+        options,
+      ),
+    ).toEqual({
+      type: "trump-accept-upcard",
+      playerId: "p1",
+    });
+
+    expect(
+      chooseBelotCpuAction(
+        {
+          ...state,
+          players: state.players.map((player) =>
+            player.playerId === "p2"
+              ? { ...player, totalScore: 262 }
+              : player,
+          ),
+        },
+        "p1",
+        options,
       ),
     ).toEqual({
       type: "trump-accept-upcard",

@@ -6,6 +6,7 @@ import {
   applyBelotAction,
   autoSelectBelotDeclarations,
   belotCardPoints,
+  belotTargetScore,
   compareBelotCards,
   legalBelotCards,
 } from "./belot";
@@ -46,6 +47,8 @@ const defaultTrumpHighSuccessRate = 0.95;
 const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
 const trumpMinSuccessRateDiscountPerNonTrumpAce = 0.02;
+const cautiousTrumpCallVictoryMargin = 80;
+const cautiousTrumpCallLead = 160;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
@@ -88,6 +91,7 @@ type TrumpCallThresholds = {
   highSuccessRate: number;
   minTrumpCards: number;
   minExpectedValue: number;
+  requireHighSuccessRateForStandardCall: boolean;
 };
 
 export type BelotCpuRootCardSampleStats = {
@@ -203,6 +207,8 @@ function chooseTrumpAction(
     defaultTrumpMinCardsForStandardSuccess;
   const minSuccessRate =
     options.trumpMinSuccessRate ?? defaultTrumpMinSuccessRate;
+  const requireHighSuccessRateForStandardCall =
+    shouldRequireCautiousTrumpCall(state, player.playerId);
 
   if (state.phase === "trump-round-one" && state.upcard) {
     const samples = createTrumpRolloutSamples(
@@ -227,6 +233,7 @@ function chooseTrumpAction(
       highSuccessRate,
       minTrumpCards,
       minExpectedValue,
+      requireHighSuccessRateForStandardCall,
     };
     const shouldAcceptUpcard = shouldCallTrump({
       score: upcardCandidate.score,
@@ -272,6 +279,7 @@ function chooseTrumpAction(
       highSuccessRate,
       minTrumpCards,
       minExpectedValue,
+      requireHighSuccessRateForStandardCall,
     };
     const bestCandidate = candidates[0];
     const acceptedCandidate =
@@ -453,9 +461,30 @@ function thresholdsForTrumpCandidate(
 ): TrumpCallThresholds {
   return {
     ...thresholds,
-    minSuccessRate: candidate.minSuccessRate,
+    minSuccessRate: thresholds.requireHighSuccessRateForStandardCall
+      ? Math.max(candidate.minSuccessRate, candidate.highSuccessRate)
+      : candidate.minSuccessRate,
     highSuccessRate: candidate.highSuccessRate,
   };
+}
+
+function shouldRequireCautiousTrumpCall(
+  state: BelotState,
+  cpuPlayerId: string,
+) {
+  const cpu = playerById(state, cpuPlayerId);
+  const opponent = state.players.find(
+    (player) => player.playerId !== cpuPlayerId,
+  );
+
+  if (!opponent) {
+    return false;
+  }
+
+  return (
+    cpu.totalScore >= belotTargetScore - cautiousTrumpCallVictoryMargin &&
+    cpu.totalScore - opponent.totalScore >= cautiousTrumpCallLead
+  );
 }
 
 function adjustedTrumpSuccessRate(

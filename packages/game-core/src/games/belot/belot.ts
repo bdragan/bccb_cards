@@ -22,7 +22,7 @@ import type {
 
 const minPlayers = 2;
 const maxPlayers = 2;
-const targetScore = 501;
+export const belotTargetScore = 501;
 const sequenceRanks: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
 const nonTrumpPower: Rank[] = ["VII", "VIII", "IX", "U", "O", "K", "X", "A"];
 const trumpPower: Rank[] = ["VII", "VIII", "O", "K", "X", "A", "IX", "U"];
@@ -1147,7 +1147,9 @@ export function calculateBelotHandResult(
 }
 
 function calculateGameWinner(players: BelotPlayerState[]) {
-  const reached = players.filter((player) => player.totalScore >= targetScore);
+  const reached = players.filter(
+    (player) => player.totalScore >= belotTargetScore,
+  );
 
   if (reached.length === 0) {
     return undefined;
@@ -1292,7 +1294,8 @@ export function belotResult(state: BelotState): Omit<BelotResult, "roomId"> {
     ...state.players.map((player) => player.totalScore),
   );
   const winnerPlayerIds = state.winnerPlayerId ? [state.winnerPlayerId] : [];
-  const tied = winnerPlayerIds.length === 0 && highScore >= targetScore;
+  const tied =
+    winnerPlayerIds.length === 0 && highScore >= belotTargetScore;
 
   return {
     gameId: "belot",
