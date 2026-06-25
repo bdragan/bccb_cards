@@ -11,6 +11,7 @@
     "test:e2e": "DATABASE_URL=\"postgresql://cardgames:cardgames@localhost:5432/cardgames\" corepack pnpm --filter @card-games/api prisma:deploy && corepack pnpm --recursive build && playwright test",
     "build": "corepack pnpm --recursive build",
     "build:web:static": "corepack pnpm --filter @card-games/web build:static",
+    "cpu:tournament": "corepack pnpm --filter @card-games/shared build && corepack pnpm --filter @card-games/game-core build && corepack pnpm --filter @card-games/api build && node apps/api/dist/scripts/cpu-tournament.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "corepack pnpm typecheck && eslint .",
