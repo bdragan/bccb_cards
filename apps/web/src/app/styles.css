@@ -85,8 +85,8 @@ input {
   }
 
   .belot-current-trick-grid .card-face {
-    width: clamp(30px, 9.25vw, 56px);
-    height: clamp(48px, 14.85vw, 90px);
+    width: clamp(36px, 11.1vw, 67.2px);
+    height: clamp(57.6px, 17.82vw, 108px);
     border-radius: 0.25rem;
   }
 
@@ -98,8 +98,8 @@ input {
   }
 
   .belot-hand-row .card-face {
-    width: clamp(30px, 9.25vw, 56px);
-    height: clamp(48px, 14.85vw, 90px);
+    width: clamp(36px, 11.1vw, 67.2px);
+    height: clamp(57.6px, 17.82vw, 108px);
     border-radius: 0.25rem;
   }
 
@@ -114,8 +114,8 @@ input {
   }
 
   .belot-current-trick-grid {
-    grid-template-columns: repeat(2, clamp(30px, 9.25vw, 56px));
-    height: clamp(63px, 20.25vw, 114px);
+    grid-template-columns: repeat(2, clamp(36px, 11.1vw, 67.2px));
+    height: clamp(75.6px, 24.3vw, 136.8px);
     gap: 0.25rem;
   }
 
