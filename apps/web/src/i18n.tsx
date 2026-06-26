@@ -66,10 +66,8 @@ export type Messages = {
   cpuActionFailed: string;
   cpuWorkerUnavailable: string;
   loadingCards: string;
-  cardBack: string;
   drawn: string;
   hiddenPickupCard: string;
-  hiddenPickupCardNumber: (index: number) => string;
   unknownPlayer: string;
   statusYou: string;
   toPlay: (playerName: string) => string;
@@ -172,10 +170,8 @@ export const messages: Record<Locale, Messages> = {
     cpuActionFailed: "CPU potez nije uspeo",
     cpuWorkerUnavailable: "CPU worker nije dostupan",
     loadingCards: "Učitavanje karata...",
-    cardBack: "Poleđina karte",
     drawn: "Izvučeno",
     hiddenPickupCard: "Skrivena pokupljena karta",
-    hiddenPickupCardNumber: (index) => `Skrivena pokupljena karta ${index}`,
     unknownPlayer: "Nepoznat igrač",
     statusYou: "Ti",
     toPlay: (playerName) => `${playerName} je na potezu`,
@@ -306,10 +302,8 @@ export const messages: Record<Locale, Messages> = {
     cpuActionFailed: "CPU action failed",
     cpuWorkerUnavailable: "CPU worker is not available",
     loadingCards: "Loading cards...",
-    cardBack: "Card back",
     drawn: "Drawn",
     hiddenPickupCard: "Hidden pickup card",
-    hiddenPickupCardNumber: (index) => `Hidden pickup card ${index}`,
     unknownPlayer: "Unknown player",
     statusYou: "You",
     toPlay: (playerName) => `${playerName} to play`,

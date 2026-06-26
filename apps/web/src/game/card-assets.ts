@@ -1,8 +1,6 @@
 import { createDeck } from "@card-games/game-core";
 import type { Card, Suit } from "@card-games/shared";
 
-export const cardBackImagePath = "/cards/card-back.svg";
-
 export const suitImagePaths: Record<Suit, string> = {
   acorns: "/suits/s.png",
   bells: "/suits/d.png",
@@ -15,7 +13,6 @@ export function cardImagePath(card: Pick<Card, "id">) {
 }
 
 export const belotImagePaths = [
-  cardBackImagePath,
   ...Object.values(suitImagePaths),
   ...createDeck().map(cardImagePath),
 ];

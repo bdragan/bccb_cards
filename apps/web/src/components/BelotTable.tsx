@@ -24,7 +24,7 @@ import {
 } from "react";
 
 import { suitImagePaths } from "../game/card-assets";
-import { PlayingCard, PlayingCardBack } from "../game/cards";
+import { PlayingCard } from "../game/cards";
 import { type Messages, useI18n } from "../i18n";
 import { Button } from "./Button";
 
@@ -728,33 +728,6 @@ function DebugHandPanel({
   );
 }
 
-function HiddenPickupPlaceholder({
-  index,
-  reserveMarkerRow = false,
-}: {
-  index: number;
-  reserveMarkerRow?: boolean;
-}) {
-  const { messages } = useI18n();
-
-  return (
-    <div
-      className="relative shrink-0 rounded-md"
-      data-testid="belot-hidden-pickup-placeholder"
-    >
-      {reserveMarkerRow ? (
-        <span
-          aria-hidden="true"
-          className="mb-1 flex h-5 items-center justify-center"
-          data-testid="belot-hidden-pickup-marker-spacer"
-        />
-      ) : null}
-      <PlayingCardBack native alt={messages.hiddenPickupCardNumber(index)} />
-      <span className="sr-only">{messages.hiddenPickupCard}</span>
-    </div>
-  );
-}
-
 function WinnerPanel({
   playerName,
   className,
@@ -946,8 +919,6 @@ export function BelotTable({
     (state.phase === "trick-play" ||
       trumpSelectionPhases.includes(state.phase) ||
       Boolean(visibleTrick));
-  const showHiddenPickupPlaceholders =
-    trumpSelectionPhases.includes(state.phase) && currentHand.length > 0;
   const displayedCompletedTricks = state.completedTricks
     .map((trick, index) => ({ index, trick }))
     .reverse();
@@ -1513,30 +1484,10 @@ export function BelotTable({
                 </div>
               ))}
             </div>
-            {showBonusPreview && showHiddenPickupPlaceholders ? (
-              <div className="belot-hand-bonus belot-hand-bonus-mobile mr-auto flex items-center md:hidden">
-                <span className="belot-hand-bonus-pill rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">
-                  {messages.bonusPts(bonusPreview.points)}
-                </span>
-              </div>
-            ) : null}
-            {showHiddenPickupPlaceholders ? (
-              <div className="belot-hidden-pickups ml-auto flex shrink-0 gap-2">
-                {[1, 2].map((index) => (
-                  <HiddenPickupPlaceholder
-                    key={index}
-                    index={index}
-                    reserveMarkerRow={showBonusPreview}
-                  />
-                ))}
-              </div>
-            ) : null}
           </div>
           {showBonusPreview ? (
             <div
-              className={`belot-hand-bonus mt-8 justify-start ${
-                showHiddenPickupPlaceholders ? "hidden md:flex" : "flex"
-              }`}
+              className="belot-hand-bonus mt-8 flex justify-start"
               data-testid="belot-hand-bonus-total"
             >
               <span className="belot-hand-bonus-pill rounded-full bg-emerald-300 px-3 py-1 text-sm font-bold leading-none text-ink shadow-sm">

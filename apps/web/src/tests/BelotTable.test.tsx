@@ -307,7 +307,7 @@ describe("BelotTable", () => {
     );
   });
 
-  it("shows two face-down pickup placeholders during trump selection", () => {
+  it("does not show face-down pickup placeholders during trump selection", () => {
     renderTable({
       ...baseState,
       phase: "trump-round-one",
@@ -336,24 +336,15 @@ describe("BelotTable", () => {
       ),
     });
 
-    const placeholders = screen.getAllByTestId(
-      "belot-hidden-pickup-placeholder",
-    );
-
-    expect(placeholders).toHaveLength(2);
-    expect(placeholders[0].parentElement).toHaveClass("ml-auto");
     expect(
-      placeholders.map((placeholder) =>
-        within(placeholder).getByRole("img").getAttribute("src"),
-      ),
-    ).toEqual(["/cards/card-back.svg", "/cards/card-back.svg"]);
-    for (const placeholder of placeholders) {
-      expect(within(placeholder).getByRole("img")).not.toHaveClass("border");
-      expect(placeholder.querySelector(".ring-4")).not.toBeInTheDocument();
-    }
+      screen.queryByTestId("belot-hidden-pickup-placeholder"),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getAllByTestId("belot-hidden-pickup-marker-spacer"),
-    ).toHaveLength(2);
+      screen.queryByTestId("belot-hidden-pickup-marker-spacer"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: /hidden pickup card/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("marks visible trump cards", () => {

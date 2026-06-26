@@ -1,7 +1,7 @@
 import type { Card } from "@card-games/shared";
 
 import { useI18n } from "../i18n";
-import { cardBackImagePath, cardImagePath } from "./card-assets";
+import { cardImagePath } from "./card-assets";
 
 function cardSizeClass({
   compact = false,
@@ -11,31 +11,6 @@ function cardSizeClass({
   native?: boolean;
 }) {
   return native ? "h-[114px] w-[71px]" : compact ? "h-24 w-16" : "h-36 w-24";
-}
-
-export function PlayingCardBack({
-  compact = false,
-  native = false,
-  alt,
-}: {
-  compact?: boolean;
-  native?: boolean;
-  alt?: string;
-}) {
-  const { messages } = useI18n();
-
-  return (
-    <img
-      src={cardBackImagePath}
-      alt={alt ?? messages.cardBack}
-      className={`card-face ${cardSizeClass({
-        compact,
-        native,
-      })} rounded-md bg-white object-contain`}
-      loading="eager"
-      decoding="async"
-    />
-  );
 }
 
 export function PlayingCard({
