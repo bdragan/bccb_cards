@@ -211,20 +211,22 @@ function SuitImage({
 function TrumpMarkedCard({
   card,
   trumpSuit,
+  reserveTrumpMarker = false,
   bonusMarked = false,
   reserveBonusMarker = false,
   children,
 }: {
   card: Card;
   trumpSuit?: Suit;
+  reserveTrumpMarker?: boolean;
   bonusMarked?: boolean;
   reserveBonusMarker?: boolean;
   children: ReactNode;
 }) {
   const { messages } = useI18n();
   const isTrump = card.suit === trumpSuit;
-  const reserveTrumpMarker = Boolean(trumpSuit);
-  const showMarkerRow = reserveTrumpMarker || reserveBonusMarker;
+  const showTrumpMarker = Boolean(trumpSuit) || reserveTrumpMarker;
+  const showMarkerRow = showTrumpMarker || reserveBonusMarker;
 
   return (
     <span
@@ -239,7 +241,7 @@ function TrumpMarkedCard({
     >
       {showMarkerRow ? (
         <span className="belot-card-marker-row mb-1 flex h-5 items-center justify-center gap-1">
-          {reserveTrumpMarker ? (
+          {showTrumpMarker ? (
             <span
               className={`belot-card-marker grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold uppercase leading-none text-ink ${
                 isTrump ? "bg-yellow-300 shadow-sm" : "invisible"
@@ -1177,11 +1179,12 @@ export function BelotTable({
         <div className="belot-center-panel min-w-0 rounded-md bg-white/10 p-3">
           <div className="flex flex-col items-center gap-4">
             {state.upcard ? (
-              <div className="text-center">
+              <div className="belot-center-upcard text-center">
                 <p className="mb-1 text-sm font-semibold">{messages.upcard}</p>
                 <TrumpMarkedCard
                   card={state.upcard}
                   trumpSuit={state.trumpSuit}
+                  reserveTrumpMarker
                 >
                   <PlayingCard card={state.upcard} compact />
                 </TrumpMarkedCard>

@@ -1012,6 +1012,25 @@ describe("BelotTable", () => {
     ).toHaveClass("h-[114px]", "w-[71px]");
   });
 
+  it("keeps the upcard at declared-card size while reserving trump marker space", () => {
+    renderTable({
+      ...baseState,
+      phase: "trump-round-one",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p2",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+    });
+
+    const upcard = screen.getByAltText("K of Leaves");
+    const upcardPanel = upcard.closest(".belot-center-upcard");
+
+    expect(upcard).toHaveClass("h-24", "w-16");
+    expect(upcardPanel?.querySelector(".belot-card-marker-row")).not.toBeNull();
+  });
+
   it("lightly shadows losing played cards in the current trick area", () => {
     renderTable({
       ...baseState,
