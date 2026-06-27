@@ -848,8 +848,8 @@ describe("Belot", () => {
     expect(belotCpuMonteCarloSampleLimit(64, 6)).toBe(141);
   });
 
-  it("uses the same 14-ply default CPU search for trump and trick play", () => {
-    expect(defaultBelotCpuMaxSearchPlies).toBe(14);
+  it("uses the same 16-ply default CPU search for trump and trick play", () => {
+    expect(defaultBelotCpuMaxSearchPlies).toBe(16);
   });
 
   it("orders CPU search cards from the correct alpha-beta perspective", () => {

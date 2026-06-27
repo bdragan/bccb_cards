@@ -39,7 +39,7 @@ export type BelotCpuOptions = {
   trumpMinExpectedValue?: number;
 };
 
-export const defaultBelotCpuMaxSearchPlies = 14;
+export const defaultBelotCpuMaxSearchPlies = 16;
 const defaultMonteCarloSamples = 64;
 const trumpMonteCarloSampleMultiplier = 1.5;
 const defaultTrumpMinSuccessRate = 0.9;
