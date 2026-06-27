@@ -19,8 +19,8 @@ import {
 import { createDeck } from "@card-games/game-core";
 import type { Card } from "@card-games/shared";
 
-const participantDepths = [6, 8, 10, 12, 14] as const;
-const gamesPerMatchup = 4;
+const participantDepths = [6, 8, 10, 12, 16] as const;
+const gamesPerMatchup = 10;
 const monteCarloSamples = 64;
 const maxGameActions = 10_000;
 
@@ -64,6 +64,7 @@ type TournamentFile = {
   generatedAt: string;
   configuration: {
     participantDepths: readonly number[];
+    highestDepth: number;
     gamesPerMatchup: number;
     monteCarloSamples: number;
     workerCount: number;
@@ -306,18 +307,21 @@ function runGame(job: TournamentJob): TournamentGameResult {
 
 function createJobs(): TournamentJob[] {
   const jobs: TournamentJob[] = [];
+  const highestDepth = Math.max(...participantDepths);
 
-  for (let left = 0; left < participantDepths.length; left += 1) {
-    for (let right = left + 1; right < participantDepths.length; right += 1) {
-      for (let gameNumber = 1; gameNumber <= gamesPerMatchup; gameNumber += 1) {
-        const id = jobs.length + 1;
-        jobs.push({
-          id,
-          gameNumber,
-          depthA: participantDepths[left],
-          depthB: participantDepths[right],
-        });
-      }
+  for (const opponentDepth of participantDepths) {
+    if (opponentDepth === highestDepth) {
+      continue;
+    }
+
+    for (let gameNumber = 1; gameNumber <= gamesPerMatchup; gameNumber += 1) {
+      const id = jobs.length + 1;
+      jobs.push({
+        id,
+        gameNumber,
+        depthA: opponentDepth,
+        depthB: highestDepth,
+      });
     }
   }
 
@@ -335,6 +339,7 @@ async function writeTournamentFile(
     generatedAt: new Date().toISOString(),
     configuration: {
       participantDepths,
+      highestDepth: Math.max(...participantDepths),
       gamesPerMatchup,
       monteCarloSamples,
       workerCount,
@@ -364,21 +369,39 @@ function printGameResult(
   );
 }
 
-function printStandings(results: TournamentGameResult[]) {
-  const standings = participantDepths
-    .map((depth) => ({
-      depth,
-      gamesWon: results.filter((result) => result.winnerDepth === depth).length,
-      gamesPlayed: results.filter((result) => result.depths.includes(depth))
-        .length,
-    }))
-    .sort(
-      (left, right) =>
-        right.gamesWon - left.gamesWon || left.depth - right.depth,
-    );
+function printHighestDepthSummary(results: TournamentGameResult[]) {
+  const highestDepth = Math.max(...participantDepths);
+  const highestDepthGames = results.filter((result) =>
+    result.depths.includes(highestDepth),
+  );
+  const highestDepthWins = highestDepthGames.filter(
+    (result) => result.winnerDepth === highestDepth,
+  ).length;
+  const matchScores = participantDepths
+    .filter((depth) => depth !== highestDepth)
+    .map((opponentDepth) => {
+      const matchupResults = highestDepthGames.filter((result) =>
+        result.depths.includes(opponentDepth),
+      );
+      const opponentWins = matchupResults.filter(
+        (result) => result.winnerDepth === opponentDepth,
+      ).length;
+      const matchupHighestDepthWins = matchupResults.length - opponentWins;
 
-  console.log("\nFinal standings");
-  console.table(standings);
+      return {
+        opponentDepth,
+        gamesPlayed: matchupResults.length,
+        higherDepthWins: matchupHighestDepthWins,
+        opponentWins,
+        matchScore: `${matchupHighestDepthWins}-${opponentWins}`,
+      };
+    });
+
+  console.log(
+    `\nHighest depth ${highestDepth} wins: ${highestDepthWins}/${highestDepthGames.length}`,
+  );
+  console.log(`Match scores for depth ${highestDepth}`);
+  console.table(matchScores);
 }
 
 function runWorkerPool(
@@ -484,7 +507,7 @@ async function main() {
   const jobs = createJobs();
   const workerCount = Math.min(
     jobs.length,
-    Math.max(1, availableParallelism() - 2),
+    Math.max(1, availableParallelism() - 4),
   );
   const results: TournamentGameResult[] = [];
   let outputWrite = Promise.resolve();
@@ -501,7 +524,7 @@ async function main() {
     );
     await outputWrite;
   });
-  printStandings(results);
+  printHighestDepthSummary(results);
 }
 
 if (isMainThread) {
