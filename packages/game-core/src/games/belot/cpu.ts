@@ -939,8 +939,12 @@ export function belotCpuSearchCards(cards: Card[], state: BelotState) {
 }
 
 function belotCpuNormalSearchCandidateCards(cards: Card[], state: BelotState) {
-  if (!state.trumpSuit || state.currentTrick.length === 0) {
+  if (!state.trumpSuit) {
     return cards;
+  }
+
+  if (state.currentTrick.length === 0) {
+    return belotCpuLeadSearchCandidateCards(cards, state);
   }
 
   const leadSuit = state.currentTrick[0]?.card.suit;
@@ -985,6 +989,102 @@ function belotCpuNormalSearchCandidateCards(cards: Card[], state: BelotState) {
   }
 
   return cards.filter((card) => keepCardIds.has(card.id));
+}
+
+function belotCpuLeadSearchCandidateCards(cards: Card[], state: BelotState) {
+  if (!state.trumpSuit || !state.currentTurnPlayerId) {
+    return cards;
+  }
+
+  const opponent = state.players.find(
+    (player) => player.playerId !== state.currentTurnPlayerId,
+  );
+
+  if (
+    !opponent ||
+    opponent.hand.length === 0 ||
+    // Root pre-pruning clears unusedCards; sampled alpha-beta states keep them.
+    (state.unusedCards?.length ?? 0) === 0
+  ) {
+    return cards;
+  }
+
+  const keepCardIds = new Set<string>();
+
+  for (const suit of suits) {
+    const suitCards = cards.filter((card) => card.suit === suit);
+
+    if (suitCards.length === 0) {
+      continue;
+    }
+
+    const representative = leadSuitRepresentativeCard(
+      suitCards,
+      opponent.hand,
+      state.trumpSuit,
+    );
+
+    for (const card of representative ? [representative] : suitCards) {
+      keepCardIds.add(card.id);
+    }
+  }
+
+  return cards.filter((card) => keepCardIds.has(card.id));
+}
+
+function leadSuitRepresentativeCard(
+  cards: Card[],
+  opponentCards: Card[],
+  trumpSuit: Suit,
+) {
+  const suit = cards[0]?.suit;
+
+  if (!suit) {
+    return undefined;
+  }
+
+  const weakest = weakestCard(cards, trumpSuit);
+  const strongest = strongestCard(cards, trumpSuit);
+  const opponentSuitCards = opponentCards.filter((card) => card.suit === suit);
+
+  if (!weakest || !strongest) {
+    return undefined;
+  }
+
+  if (opponentSuitCards.length === 0) {
+    const opponentHasTrump = opponentCards.some(
+      (card) => card.suit === trumpSuit,
+    );
+
+    return suit === trumpSuit || !opponentHasTrump ? strongest : weakest;
+  }
+
+  const weakestOpponentSuitCard = weakestCard(opponentSuitCards, trumpSuit);
+  const strongestOpponentSuitCard = strongestCard(opponentSuitCards, trumpSuit);
+
+  if (
+    strongestOpponentSuitCard &&
+    compareBelotCards(weakest, strongestOpponentSuitCard, trumpSuit) > 0
+  ) {
+    return strongest;
+  }
+
+  return weakestOpponentSuitCard &&
+    compareBelotCards(weakestOpponentSuitCard, strongest, trumpSuit) > 0
+    ? weakest
+    : undefined;
+}
+
+function weakestCard(cards: Card[], trumpSuit: Suit) {
+  return cards
+    .slice()
+    .sort((left, right) => compareBelotCards(left, right, trumpSuit))[0];
+}
+
+function strongestCard(cards: Card[], trumpSuit: Suit) {
+  return cards
+    .slice()
+    .sort((left, right) => compareBelotCards(right, left, trumpSuit))[0];
 }
 
 function nonTrumpWinningResponseAceOrTen(cards: Card[], state: BelotState) {
