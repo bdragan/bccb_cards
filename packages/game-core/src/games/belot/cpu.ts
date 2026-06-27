@@ -1020,6 +1020,46 @@ function nonTrumpWinningResponseAceOrTen(cards: Card[], state: BelotState) {
   return undefined;
 }
 
+function strongerWinningTrumpAgainstSuperiorOpponentTrump(
+  winningCards: Card[],
+  state: BelotState,
+) {
+  if (!state.trumpSuit || !state.currentTurnPlayerId) {
+    return undefined;
+  }
+
+  const winningTrumps = winningCards.filter(
+    (card) => card.suit === state.trumpSuit,
+  );
+
+  if (winningTrumps.length !== 2) {
+    return undefined;
+  }
+
+  const opponent = state.players.find(
+    (player) => player.playerId !== state.currentTurnPlayerId,
+  );
+
+  const hasSuperiorOpponentTrump = opponent?.hand.some(
+    (opponentCard) =>
+      opponentCard.suit === state.trumpSuit &&
+      winningTrumps.every(
+        (winningTrump) =>
+          compareBelotCards(opponentCard, winningTrump, state.trumpSuit!) > 0,
+      ),
+  );
+
+  if (!hasSuperiorOpponentTrump) {
+    return undefined;
+  }
+
+  return winningTrumps
+    .slice()
+    .sort((left, right) =>
+      compareBelotCards(right, left, state.trumpSuit!),
+    )[0];
+}
+
 function hasPlayedCard(state: BelotState, suit: Suit, rank: Rank) {
   for (const play of state.currentTrick) {
     if (play.card.suit === suit && play.card.rank === rank) {
@@ -1064,11 +1104,15 @@ export function belotCpuCheapSearchCard(
     );
     const preferredNonTrumpWinningResponseCard =
       nonTrumpWinningResponseAceOrTen(cards, state);
-    const candidates = preferredNonTrumpWinningResponseCard
-      ? [preferredNonTrumpWinningResponseCard]
-      : winningCards.length
-        ? winningCards
-        : cards;
+    const strongerTrumpResponse =
+      strongerWinningTrumpAgainstSuperiorOpponentTrump(winningCards, state);
+    const candidates = strongerTrumpResponse
+      ? [strongerTrumpResponse]
+      : preferredNonTrumpWinningResponseCard
+        ? [preferredNonTrumpWinningResponseCard]
+        : winningCards.length
+          ? winningCards
+          : cards;
 
     return candidates
       .slice()

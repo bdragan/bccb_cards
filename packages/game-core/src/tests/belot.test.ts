@@ -1340,6 +1340,48 @@ describe("Belot", () => {
       ).id,
     ).toBe("VII-acorns");
 
+    const twoWinningTrumpResponseState: BelotState = {
+      ...respondingState,
+      players: respondingState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [card("VIII", "hearts"), card("K", "hearts")],
+            }
+          : {
+              ...player,
+              hand: [card("IX", "hearts")],
+            },
+      ),
+      currentTrick: [{ playerId: "p2", card: card("A", "bells") }],
+    };
+
+    expect(
+      belotCpuCheapSearchCard(
+        twoWinningTrumpResponseState.players[0].hand,
+        twoWinningTrumpResponseState,
+      ).id,
+    ).toBe("K-hearts");
+
+    const noSuperiorOpponentTrumpResponseState: BelotState = {
+      ...twoWinningTrumpResponseState,
+      players: twoWinningTrumpResponseState.players.map((player) =>
+        player.playerId === "p2"
+          ? {
+              ...player,
+              hand: [card("O", "hearts")],
+            }
+          : player,
+      ),
+    };
+
+    expect(
+      belotCpuCheapSearchCard(
+        noSuperiorOpponentTrumpResponseState.players[0].hand,
+        noSuperiorOpponentTrumpResponseState,
+      ).id,
+    ).toBe("VIII-hearts");
+
     const leadingState: BelotState = {
       ...respondingState,
       players: respondingState.players.map((player) =>
