@@ -626,7 +626,6 @@ function createTrumpRolloutSamples(
     opponentCardCount,
     sampleCount,
     rng,
-    trumpSuit,
   );
 
   return samples.map((sample) => {
@@ -1368,7 +1367,6 @@ function sampleUniqueTrumpRollouts(
   requestedOpponentCardCount: number,
   sampleCount: number,
   rng: () => number,
-  trumpSuit?: Suit,
 ) {
   const cpuHiddenCount = Math.min(requestedCpuHiddenCount, unknownPool.length);
   const opponentCardCount = Math.min(
@@ -1390,7 +1388,6 @@ function sampleUniqueTrumpRollouts(
       cpuHiddenCount,
       opponentCardCount,
       targetSampleCount,
-      trumpSuit,
     );
   }
 
@@ -1408,7 +1405,6 @@ function sampleUniqueTrumpRollouts(
       cpuHiddenCount,
       opponentCardCount,
       rng,
-      trumpSuit,
     );
     const key = sampleKey(cpuHiddenCards, opponentHand);
 
@@ -1425,7 +1421,6 @@ function sampleUniqueTrumpRollouts(
       unknownPool,
       cpuHiddenCount,
       opponentCardCount,
-      trumpSuit,
     )) {
       const key = sampleKey(sample.cpuHiddenCards, sample.opponentHand);
 
@@ -1450,133 +1445,17 @@ function sampleTrumpRollout(
   cpuHiddenCount: number,
   opponentCardCount: number,
   rng: () => number,
-  trumpSuit?: Suit,
 ) {
   const sampledCards = shuffleDeck(unknownPool, rng);
   const cpuHiddenCards = sampledCards.slice(0, cpuHiddenCount);
 
-  if (!trumpSuit || opponentCardCount <= 0) {
-    return {
-      cpuHiddenCards,
-      opponentHand: sampledCards.slice(
-        cpuHiddenCount,
-        cpuHiddenCount + opponentCardCount,
-      ),
-    };
-  }
-
-  const forcedOpponentCardCount = 1;
-  const randomOpponentCardCount = opponentCardCount - forcedOpponentCardCount;
-  const opponentRandomCards = sampledCards.slice(
-    cpuHiddenCount,
-    cpuHiddenCount + randomOpponentCardCount,
-  );
-  const forcedCards = forcedOpponentCards(
-    sampledCards.slice(cpuHiddenCount + randomOpponentCardCount),
-    forcedOpponentCardCount,
-    trumpSuit,
-  );
-
   return {
     cpuHiddenCards,
-    opponentHand: [...opponentRandomCards, ...forcedCards],
+    opponentHand: sampledCards.slice(
+      cpuHiddenCount,
+      cpuHiddenCount + opponentCardCount,
+    ),
   };
-}
-
-function isNonTrumpAce(card: Card, trumpSuit: Suit) {
-  return card.rank === "A" && card.suit !== trumpSuit;
-}
-
-function forcedOpponentCards(
-  cards: Card[],
-  forcedCardCount: number,
-  trumpSuit: Suit,
-) {
-  const forcedCards: Card[] = [];
-  let remainingCards = cards;
-
-  for (const forcedAce of remainingCards.filter((card) =>
-    isNonTrumpAce(card, trumpSuit),
-  )) {
-    if (forcedCards.length >= forcedCardCount) {
-      break;
-    }
-
-    forcedCards.push(forcedAce);
-    remainingCards = remainingCards.filter((card) => card.id !== forcedAce.id);
-  }
-
-  for (const fallbackCard of remainingCards) {
-    if (forcedCards.length >= forcedCardCount) {
-      break;
-    }
-
-    forcedCards.push(fallbackCard);
-  }
-
-  return forcedCards;
-}
-
-function* iterateForcedOpponentCardCompletions(
-  cards: Card[],
-  forcedCardCount: number,
-  trumpSuit: Suit,
-): Generator<Card[]> {
-  if (forcedCardCount <= 0) {
-    yield [];
-    return;
-  }
-
-  const forcedAces = cards.filter((card) => isNonTrumpAce(card, trumpSuit));
-
-  if (forcedAces.length > 0) {
-    for (const forcedAce of forcedAces) {
-      yield [forcedAce];
-    }
-
-    return;
-  }
-
-  for (const fallbackCards of iterateCardCombinations(
-    cards,
-    forcedCardCount,
-  )) {
-    yield fallbackCards;
-  }
-}
-
-function* iterateOpponentHandsWithForcedPressure(
-  cards: Card[],
-  opponentCardCount: number,
-  trumpSuit: Suit,
-): Generator<Card[]> {
-  if (opponentCardCount <= 0) {
-    yield [];
-    return;
-  }
-
-  const forcedOpponentCardCount = 1;
-  const randomOpponentCardCount = opponentCardCount - forcedOpponentCardCount;
-
-  for (const opponentRandomCards of iterateCardCombinations(
-    cards,
-    randomOpponentCardCount,
-  )) {
-    const opponentRandomCardIds = new Set(
-      opponentRandomCards.map((card) => card.id),
-    );
-    const remainingCards = cards.filter(
-      (card) => !opponentRandomCardIds.has(card.id),
-    );
-
-    for (const forcedCards of iterateForcedOpponentCardCompletions(
-      remainingCards,
-      forcedOpponentCardCount,
-      trumpSuit,
-    )) {
-      yield [...opponentRandomCards, ...forcedCards];
-    }
-  }
 }
 
 function* iterateRegularTrumpRollouts(
@@ -1602,70 +1481,11 @@ function* iterateRegularTrumpRollouts(
   }
 }
 
-function* iterateForcedAceTrumpRollouts(
-  unknownPool: Card[],
-  cpuHiddenCount: number,
-  opponentCardCount: number,
-  trumpSuit: Suit,
-): Generator<{ cpuHiddenCards: Card[]; opponentHand: Card[] }> {
-  for (const cpuHiddenCards of iterateCardCombinations(
-    unknownPool,
-    cpuHiddenCount,
-  )) {
-    const cpuHiddenCardIds = new Set(cpuHiddenCards.map((card) => card.id));
-    const remainingCards = unknownPool.filter(
-      (card) => !cpuHiddenCardIds.has(card.id),
-    );
-
-    for (const opponentHand of iterateOpponentHandsWithForcedPressure(
-      remainingCards,
-      opponentCardCount,
-      trumpSuit,
-    )) {
-      yield { cpuHiddenCards, opponentHand };
-    }
-  }
-}
-
-function hasPossibleForcedOpponentPressure(
-  unknownPool: Card[],
-  opponentCardCount: number,
-  trumpSuit: Suit,
-) {
-  if (opponentCardCount <= 0) {
-    return false;
-  }
-
-  const nonTrumpAceCount = unknownPool.filter((card) =>
-    isNonTrumpAce(card, trumpSuit),
-  ).length;
-
-  return nonTrumpAceCount > 0;
-}
-
 function* iterateTrumpRollouts(
   unknownPool: Card[],
   cpuHiddenCount: number,
   opponentCardCount: number,
-  trumpSuit?: Suit,
 ): Generator<{ cpuHiddenCards: Card[]; opponentHand: Card[] }> {
-  if (
-    trumpSuit &&
-    hasPossibleForcedOpponentPressure(
-      unknownPool,
-      opponentCardCount,
-      trumpSuit,
-    )
-  ) {
-    yield* iterateForcedAceTrumpRollouts(
-      unknownPool,
-      cpuHiddenCount,
-      opponentCardCount,
-      trumpSuit,
-    );
-    return;
-  }
-
   yield* iterateRegularTrumpRollouts(
     unknownPool,
     cpuHiddenCount,
@@ -1737,7 +1557,6 @@ function enumerateTrumpRollouts(
   cpuHiddenCount: number,
   opponentCardCount: number,
   sampleCount: number,
-  trumpSuit?: Suit,
 ) {
   const samples: Array<{ cpuHiddenCards: Card[]; opponentHand: Card[] }> = [];
 
@@ -1745,7 +1564,6 @@ function enumerateTrumpRollouts(
     unknownPool,
     cpuHiddenCount,
     opponentCardCount,
-    trumpSuit,
   )) {
     samples.push(sample);
 
