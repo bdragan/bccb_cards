@@ -345,6 +345,37 @@ describe("Belot", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("starts trick play immediately when declarations are disabled", () => {
+    let state = createBelotInitialState(players, {
+      declarationsEnabled: false,
+    });
+
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: "p1",
+      ready: true,
+    });
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: "p2",
+      ready: true,
+    });
+
+    const trumpTurnPlayerId = state.trumpTurnPlayerId!;
+    const trickPlay = applyBelotAction(state, {
+      type: "trump-accept-upcard",
+      playerId: trumpTurnPlayerId,
+    });
+
+    expect(trickPlay.phase).toBe("trick-play");
+    expect(trickPlay.currentTurnPlayerId).toBe(trickPlay.firstPlayerId);
+    expect(trickPlay.declarationsByPlayer).toEqual({});
+    expect(trickPlay.publicCardsByPlayer).toEqual({ p1: [], p2: [] });
+    expect(trickPlay.players.every((player) => player.hand.length === 10)).toBe(
+      true,
+    );
+  });
+
   it("validates belote, sequences, four-of-kind declarations, and rejects impossible overlap", () => {
     const hand = [
       card("VII", "hearts"),
@@ -4270,6 +4301,49 @@ describe("Belot", () => {
     expect(schusterWithDeclarations.handScoreByPlayer.p1).toBe(-100);
     expect(schusterWithDeclarations.handScoreByPlayer.p2).toBe(271);
     expect(schusterWithDeclarations.schusterPlayerIds).toEqual(["p1"]);
+
+    const declarationsDisabled = calculateBelotHandResult({
+      ...scoringState({
+        p1WonCards: [card("A", "acorns")],
+        p2WonCards: [card("VII", "bells")],
+        p1TricksWon: 9,
+        p2TricksWon: 1,
+        declarationsByPlayer: {
+          p1: [
+            {
+              type: "BELOTE",
+              cards: [card("O", "hearts"), card("K", "hearts")],
+              points: 20,
+            },
+          ],
+          p2: [
+            {
+              type: "SEQUENCE_5_PLUS",
+              cards: [
+                card("VII", "bells"),
+                card("VIII", "bells"),
+                card("IX", "bells"),
+                card("X", "bells"),
+                card("U", "bells"),
+              ],
+              points: 100,
+            },
+          ],
+        },
+        lastTrickWinnerPlayerId: "p1",
+      }),
+      rules: { declarationsEnabled: false },
+    });
+
+    expect(declarationsDisabled.declarationPointsByPlayer).toEqual({
+      p1: 0,
+      p2: 0,
+    });
+    expect(declarationsDisabled.totalPointsByPlayer).toEqual(
+      declarationsDisabled.gamePointsByPlayer,
+    );
+    expect(declarationsDisabled.handScoreByPlayer.p1).toBe(21);
+    expect(declarationsDisabled.handScoreByPlayer.p2).toBe(0);
   });
 
   it("finishes at 501 only when there is a winner after the hand", () => {

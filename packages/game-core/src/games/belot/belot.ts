@@ -15,7 +15,9 @@ import type {
   BelotAction,
   BelotDeclarationCandidate,
   BelotHandResult,
+  BelotInitialStateOptions,
   BelotPlayerState,
+  BelotRules,
   BelotState,
   BelotTrickPlay,
 } from "./types";
@@ -68,6 +70,21 @@ const fourOfKindTypes: Partial<Record<Rank, BelotDeclaration["type"]>> = {
   O: "FOUR_QUEENS",
 };
 
+const defaultBelotRules: BelotRules = {
+  declarationsEnabled: true,
+};
+
+function belotRules(state: Pick<BelotState, "rules">): BelotRules {
+  return {
+    ...defaultBelotRules,
+    ...state.rules,
+  };
+}
+
+function belotDeclarationsEnabled(state: Pick<BelotState, "rules">) {
+  return belotRules(state).declarationsEnabled;
+}
+
 function phaseForPlayerCount(playerCount: number): BelotState["phase"] {
   return playerCount === maxPlayers ? "ready-check" : "waiting-for-players";
 }
@@ -86,9 +103,16 @@ function normalizePlayers(players: PlayerRef[]): BelotPlayerState[] {
   }));
 }
 
-export function createBelotInitialState(players: PlayerRef[]): BelotState {
+export function createBelotInitialState(
+  players: PlayerRef[],
+  options: BelotInitialStateOptions = {},
+): BelotState {
   return {
     gameId: "belot",
+    rules: {
+      ...defaultBelotRules,
+      ...options,
+    },
     phase: phaseForPlayerCount(players.length),
     deck: [],
     unusedCards: [],
@@ -265,6 +289,7 @@ function finishTrumpSelection(
   suit: Suit,
   isMus: boolean,
 ): BelotState {
+  const declarationsEnabled = belotDeclarationsEnabled(state);
   const players = state.players.map((player) => ({
     ...player,
     hand: [...player.hand, ...player.hiddenCards],
@@ -274,13 +299,13 @@ function finishTrumpSelection(
 
   return {
     ...state,
-    phase: "declarations",
+    phase: declarationsEnabled ? "declarations" : "trick-play",
     players,
     trumpSuit: suit,
     callerPlayerId: playerId,
     isMus,
     trumpTurnPlayerId: undefined,
-    currentTurnPlayerId: undefined,
+    currentTurnPlayerId: declarationsEnabled ? undefined : state.firstPlayerId,
   };
 }
 
@@ -1068,7 +1093,11 @@ export function calculateBelotHandResult(
   const declarationPointsByPlayer = Object.fromEntries(
     state.players.map((player) => [
       player.playerId,
-      sumDeclarationPoints(state.declarationsByPlayer[player.playerId] ?? []),
+      belotDeclarationsEnabled(state)
+        ? sumDeclarationPoints(
+            state.declarationsByPlayer[player.playerId] ?? [],
+          )
+        : 0,
     ]),
   );
   const totalPointsByPlayer = Object.fromEntries(
@@ -1186,6 +1215,7 @@ function restart(state: BelotState): BelotState {
       playerId: player.playerId,
       displayName: player.displayName,
     })),
+    belotRules(state),
   );
 }
 

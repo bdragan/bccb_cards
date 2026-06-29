@@ -29,6 +29,7 @@ type TournamentJob = {
   gameNumber: number;
   depthA: number;
   depthB: number;
+  declarationsEnabled: boolean;
 };
 
 type TournamentGameResult = {
@@ -68,8 +69,14 @@ type TournamentFile = {
     gamesPerMatchup: number;
     monteCarloSamples: number;
     workerCount: number;
+    declarationsEnabled: boolean;
   };
   games: TournamentGameResult[];
+};
+
+type CliOptions = {
+  outputPath: string;
+  declarationsEnabled: boolean;
 };
 
 function cpuPlayerId(depth: number) {
@@ -236,16 +243,21 @@ function runGame(job: TournamentJob): TournamentGameResult {
     [playerBId, job.depthB],
   ]);
 
-  let state = createBelotInitialState([
+  let state = createBelotInitialState(
+    [
+      {
+        playerId: playerAId,
+        displayName: `CPU depth ${job.depthA}`,
+      },
+      {
+        playerId: playerBId,
+        displayName: `CPU depth ${job.depthB}`,
+      },
+    ],
     {
-      playerId: playerAId,
-      displayName: `CPU depth ${job.depthA}`,
+      declarationsEnabled: job.declarationsEnabled,
     },
-    {
-      playerId: playerBId,
-      displayName: `CPU depth ${job.depthB}`,
-    },
-  ]);
+  );
 
   for (const player of state.players) {
     state = applyBelotAction(state, {
@@ -305,7 +317,7 @@ function runGame(job: TournamentJob): TournamentGameResult {
   };
 }
 
-function createJobs(): TournamentJob[] {
+function createJobs(declarationsEnabled: boolean): TournamentJob[] {
   const jobs: TournamentJob[] = [];
   const highestDepth = Math.max(...participantDepths);
 
@@ -321,6 +333,7 @@ function createJobs(): TournamentJob[] {
         gameNumber,
         depthA: opponentDepth,
         depthB: highestDepth,
+        declarationsEnabled,
       });
     }
   }
@@ -331,6 +344,7 @@ function createJobs(): TournamentJob[] {
 async function writeTournamentFile(
   outputPath: string,
   workerCount: number,
+  declarationsEnabled: boolean,
   games: TournamentGameResult[],
 ) {
   const absolutePath = resolve(outputPath);
@@ -343,6 +357,7 @@ async function writeTournamentFile(
       gamesPerMatchup,
       monteCarloSamples,
       workerCount,
+      declarationsEnabled,
     },
     games: [...games].sort((left, right) => left.id - right.id),
   };
@@ -493,18 +508,61 @@ function runWorkerPool(
   });
 }
 
-async function main() {
-  const outputPath = process.argv
-    .slice(2)
-    .find((argument) => argument !== "--");
+function parseCliOptions(argv: string[]): CliOptions {
+  let outputPath: string | undefined;
+  let declarationsEnabled = true;
+
+  for (const argument of argv) {
+    if (argument === "--") {
+      continue;
+    }
+
+    if (argument === "--no-declarations") {
+      declarationsEnabled = false;
+      continue;
+    }
+
+    if (argument === "--declarations") {
+      declarationsEnabled = true;
+      continue;
+    }
+
+    if (argument.startsWith("--declarations=")) {
+      const value = argument.slice("--declarations=".length);
+
+      if (value !== "true" && value !== "false") {
+        throw new Error("--declarations must be true or false");
+      }
+
+      declarationsEnabled = value === "true";
+      continue;
+    }
+
+    if (argument.startsWith("--")) {
+      throw new Error(`Unknown option: ${argument}`);
+    }
+
+    if (outputPath) {
+      throw new Error(`Unexpected argument: ${argument}`);
+    }
+
+    outputPath = argument;
+  }
 
   if (!outputPath) {
     throw new Error(
-      "Usage: corepack pnpm cpu:tournament -- <timeline-output.json>",
+      "Usage: corepack pnpm cpu:tournament -- <timeline-output.json> [--no-declarations]",
     );
   }
 
-  const jobs = createJobs();
+  return { outputPath, declarationsEnabled };
+}
+
+async function main() {
+  const { outputPath, declarationsEnabled } = parseCliOptions(
+    process.argv.slice(2),
+  );
+  const jobs = createJobs(declarationsEnabled);
   const workerCount = Math.min(
     jobs.length,
     Math.max(1, availableParallelism() - 4),
@@ -513,14 +571,24 @@ async function main() {
   let outputWrite = Promise.resolve();
 
   console.log(
-    `Running ${jobs.length} games with ${workerCount} workers; timelines: ${resolve(outputPath)}`,
+    `Running ${jobs.length} games with ${workerCount} workers; declarations: ${declarationsEnabled ? "on" : "off"}; timelines: ${resolve(outputPath)}`,
   );
-  await writeTournamentFile(outputPath, workerCount, results);
+  await writeTournamentFile(
+    outputPath,
+    workerCount,
+    declarationsEnabled,
+    results,
+  );
   await runWorkerPool(jobs, workerCount, async (result) => {
     results.push(result);
     printGameResult(result, results.length, jobs.length);
     outputWrite = outputWrite.then(() =>
-      writeTournamentFile(outputPath, workerCount, results),
+      writeTournamentFile(
+        outputPath,
+        workerCount,
+        declarationsEnabled,
+        results,
+      ),
     );
     await outputWrite;
   });

@@ -54,8 +54,15 @@ export type BelotHandResult = {
   lastTrickWinnerPlayerId: string;
 };
 
+export type BelotRules = {
+  declarationsEnabled: boolean;
+};
+
+export type BelotInitialStateOptions = Partial<BelotRules>;
+
 export type BelotState = {
   gameId: "belot";
+  rules?: BelotRules;
   phase: BelotPhase;
   deck: Card[];
   unusedCards: Card[];
