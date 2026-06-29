@@ -41,7 +41,6 @@ export type BelotCpuOptions = {
 
 export const defaultBelotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
-const trumpMonteCarloSampleMultiplier = 1.5;
 const defaultTrumpMinSuccessRate = 0.9;
 const defaultTrumpHighSuccessRate = 0.95;
 const defaultTrumpMinCardsForStandardSuccess = 3;
@@ -124,8 +123,10 @@ export function belotCpuMonteCarloSampleLimit(
 export function belotCpuTrumpMonteCarloSamples(options: BelotCpuOptions = {}) {
   return (
     options.trumpMonteCarloSamples ??
-    (options.monteCarloSamples ?? defaultMonteCarloSamples) *
-      trumpMonteCarloSampleMultiplier
+    belotCpuMonteCarloSampleLimit(
+      options.monteCarloSamples ?? defaultMonteCarloSamples,
+      initialTrickHandCards,
+    )
   );
 }
 

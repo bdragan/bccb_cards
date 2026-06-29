@@ -1257,9 +1257,9 @@ describe("Belot", () => {
     ).toEqual(["A-acorns", "X-bells", "K-leaves", "U-hearts", "IX-hearts"]);
   });
 
-  it("uses 50 percent more regular CPU Monte Carlo samples when selecting trump", () => {
-    expect(belotCpuTrumpMonteCarloSamples()).toBe(96);
-    expect(belotCpuTrumpMonteCarloSamples({ monteCarloSamples: 10 })).toBe(15);
+  it("uses regular CPU Monte Carlo samples when selecting trump", () => {
+    expect(belotCpuTrumpMonteCarloSamples()).toBe(64);
+    expect(belotCpuTrumpMonteCarloSamples({ monteCarloSamples: 10 })).toBe(10);
     expect(
       belotCpuTrumpMonteCarloSamples({
         monteCarloSamples: 10,
@@ -3173,7 +3173,7 @@ describe("Belot", () => {
     };
 
     expect(
-      chooseBelotCpuAction(state, "p2", { rng: seededRng(8) }),
+      chooseBelotCpuAction(state, "p2", { rng: seededRng(3) }),
     ).toEqual({
       type: "trump-choose-suit",
       playerId: "p2",
