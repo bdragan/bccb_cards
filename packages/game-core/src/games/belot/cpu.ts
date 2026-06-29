@@ -52,13 +52,6 @@ const cautiousTrumpCallLead = 160;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
-const rootSearchBroadSampleRatio = 0.2;
-const rootSearchNarrowSampleRatio = 0.5;
-const rootSearchMinStageSamples = 8;
-const rootSearchBroadCandidateCount = 4;
-const rootSearchNarrowCandidateCount = 2;
-const rootSearchMinFocusedSampleRatio = 0.8;
-const rootSearchNarrowValueMargin = 5;
 const belotDeck = createDeck();
 const trumpSearchRankGroups: Rank[][] = [
   ["VII", "VIII", "O", "K", "X", "A", "IX", "U"],
@@ -740,63 +733,10 @@ function chooseCardForTrick(
   });
   const rootCardStats = createRootCardSampleStats(searchCards);
   const rootCardValueStats = createRootCardValueStats(searchCards);
-  const broadSearchSampleCount = rootSearchStageSampleCount(
-    samples.length,
-    rootSearchBroadSampleRatio,
-  );
-  const narrowSearchSampleCount = rootSearchStageSampleCount(
-    samples.length,
-    rootSearchNarrowSampleRatio,
-  );
-  let focusedRootCardIds: Set<string> | undefined;
 
   for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
     const sample = samples[sampleIndex];
     const sampleSearchCards = belotCpuSearchCards(searchCards, sample);
-
-    if (
-      sampleIndex === broadSearchSampleCount &&
-      searchCards.length > rootSearchBroadCandidateCount
-    ) {
-      focusedRootCardIds = new Set(
-        rootFocusedCardIds(
-          searchCards,
-          rootCardValueStats,
-          state,
-          broadSearchSampleCount,
-          rootSearchBroadCandidateCount,
-        ),
-      );
-    }
-
-    if (
-      focusedRootCardIds &&
-      narrowSearchSampleCount > broadSearchSampleCount &&
-      sampleIndex === narrowSearchSampleCount &&
-      focusedRootCardIds.size > rootSearchNarrowCandidateCount
-    ) {
-      const focusedSearchCards = searchCards.filter((card) =>
-        focusedRootCardIds?.has(card.id),
-      );
-
-      focusedRootCardIds = new Set(
-        rootFocusedCardIds(
-          focusedSearchCards,
-          rootCardValueStats,
-          state,
-          narrowSearchSampleCount,
-          rootSearchNarrowCandidateCount,
-          rootSearchNarrowValueMargin,
-        ),
-      );
-    }
-
-    const focusedSearchCards = rootCardsForSampleSearch(
-      sampleSearchCards,
-      focusedRootCardIds,
-      rootCardValueStats,
-      sample,
-    );
     const searchContext = createBelotHandPlaySearchContext(
       maxSearchPlies,
       belotCpuHandPlaySearchPolicy,
@@ -804,7 +744,7 @@ function chooseCardForTrick(
     const sampleResult = searchRootCardsForSample(
       sample,
       cpuPlayerId,
-      focusedSearchCards,
+      sampleSearchCards,
       rootCardStats,
       maxSearchPlies,
       searchContext,
@@ -817,11 +757,7 @@ function chooseCardForTrick(
     updateRootCardSampleStats(rootCardStats, sampleResult);
   }
 
-  const finalCards = focusedRootCardIds
-    ? searchCards.filter((card) => focusedRootCardIds.has(card.id))
-    : searchCards;
-
-  return finalCards.slice().sort((left, right) => {
+  return searchCards.slice().sort((left, right) => {
     const scoreDelta =
       averageRootCardValue(rootCardValueStats.get(right.id)) -
       averageRootCardValue(rootCardValueStats.get(left.id));
@@ -2532,111 +2468,6 @@ function updateRootCardValueStats(
     sampleCount: current.sampleCount + 1,
     totalValue: current.totalValue + value,
   });
-}
-
-function rootSearchStageSampleCount(sampleCount: number, ratio: number) {
-  return Math.min(
-    sampleCount,
-    Math.max(
-      rootSearchMinStageSamples,
-      Math.ceil(sampleCount * ratio),
-    ),
-  );
-}
-
-function rootFocusedCardIds(
-  cards: Card[],
-  valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
-  state: BelotState,
-  observationSampleCount: number,
-  candidateCount: number,
-  valueMargin = 0,
-) {
-  const orderedCards = orderRootCardsByAverageValue(cards, valueStats, state);
-  const keepCardIds = new Set(
-    orderedCards.slice(0, candidateCount).map((card) => card.id),
-  );
-  const minFocusedSampleCount = Math.ceil(
-    observationSampleCount * rootSearchMinFocusedSampleRatio,
-  );
-  const cutoffCard = orderedCards[candidateCount - 1];
-  const cutoffValue = cutoffCard
-    ? averageRootCardValue(valueStats.get(cutoffCard.id))
-    : undefined;
-
-  for (const card of orderedCards) {
-    if (
-      cutoffValue !== undefined &&
-      averageRootCardValue(valueStats.get(card.id)) >=
-        cutoffValue - valueMargin
-    ) {
-      keepCardIds.add(card.id);
-    }
-
-    if ((valueStats.get(card.id)?.sampleCount ?? 0) < minFocusedSampleCount) {
-      keepCardIds.add(card.id);
-    }
-  }
-
-  return [...keepCardIds];
-}
-
-function rootCardsForSampleSearch(
-  cards: Card[],
-  focusedRootCardIds: ReadonlySet<string> | undefined,
-  valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
-  state: BelotState,
-) {
-  if (!focusedRootCardIds) {
-    return cards;
-  }
-
-  const focusedCards = cards.filter((card) => focusedRootCardIds.has(card.id));
-
-  if (focusedCards.length > 0) {
-    return focusedCards;
-  }
-
-  return orderRootCardsByAverageValue(cards, valueStats, state).slice(
-    0,
-    Math.max(1, Math.min(cards.length, focusedRootCardIds.size)),
-  );
-}
-
-function orderRootCardsByAverageValue(
-  cards: Card[],
-  valueStats: ReadonlyMap<string, BelotCpuRootCardValueStats>,
-  state: BelotState,
-) {
-  return cards
-    .slice()
-    .sort((left, right) => {
-      const scoreDelta =
-        averageRootCardValue(valueStats.get(right.id)) -
-        averageRootCardValue(valueStats.get(left.id));
-
-      if (scoreDelta !== 0) {
-        return scoreDelta;
-      }
-
-      const sampleCountDelta =
-        (valueStats.get(left.id)?.sampleCount ?? 0) -
-        (valueStats.get(right.id)?.sampleCount ?? 0);
-
-      if (sampleCountDelta !== 0) {
-        return sampleCountDelta;
-      }
-
-      const heuristicDelta =
-        cardSearchOrderingScore(right, state, true) -
-        cardSearchOrderingScore(left, state, true);
-
-      if (heuristicDelta !== 0) {
-        return heuristicDelta;
-      }
-
-      return left.id.localeCompare(right.id);
-    });
 }
 
 function averageRootCardValue(
