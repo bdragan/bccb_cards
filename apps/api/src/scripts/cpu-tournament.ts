@@ -19,7 +19,7 @@ import {
 import { createDeck } from "@card-games/game-core";
 import type { Card } from "@card-games/shared";
 
-const participantDepths = [6, 8, 10, 12, 16] as const;
+const participantDepths = [6, 8, 10, 12, 14] as const;
 const gamesPerMatchup = 10;
 const monteCarloSamples = 64;
 const maxGameActions = 10_000;
