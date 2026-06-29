@@ -45,7 +45,7 @@ const defaultTrumpMinSuccessRate = 0.9;
 const defaultTrumpHighSuccessRate = 0.95;
 const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
-const trumpMinSuccessRateDiscountPerNonTrumpAce = 0.02;
+const trumpSuccessRateDiscountPerVisiblePowerCard = 0.02;
 const cautiousTrumpCallVictoryMargin = 80;
 const cautiousTrumpCallLead = 160;
 const initialTrickHandCards = 10;
@@ -486,14 +486,16 @@ function adjustedTrumpSuccessRate(
   visibleHand: Card[],
   trumpSuit: Suit,
 ) {
-  const nonTrumpAceCount = visibleHand.filter(
-    (card) => card.rank === "A" && card.suit !== trumpSuit,
+  const visiblePowerCardCount = visibleHand.filter(
+    (card) =>
+      (card.rank === "A" && card.suit !== trumpSuit) ||
+      (card.suit === trumpSuit && (card.rank === "U" || card.rank === "IX")),
   ).length;
 
   return Math.max(
     0,
     successRate -
-      nonTrumpAceCount * trumpMinSuccessRateDiscountPerNonTrumpAce,
+      visiblePowerCardCount * trumpSuccessRateDiscountPerVisiblePowerCard,
   );
 }
 

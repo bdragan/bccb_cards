@@ -3040,6 +3040,76 @@ describe("Belot", () => {
     });
   });
 
+  it("discounts visible top trumps when gating CPU trump calls", () => {
+    const stateForHand = (hand: Card[]): BelotState => ({
+      ...createBelotInitialState(players),
+      phase: "trump-round-one",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand,
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      upcard: card("A", "hearts"),
+      trumpTurnPlayerId: "p1",
+      firstPlayerId: "p1",
+      trumpPasses: ["p2"],
+    });
+    const options = {
+      trumpMinSuccessRate: 0.02,
+      trumpHighSuccessRate: 2,
+      trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+      trumpMonteCarloSamples: 1,
+      trumpSearchPlies: 1,
+    };
+
+    expect(
+      chooseBelotCpuAction(
+        stateForHand([
+          card("K", "hearts"),
+          card("VII", "hearts"),
+          card("VIII", "hearts"),
+        ]),
+        "p1",
+        options,
+      ),
+    ).toEqual({
+      type: "trump-pass",
+      playerId: "p1",
+    });
+
+    for (const rank of ["U", "IX"] as const) {
+      expect(
+        chooseBelotCpuAction(
+          stateForHand([
+            card(rank, "hearts"),
+            card("VII", "hearts"),
+            card("VIII", "hearts"),
+          ]),
+          "p1",
+          options,
+        ),
+      ).toEqual({
+        type: "trump-accept-upcard",
+        playerId: "p1",
+      });
+    }
+  });
+
   it("requires the high trump success rate near victory with a large lead", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
