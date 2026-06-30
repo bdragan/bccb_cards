@@ -45,7 +45,8 @@ const defaultTrumpMinSuccessRate = 0.9;
 const defaultTrumpHighSuccessRate = 0.95;
 const defaultTrumpMinCardsForStandardSuccess = 3;
 const defaultTrumpMinExpectedValue = 0;
-const trumpSuccessRateDiscountPerVisiblePowerCard = 0.02;
+const trumpSuccessRateDiscountPerVisiblePowerCard = 0.03;
+const trumpMinExpectedValueDiscountPerVisiblePowerCard = 15;
 const cautiousTrumpCallVictoryMargin = 80;
 const cautiousTrumpCallLead = 160;
 const initialTrickHandCards = 10;
@@ -70,6 +71,7 @@ type TrumpSuitCandidate = {
   trumpCardCount: number;
   minSuccessRate: number;
   highSuccessRate: number;
+  minExpectedValue: number;
 };
 
 type TrumpRolloutSample = {
@@ -403,6 +405,11 @@ function trumpSuitCandidate(
       cpu.hand,
       suit,
     ),
+    minExpectedValue: adjustedTrumpMinExpectedValue(
+      options.trumpMinExpectedValue ?? defaultTrumpMinExpectedValue,
+      cpu.hand,
+      suit,
+    ),
   };
 }
 
@@ -459,6 +466,7 @@ function thresholdsForTrumpCandidate(
       ? Math.max(candidate.minSuccessRate, candidate.highSuccessRate)
       : candidate.minSuccessRate,
     highSuccessRate: candidate.highSuccessRate,
+    minExpectedValue: candidate.minExpectedValue,
   };
 }
 
@@ -486,17 +494,39 @@ function adjustedTrumpSuccessRate(
   visibleHand: Card[],
   trumpSuit: Suit,
 ) {
-  const visiblePowerCardCount = visibleHand.filter(
-    (card) =>
-      (card.rank === "A" && card.suit !== trumpSuit) ||
-      (card.suit === trumpSuit && (card.rank === "U" || card.rank === "IX")),
-  ).length;
+  const visiblePowerCardCount = countVisibleTrumpPowerThresholdCards(
+    visibleHand,
+    trumpSuit,
+  );
 
   return Math.max(
     0,
     successRate -
       visiblePowerCardCount * trumpSuccessRateDiscountPerVisiblePowerCard,
   );
+}
+
+function adjustedTrumpMinExpectedValue(
+  minExpectedValue: number,
+  visibleHand: Card[],
+  trumpSuit: Suit,
+) {
+  return (
+    minExpectedValue -
+    countVisibleTrumpPowerThresholdCards(visibleHand, trumpSuit) *
+      trumpMinExpectedValueDiscountPerVisiblePowerCard
+  );
+}
+
+function countVisibleTrumpPowerThresholdCards(
+  visibleHand: Card[],
+  trumpSuit: Suit,
+) {
+  return visibleHand.filter(
+    (card) =>
+      (card.rank === "A" && card.suit !== trumpSuit) ||
+      (card.suit === trumpSuit && (card.rank === "U" || card.rank === "IX")),
+  ).length;
 }
 
 function trumpAcceptanceTier(input: {

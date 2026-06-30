@@ -3040,7 +3040,7 @@ describe("Belot", () => {
     });
   });
 
-  it("discounts visible top trumps when gating CPU trump calls", () => {
+  it("discounts visible strong cards when gating CPU trump calls", () => {
     const stateForHand = (hand: Card[]): BelotState => ({
       ...createBelotInitialState(players),
       phase: "trump-round-one",
@@ -3069,10 +3069,17 @@ describe("Belot", () => {
       firstPlayerId: "p1",
       trumpPasses: ["p2"],
     });
-    const options = {
-      trumpMinSuccessRate: 0.02,
+    const successRateOptions = {
+      trumpMinSuccessRate: 0.03,
       trumpHighSuccessRate: 2,
       trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+      trumpMonteCarloSamples: 1,
+      trumpSearchPlies: 1,
+    };
+    const expectedValueOptions = {
+      trumpMinSuccessRate: 0,
+      trumpHighSuccessRate: 2,
+      trumpMinExpectedValue: 1,
       trumpMonteCarloSamples: 1,
       trumpSearchPlies: 1,
     };
@@ -3085,7 +3092,21 @@ describe("Belot", () => {
           card("VIII", "hearts"),
         ]),
         "p1",
-        options,
+        successRateOptions,
+      ),
+    ).toEqual({
+      type: "trump-pass",
+      playerId: "p1",
+    });
+    expect(
+      chooseBelotCpuAction(
+        stateForHand([
+          card("K", "hearts"),
+          card("VII", "hearts"),
+          card("VIII", "hearts"),
+        ]),
+        "p1",
+        expectedValueOptions,
       ),
     ).toEqual({
       type: "trump-pass",
@@ -3101,7 +3122,22 @@ describe("Belot", () => {
             card("VIII", "hearts"),
           ]),
           "p1",
-          options,
+          successRateOptions,
+        ),
+      ).toEqual({
+        type: "trump-accept-upcard",
+        playerId: "p1",
+      });
+
+      expect(
+        chooseBelotCpuAction(
+          stateForHand([
+            card(rank, "hearts"),
+            card("VII", "hearts"),
+            card("VIII", "hearts"),
+          ]),
+          "p1",
+          expectedValueOptions,
         ),
       ).toEqual({
         type: "trump-accept-upcard",
