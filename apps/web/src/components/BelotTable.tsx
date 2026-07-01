@@ -786,8 +786,7 @@ export function BelotTable({
   };
 }) {
   const { locale, messages } = useI18n();
-  const rulesHref =
-    locale === "sr" ? "/rules/belot-user-sr.html" : "/rules/belot-user-en.html";
+  const rulesHref = `/rules/belot-user-${locale}.html`;
   const currentPlayer = state.players.find(
     (player) => player.playerId === currentPlayerId,
   );

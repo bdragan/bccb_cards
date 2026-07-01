@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Règles de la Belote 1v1</title>
+    <style>
+      :root {
+        color: #f8faf7;
+        background: #2f423e;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        background: #2f423e url("/images/backgrounds/background.png") repeat;
+        line-height: 1.6;
+      }
+
+      main {
+        width: min(960px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2rem 0 3rem;
+      }
+
+      article {
+        border: 1px solid rgb(255 255 255 / 16%);
+        border-radius: 8px;
+        background:
+          linear-gradient(rgb(31 122 77 / 82%), rgb(31 122 77 / 82%)),
+          url("/images/backgrounds/background.png") repeat;
+        padding: clamp(1rem, 4vw, 2rem);
+        box-shadow: 0 24px 70px rgb(0 0 0 / 24%);
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.2;
+      }
+
+      h1 {
+        margin: 0 0 1rem;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+      }
+
+      h2 {
+        margin: 2rem 0 0.75rem;
+        font-size: 1.35rem;
+      }
+
+      h3 {
+        margin: 1.5rem 0 0.5rem;
+        font-size: 1.05rem;
+      }
+
+      p,
+      ul,
+      ol {
+        margin: 0.75rem 0;
+      }
+
+      table {
+        width: 100%;
+        margin: 1rem 0;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 8px;
+        background: rgb(255 255 255 / 8%);
+      }
+
+      th,
+      td {
+        padding: 0.65rem 0.8rem;
+        border-bottom: 1px solid rgb(255 255 255 / 12%);
+        text-align: left;
+      }
+
+      th:last-child,
+      td:last-child {
+        text-align: right;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      a {
+        color: #bbf7d0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <h1>Règles de la Belote 1v1</h1>
+
+        <p>La Belote 1v1 est un jeu de plis pour deux joueurs. Chaque main a une couleur d'atout. Les joueurs gagnent des plis, collectent des points de cartes, marquent des annonces, puis ajoutent le score de la main à leur total. La partie se joue jusqu'à ce qu'un joueur atteigne 501 points.</p>
+
+        <h2>Jeu de cartes</h2>
+        <p>Le jeu utilise 32 cartes :</p>
+        <ul>
+          <li>Couleurs : Glands, Grelots, Coeurs, Feuilles</li>
+          <li>Rangs : VII, VIII, IX, X, U/V, O/D, K/R, A</li>
+        </ul>
+
+        <h2>Objectif</h2>
+        <p>Après chaque main, les scores sont ajoutés aux totaux des joueurs.</p>
+        <p>Le premier joueur qui atteint au moins 501 points gagne. Si les deux joueurs atteignent 501 dans la même main, le total le plus élevé gagne. Si les totaux sont à égalité, la partie continue jusqu'à ce qu'un joueur soit devant.</p>
+
+        <h2>Donneur et premier joueur</h2>
+        <p>Le premier donneur est choisi au hasard. Le donneur change après chaque main.</p>
+        <p>Le non-donneur est le premier joueur de la main. Le premier joueur :</p>
+        <ul>
+          <li>Décide en premier pendant le choix de l'atout</li>
+          <li>Entame le premier pli</li>
+          <li>Doit choisir l'atout si la main arrive au mus</li>
+        </ul>
+
+        <h2>Distribution</h2>
+        <p>Au début de chaque main :</p>
+        <ul>
+          <li>Chaque joueur reçoit 8 cartes.</li>
+          <li>Chaque joueur reçoit aussi 2 cartes cachées à ramasser.</li>
+          <li>Une carte est retournée face visible.</li>
+          <li>Le reste du paquet reste inutilisé pour cette main.</li>
+        </ul>
+        <p>Après le choix de l'atout, chaque joueur ramasse ses 2 cartes cachées, donc chaque joueur joue avec 10 cartes.</p>
+        <p>La carte retournée sert uniquement au choix de l'atout. Elle n'est pas jouée, ne peut pas être annoncée et n'est pas échangée contre le VII d'atout.</p>
+
+        <h2>Choix de l'atout</h2>
+        <p>L'atout est choisi en trois étapes au maximum.</p>
+        <ol>
+          <li>Premier tour : le premier joueur, puis le second joueur, peuvent accepter la couleur de la carte retournée comme atout.</li>
+          <li>Deuxième tour : si les deux passent, le premier joueur, puis le second joueur, peuvent choisir n'importe quelle couleur sauf celle de la carte retournée.</li>
+          <li>Mus : si les deux passent encore, le premier joueur doit choisir n'importe quelle couleur sauf celle de la carte retournée.</li>
+        </ol>
+        <p>Le joueur qui choisit l'atout est le preneur.</p>
+
+        <h2>Force des cartes et points</h2>
+        <p>Cartes hors atout, de la plus forte à la plus faible :</p>
+        <table>
+          <thead><tr><th>Rang</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>11</td></tr>
+            <tr><td>X</td><td>10</td></tr>
+            <tr><td>K/R</td><td>4</td></tr>
+            <tr><td>O/D</td><td>3</td></tr>
+            <tr><td>U/V</td><td>2</td></tr>
+            <tr><td>IX</td><td>0</td></tr>
+            <tr><td>VIII</td><td>0</td></tr>
+            <tr><td>VII</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <p>Cartes d'atout, de la plus forte à la plus faible :</p>
+        <table>
+          <thead><tr><th>Rang</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>U/V</td><td>20</td></tr>
+            <tr><td>IX</td><td>14</td></tr>
+            <tr><td>A</td><td>11</td></tr>
+            <tr><td>X</td><td>10</td></tr>
+            <tr><td>K/R</td><td>4</td></tr>
+            <tr><td>O/D</td><td>3</td></tr>
+            <tr><td>VIII</td><td>0</td></tr>
+            <tr><td>VII</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <p>Le gagnant du dernier pli reçoit 10 points de cartes supplémentaires.</p>
+
+        <h2>Annonces</h2>
+        <p>Les annonces sont marquées après le choix de l'atout et avant le jeu des plis. Le jeu applique, pour chaque joueur, l'ensemble valide d'annonces non chevauchantes qui rapporte le plus de points. Les cartes annoncées sont montrées aux deux joueurs, mais restent dans la main du joueur jusqu'à ce qu'elles soient jouées.</p>
+
+        <h3>Belote</h3>
+        <p>Le K/R d'atout et le O/D d'atout ensemble valent 20 points.</p>
+
+        <h3>Suites</h3>
+        <p>Une suite contient au moins 3 cartes consécutives de la même couleur, dans cet ordre :</p>
+        <p>VII, VIII, IX, X, U/V, O/D, K/R, A</p>
+        <table>
+          <thead><tr><th>Suite</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>3 cartes</td><td>20</td></tr>
+            <tr><td>4 cartes</td><td>50</td></tr>
+            <tr><td>5 cartes ou plus</td><td>100</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Carrés</h3>
+        <table>
+          <thead><tr><th>Annonce</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>Quatre U/V</td><td>200</td></tr>
+            <tr><td>Quatre IX</td><td>150</td></tr>
+            <tr><td>Quatre A</td><td>100</td></tr>
+            <tr><td>Quatre X</td><td>100</td></tr>
+            <tr><td>Quatre K/R</td><td>100</td></tr>
+            <tr><td>Quatre O/D</td><td>100</td></tr>
+          </tbody>
+        </table>
+        <p>Quatre VII et quatre VIII ne marquent pas.</p>
+        <p>Une carte ne peut servir que dans une seule annonce ordinaire, c'est-à-dire une suite ou un carré. La belote est l'exception : le K/R d'atout et le O/D d'atout peuvent aussi faire partie d'une annonce ordinaire.</p>
+
+        <h2>Jeu des plis</h2>
+        <p>Chaque main a 10 plis. Le premier joueur entame le premier pli. Ensuite, le gagnant de chaque pli entame le suivant.</p>
+        <p>Quand vous répondez à un pli :</p>
+        <ul>
+          <li>Si vous avez la couleur demandée, vous devez jouer cette couleur.</li>
+          <li>Si vous n'avez pas la couleur demandée mais avez de l'atout, vous devez jouer atout.</li>
+          <li>Si vous n'avez ni la couleur demandée ni atout, vous pouvez jouer n'importe quelle carte.</li>
+        </ul>
+        <p>Si un atout est joué, l'atout le plus fort gagne le pli. Sinon, la carte la plus forte dans la couleur demandée gagne.</p>
+
+        <h2>Score de la main</h2>
+        <p>Chaque joueur compte d'abord :</p>
+        <ul>
+          <li>Les points de cartes des plis gagnés, y compris le bonus de 10 points du dernier pli s'il l'a gagné</li>
+          <li>Les points d'annonces</li>
+        </ul>
+        <p>Le preneur réussit seulement si son total est supérieur au total adverse. Une égalité signifie que le preneur chute.</p>
+        <p>Si le preneur réussit, les deux joueurs marquent leurs propres totaux pour la main.</p>
+        <p>Si le preneur chute :</p>
+        <ul>
+          <li>Si le preneur a quand même plus de points de cartes que l'adversaire, le preneur marque 0 et l'adversaire marque son propre total.</li>
+          <li>Si le preneur a autant ou moins de points de cartes, le preneur marque 0 et l'adversaire marque les totaux des deux joueurs.</li>
+          <li>Si la main était au mus et que le preneur a autant ou moins de points de cartes, le preneur marque -20 et l'adversaire marque seulement son propre total.</li>
+        </ul>
+
+        <h2>Schuster</h2>
+        <p>Un joueur qui ne gagne aucun pli dans une main est schuster.</p>
+        <p>Ses points d'annonces ne comptent pas pour lui ; ils sont donnés à l'autre joueur. Le joueur schuster reçoit aussi -100 points supplémentaires pour la main. Les scores totaux peuvent descendre sous zéro.</p>
+      </article>
+    </main>
+  </body>
+</html>

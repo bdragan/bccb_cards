@@ -6,7 +6,7 @@ export function LanguageToggle() {
   return (
     <div
       aria-label={messages.language}
-      className="grid shrink-0 grid-cols-2 rounded-md bg-slate-100 p-1"
+      className="grid shrink-0 grid-cols-3 rounded-md bg-slate-100 p-1"
       role="group"
     >
       {locales.map((nextLocale) => (

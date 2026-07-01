@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { BelotTable } from "../components/BelotTable";
+import { setLocaleForTests } from "../i18n";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
   return { id: `${rank}-${suit}`, rank, suit };
@@ -153,6 +154,16 @@ describe("BelotTable", () => {
 
     expect(rulesLink).toHaveAttribute("href", "/rules/belot-user-en.html");
     expect(rulesLink).toHaveTextContent("?");
+  });
+
+  it("links to the French Belot rules when French is selected", () => {
+    setLocaleForTests("fr");
+    renderTable();
+
+    const rulesLink = screen.getByRole("link", { name: "Règles" });
+
+    expect(rulesLink).toHaveAttribute("href", "/rules/belot-user-fr.html");
+    expect(screen.getAllByAltText("A de Coeurs")).not.toHaveLength(0);
   });
 
   it("separates the player's hand into suit groups horizontally", () => {
@@ -362,7 +373,7 @@ describe("BelotTable", () => {
 
     expect(trumpCards).toEqual(["IX of Hearts", "K of Hearts", "A of Hearts"]);
     for (const container of screen.getAllByTestId("belot-trump-card")) {
-      expect(within(container).getByText("T")).toBeInTheDocument();
+      expect(within(container).getByText("A")).toBeInTheDocument();
     }
   });
 
