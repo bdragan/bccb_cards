@@ -22,7 +22,7 @@ export type CpuLevelResult = "win" | "loss";
 
 const defaultCpuLevelProgress: CpuLevelProgress = {
   level: "Bronze",
-  points: 2,
+  points: 1,
 };
 
 function levelIndex(level: CpuLevelName) {

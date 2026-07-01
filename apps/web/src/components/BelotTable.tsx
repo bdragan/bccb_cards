@@ -765,8 +765,13 @@ function WinnerPanel({
 }
 
 function LevelProgress({ progress }: { progress: CpuLevelProgress }) {
+  const { messages } = useI18n();
   const threshold = cpuLevelPointThreshold(progress.level);
-  const label = `${progress.level} ${progress.points}`;
+  const levelName = messages.cpuLevelNames[progress.level];
+  const visibleRank = isGrandmasterLevel(progress.level)
+    ? `${levelName} ${progress.points}`
+    : levelName;
+  const label = messages.currentRank(visibleRank);
 
   if (isGrandmasterLevel(progress.level) || !threshold) {
     return (
@@ -781,7 +786,7 @@ function LevelProgress({ progress }: { progress: CpuLevelProgress }) {
 
   return (
     <div
-      aria-label={`${progress.level} ${progress.points} of ${threshold}`}
+      aria-label={`${label}, ${progress.points} of ${threshold}`}
       className="mt-3 flex flex-col items-center gap-2"
       data-testid="cpu-level-progress"
       role="progressbar"

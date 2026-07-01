@@ -278,7 +278,9 @@ describe("StaticCpuApp", () => {
       </I18nProvider>,
     );
 
-    expect(await screen.findByText("Silver 1")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Your current rank: Bronze"),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(
@@ -286,8 +288,8 @@ describe("StaticCpuApp", () => {
           localStorage.getItem(cpuLevelProgressStorageKey) ?? "null",
         ),
       ).toEqual({
-        level: "Silver",
-        points: 1,
+        level: "Bronze",
+        points: 2,
       });
     });
   });

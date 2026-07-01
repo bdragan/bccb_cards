@@ -842,7 +842,8 @@ describe("BelotTable", () => {
       name: "New game",
     });
 
-    expect(progress).toHaveTextContent("Silver 3");
+    expect(progress).toHaveTextContent("Your current rank: Silver");
+    expect(progress).not.toHaveTextContent("Silver 3");
     expect(progress).toHaveAttribute("aria-valuemax", "5");
     expect(
       progress.compareDocumentPosition(newGameButton) &
@@ -854,6 +855,35 @@ describe("BelotTable", () => {
     expect(
       Array.from(dots).map((dot) => dot.getAttribute("data-filled")),
     ).toEqual(["true", "true", "true", "false", "false"]);
+  });
+
+  it("translates level names and keeps capped rank points in dots only", () => {
+    setLocaleForTests("fr");
+
+    render(
+      <BelotTable
+        state={{
+          ...baseState,
+          phase: "finished",
+          winnerPlayerId: "p1",
+          currentTurnPlayerId: undefined,
+          currentTrick: [],
+        }}
+        currentPlayerId="p1"
+        onTrumpDecision={vi.fn()}
+        onDeclare={vi.fn()}
+        onPlayCard={vi.fn()}
+        onNextHand={vi.fn()}
+        onRestart={vi.fn()}
+        levelProgress={{ level: "Silver", points: 3 }}
+      />,
+    );
+
+    const progress = screen.getByTestId("cpu-level-progress");
+
+    expect(progress).toHaveTextContent("Rang actuel : Argent");
+    expect(progress).not.toHaveTextContent("3");
+    expect(progress.querySelectorAll("[data-filled]")).toHaveLength(5);
   });
 
   it("shows Grandmaster progress as a number without dots", () => {
@@ -878,7 +908,7 @@ describe("BelotTable", () => {
 
     const progress = screen.getByTestId("cpu-level-progress");
 
-    expect(progress).toHaveTextContent("Grandmaster 17");
+    expect(progress).toHaveTextContent("Your current rank: Grandmaster 17");
     expect(progress.querySelector("[data-filled]")).toBeNull();
     expect(progress).not.toHaveAttribute("aria-valuemax");
   });

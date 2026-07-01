@@ -17,10 +17,10 @@ describe("CPU level progress", () => {
     expect(cpuLevelPointThreshold("Grandmaster")).toBeUndefined();
   });
 
-  it("defaults new players to Bronze 2", () => {
+  it("defaults new players to Bronze 1", () => {
     expect(normalizeCpuLevelProgress(undefined)).toEqual({
       level: "Bronze",
-      points: 2,
+      points: 1,
     });
   });
 

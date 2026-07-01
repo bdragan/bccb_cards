@@ -8,6 +8,8 @@ import {
   useState,
 } from "react";
 
+import type { CpuLevelName } from "./progress/cpu-levels";
+
 export const locales = ["sr", "en", "fr"] as const;
 export type Locale = (typeof locales)[number];
 
@@ -132,6 +134,8 @@ export type Messages = {
   bonus: string;
   bonusPts: (points: number) => string;
   points: (points: number) => string;
+  currentRank: (rank: string) => string;
+  cpuLevelNames: Record<CpuLevelName, string>;
   dealer: string;
   first: string;
   caller: string;
@@ -265,6 +269,16 @@ export const messages: Record<Locale, Messages> = {
     bonus: "bonus",
     bonusPts: (points) => `${points} bonus poena`,
     points: (points) => `${points} poena`,
+    currentRank: (rank) => `Trenutni rang: ${rank}`,
+    cpuLevelNames: {
+      Bronze: "Bronza",
+      Silver: "Srebro",
+      Gold: "Zlato",
+      Platinum: "Platina",
+      Diamond: "Dijamant",
+      Master: "Majstor",
+      Grandmaster: "Velemajstor",
+    },
     dealer: "Deli",
     first: "Prvi",
     caller: "ZVAO",
@@ -394,6 +408,16 @@ export const messages: Record<Locale, Messages> = {
     bonus: "bonus",
     bonusPts: (points) => `${points} bonus pts`,
     points: (points) => `${points} pts`,
+    currentRank: (rank) => `Your current rank: ${rank}`,
+    cpuLevelNames: {
+      Bronze: "Bronze",
+      Silver: "Silver",
+      Gold: "Gold",
+      Platinum: "Platinum",
+      Diamond: "Diamond",
+      Master: "Master",
+      Grandmaster: "Grandmaster",
+    },
     dealer: "Dealer",
     first: "First",
     caller: "CALLER",
@@ -524,6 +548,16 @@ export const messages: Record<Locale, Messages> = {
     bonus: "bonus",
     bonusPts: (points) => `${points} pts de bonus`,
     points: (points) => `${points} pts`,
+    currentRank: (rank) => `Rang actuel : ${rank}`,
+    cpuLevelNames: {
+      Bronze: "Bronze",
+      Silver: "Argent",
+      Gold: "Or",
+      Platinum: "Platine",
+      Diamond: "Diamant",
+      Master: "Maître",
+      Grandmaster: "Grand maître",
+    },
     dealer: "Donneur",
     first: "Premier",
     caller: "PRENEUR",
