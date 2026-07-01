@@ -19,6 +19,8 @@ import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { type Messages, useI18n } from "../i18n";
 import {
   applyCpuLevelResult,
+  type CpuLevelProgress,
+  isGrandmasterLevel,
   readCpuLevelProgress,
   writeCpuLevelProgress,
 } from "../progress/cpu-levels";
@@ -61,6 +63,14 @@ function playerKind(playerId: string | undefined) {
 
 function elapsedSeconds(startedAt: number) {
   return Math.round((Date.now() - startedAt) / 1000);
+}
+
+function visibleCpuLevelRank(progress: CpuLevelProgress, messages: Messages) {
+  const levelName = messages.cpuLevelNames[progress.level];
+
+  return isGrandmasterLevel(progress.level)
+    ? `${levelName} ${progress.points}`
+    : levelName;
 }
 
 function cpuActionDelay(state: BelotState) {
@@ -210,7 +220,8 @@ export function StaticCpuApp() {
     trackedHandCountRef.current = storedGame.trackedHandCount;
     firstCardPlayTrackedRef.current = storedGame.firstCardPlayTracked;
     gameCompletedTrackedRef.current = storedGame.gameCompletedTracked;
-    playerProgressUpdatedRef.current = storedGame.playerProgressUpdated ?? false;
+    playerProgressUpdatedRef.current =
+      storedGame.playerProgressUpdated ?? false;
     trackedErrorRef.current = storedGame.trackedError;
 
     return withStaticCpuPlayerNames(storedGame.state, messages);
@@ -525,9 +536,22 @@ export function StaticCpuApp() {
     });
   }
 
+  const visibleRank = visibleCpuLevelRank(levelProgress, messages);
+
   return (
     <main className="app-background min-h-screen">
-      <TopMenu>
+      <TopMenu
+        align="split"
+        leading={
+          <span
+            aria-label={messages.currentRank(visibleRank)}
+            className="max-w-[calc(100vw-7rem)] truncate rounded-full border border-emerald-200/45 bg-felt/95 px-3 py-1.5 text-sm font-bold leading-none text-emerald-50 shadow-sm shadow-ink/20"
+            data-testid="player-current-rank"
+          >
+            {visibleRank}
+          </span>
+        }
+      >
         <LanguageToggle />
         <Button
           type="button"
@@ -538,7 +562,7 @@ export function StaticCpuApp() {
           {messages.resignGame}
         </Button>
       </TopMenu>
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-6xl px-4 pb-6 pt-0">
         <BelotAssetsGate>
           <BelotTable
             state={publicState}
@@ -554,9 +578,8 @@ export function StaticCpuApp() {
             }
             onNextHand={() => applyAction({ type: "next-hand" })}
             onRestart={restartGame}
-            levelProgress={
-              publicState.phase === "finished" ? levelProgress : undefined
-            }
+            levelProgress={levelProgress}
+            topControlsInset
             resignConfirmation={
               resignConfirmationOpen
                 ? {
