@@ -49,6 +49,19 @@ type StaticCpuStoredGame = {
   trackedError?: string;
 };
 
+const belotPhases = new Set<BelotState["phase"]>([
+  "waiting-for-players",
+  "ready-check",
+  "trump-round-one",
+  "trump-round-two",
+  "mus",
+  "declarations",
+  "trick-play",
+  "hand-complete",
+  "finished",
+  "error",
+]);
+
 function playerKind(playerId: string | undefined) {
   if (playerId === humanPlayerId) {
     return "human";
@@ -168,6 +181,25 @@ function isCpuTurn(state: BelotState) {
   );
 }
 
+function isStoredBelotStateShape(
+  state: Partial<BelotState> | undefined,
+): state is BelotState {
+  return Boolean(
+    state?.gameId === "belot" &&
+    state.phase &&
+    belotPhases.has(state.phase) &&
+    Array.isArray(state.players) &&
+    state.players.length === 2 &&
+    state.players.every((player) => typeof player.playerId === "string") &&
+    Array.isArray(state.currentTrick) &&
+    Array.isArray(state.completedTricks) &&
+    state.declarationsByPlayer &&
+    typeof state.declarationsByPlayer === "object" &&
+    state.publicCardsByPlayer &&
+    typeof state.publicCardsByPlayer === "object",
+  );
+}
+
 function isStoredStaticCpuGame(value: unknown): value is StaticCpuStoredGame {
   if (!value || typeof value !== "object") {
     return false;
@@ -183,8 +215,7 @@ function isStoredStaticCpuGame(value: unknown): value is StaticCpuStoredGame {
     typeof stored.trackedHandCount === "number" &&
     typeof stored.firstCardPlayTracked === "boolean" &&
     typeof stored.gameCompletedTracked === "boolean" &&
-    state?.gameId === "belot" &&
-    Array.isArray(state.players)
+    isStoredBelotStateShape(state)
   );
 }
 
@@ -212,6 +243,14 @@ function writeStoredStaticCpuGame(stored: StaticCpuStoredGame) {
   }
 }
 
+function shouldStartNewGameAfterLoad(storedGame: StaticCpuStoredGame) {
+  return storedGame.state.phase === "finished";
+}
+
+function shouldStartNextHandAfterLoad(storedGame: StaticCpuStoredGame) {
+  return storedGame.state.phase === "hand-complete";
+}
+
 function withStaticCpuPlayerNames(state: BelotState, messages: Messages) {
   return {
     ...state,
@@ -227,6 +266,48 @@ function withStaticCpuPlayerNames(state: BelotState, messages: Messages) {
       return player;
     }),
   };
+}
+
+function loadedFinishedGameOutcome(
+  storedGame: StaticCpuStoredGame | undefined,
+) {
+  if (
+    !storedGame ||
+    storedGame.state.phase !== "finished" ||
+    !storedGame.state.winnerPlayerId ||
+    storedGame.playerProgressUpdated
+  ) {
+    return undefined;
+  }
+
+  return storedGame.state.winnerPlayerId === humanPlayerId ? "win" : "loss";
+}
+
+function markLoadedFinishedGameProgressUpdated(
+  storedGame: StaticCpuStoredGame | undefined,
+) {
+  if (!storedGame || storedGame.state.phase !== "finished") {
+    return false;
+  }
+
+  const currentStoredGame = readStoredStaticCpuGame();
+
+  if (
+    !currentStoredGame ||
+    currentStoredGame.state.phase !== "finished" ||
+    currentStoredGame.playerProgressUpdated ||
+    currentStoredGame.state.createdAt !== storedGame.state.createdAt ||
+    currentStoredGame.state.finishedAt !== storedGame.state.finishedAt
+  ) {
+    return false;
+  }
+
+  writeStoredStaticCpuGame({
+    ...currentStoredGame,
+    playerProgressUpdated: true,
+  });
+
+  return true;
 }
 
 export function StaticCpuApp() {
@@ -266,8 +347,10 @@ export function StaticCpuApp() {
     readCpuLevelProgress(),
   );
   const [resignConfirmationOpen, setResignConfirmationOpen] = useState(false);
-  const [hasHumanProgress, setHasHumanProgress] = useState(
-    () => storedGame?.hasHumanProgress ?? false,
+  const [hasHumanProgress, setHasHumanProgress] = useState(() =>
+    storedGame && shouldStartNewGameAfterLoad(storedGame)
+      ? false
+      : (storedGame?.hasHumanProgress ?? false),
   );
   const [belotState, setBelotState] = useState<BelotState>(() => {
     if (!storedGame) {
@@ -282,12 +365,48 @@ export function StaticCpuApp() {
       storedGame.playerProgressUpdated ?? false;
     trackedErrorRef.current = storedGame.trackedError;
 
-    return withStaticCpuPlayerNames(storedGame.state, messages);
+    const storedState = withStaticCpuPlayerNames(storedGame.state, messages);
+
+    if (shouldStartNextHandAfterLoad(storedGame)) {
+      return applyBelotAction(storedState, { type: "next-hand" });
+    }
+
+    if (shouldStartNewGameAfterLoad(storedGame)) {
+      gameStartedAtRef.current = Date.now();
+      trackedHandCountRef.current = 0;
+      firstCardPlayTrackedRef.current = false;
+      gameCompletedTrackedRef.current = false;
+      playerProgressUpdatedRef.current = false;
+      trackedErrorRef.current = undefined;
+
+      return createState();
+    }
+
+    return storedState;
   });
 
   useEffect(() => {
     trackEvent("game_loaded");
   }, []);
+
+  useEffect(() => {
+    const restoredFinishedGameOutcome = loadedFinishedGameOutcome(storedGame);
+
+    if (
+      !restoredFinishedGameOutcome ||
+      !markLoadedFinishedGameProgressUpdated(storedGame)
+    ) {
+      return;
+    }
+
+    const nextProgress = applyCpuLevelResult(
+      readCpuLevelProgress(),
+      restoredFinishedGameOutcome,
+    );
+
+    writeCpuLevelProgress(nextProgress);
+    setLevelProgress(nextProgress);
+  }, [storedGame]);
 
   useEffect(() => {
     setBelotState((current) => withStaticCpuPlayerNames(current, messages));
@@ -629,6 +748,7 @@ export function StaticCpuApp() {
             onRestart={restartGame}
             levelProgress={levelProgress}
             topControls={topControls}
+            skipInitialCompletedTrickAnimation={Boolean(storedGame)}
             resignConfirmation={
               resignConfirmationOpen
                 ? {

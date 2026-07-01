@@ -1,8 +1,10 @@
 import {
   applyBelotAction,
   createBelotInitialState,
+  type BelotState,
 } from "@card-games/game-core";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -10,11 +12,16 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { StaticCpuApp, staticCpuStorageKey } from "../app/StaticCpuApp";
 import { I18nProvider, setLocaleForTests } from "../i18n";
 import { cpuLevelProgressStorageKey } from "../progress/cpu-levels";
+
+const humanPlayerId = "offline-human";
+const cpuPlayerId = "offline-cpu";
+let testWorkers: TestWorker[] = [];
 
 class TestWorker {
   onerror: ((event: ErrorEvent) => void) | null = null;
@@ -22,10 +29,15 @@ class TestWorker {
 
   postMessage = vi.fn();
   terminate = vi.fn();
+
+  constructor() {
+    testWorkers.push(this);
+  }
 }
 
 describe("StaticCpuApp", () => {
   beforeEach(() => {
+    testWorkers = [];
     setLocaleForTests("en");
     vi.stubGlobal("Worker", TestWorker);
     vi.spyOn(Math, "random").mockReturnValue(0.75);
@@ -45,6 +57,177 @@ describe("StaticCpuApp", () => {
       allowed: window.dispatchEvent(event),
       defaultPrevented: event.defaultPrevented,
     };
+  }
+
+  function createStartedState() {
+    let state = createBelotInitialState([
+      { playerId: humanPlayerId, displayName: "Stored human" },
+      { playerId: cpuPlayerId, displayName: "Stored CPU" },
+    ]);
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: humanPlayerId,
+      ready: true,
+    });
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: cpuPlayerId,
+      ready: true,
+    });
+
+    return state;
+  }
+
+  function createDeclarationState() {
+    let state = createStartedState();
+    state = applyBelotAction(state, {
+      type: "trump-accept-upcard",
+      playerId: state.trumpTurnPlayerId!,
+    });
+
+    return state;
+  }
+
+  function createHumanTurnTrickPlayState() {
+    let state = createDeclarationState();
+    state = applyBelotAction(state, {
+      type: "declare",
+      playerId: humanPlayerId,
+      declarations: [],
+    });
+    state = applyBelotAction(state, {
+      type: "declare",
+      playerId: cpuPlayerId,
+      declarations: [],
+    });
+
+    return {
+      ...state,
+      currentTurnPlayerId: humanPlayerId,
+    };
+  }
+
+  function createCpuTurnTrickPlayState() {
+    const state = createHumanTurnTrickPlayState();
+    const humanCard = state.players.find(
+      (player) => player.playerId === humanPlayerId,
+    )?.hand[0];
+
+    if (!humanCard) {
+      throw new Error("Expected the human player to have a card");
+    }
+
+    return applyBelotAction(state, {
+      type: "play-card",
+      playerId: humanPlayerId,
+      cardId: humanCard.id,
+    });
+  }
+
+  function createHumanTurnAfterCompletedTrickState() {
+    let state = createCpuTurnTrickPlayState();
+    const cpuCard = state.players
+      .find((player) => player.playerId === cpuPlayerId)
+      ?.hand.find((card) => card.suit === state.currentTrick[0]?.card.suit);
+    const fallbackCpuCard = state.players.find(
+      (player) => player.playerId === cpuPlayerId,
+    )?.hand[0];
+
+    if (!cpuCard && !fallbackCpuCard) {
+      throw new Error("Expected the CPU player to have a legal card");
+    }
+
+    state = applyBelotAction(state, {
+      type: "play-card",
+      playerId: cpuPlayerId,
+      cardId: (cpuCard ?? fallbackCpuCard)!.id,
+    });
+
+    return {
+      ...state,
+      currentTurnPlayerId: humanPlayerId,
+    };
+  }
+
+  function writeStoredGame(
+    state: BelotState,
+    overrides: Partial<{
+      hasHumanProgress: boolean;
+      trackedHandCount: number;
+      firstCardPlayTracked: boolean;
+      gameCompletedTracked: boolean;
+      playerProgressUpdated: boolean;
+    }> = {},
+  ) {
+    localStorage.setItem(
+      staticCpuStorageKey,
+      JSON.stringify({
+        version: 1,
+        state,
+        hasHumanProgress: true,
+        gameStartedAt: Date.now(),
+        trackedHandCount: 0,
+        firstCardPlayTracked: false,
+        gameCompletedTracked: false,
+        ...overrides,
+      }),
+    );
+  }
+
+  function storedCompletedHandState(phase: "hand-complete" | "finished") {
+    const state = createStartedState();
+
+    const result: NonNullable<BelotState["lastHandResult"]> = {
+      dealerPlayerId: state.dealerPlayerId,
+      callerPlayerId: humanPlayerId,
+      opponentPlayerId: cpuPlayerId,
+      trumpSuit: "hearts",
+      gamePointsByPlayer: { [humanPlayerId]: 21, [cpuPlayerId]: 15 },
+      declarationPointsByPlayer: { [humanPlayerId]: 0, [cpuPlayerId]: 0 },
+      totalPointsByPlayer: { [humanPlayerId]: 21, [cpuPlayerId]: 15 },
+      handScoreByPlayer: { [humanPlayerId]: 2, [cpuPlayerId]: 1 },
+      schusterPlayerIds: [],
+      callerFell: false,
+      callerFellOnGame: false,
+      isMus: false,
+      lastTrickWinnerPlayerId: humanPlayerId,
+    };
+
+    return {
+      ...state,
+      phase,
+      trumpSuit: "hearts",
+      callerPlayerId: humanPlayerId,
+      currentTurnPlayerId: undefined,
+      trumpTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [
+        {
+          winnerPlayerId: "offline-human",
+          cards: [
+            {
+              playerId: humanPlayerId,
+              card: { id: "A-hearts", rank: "A", suit: "hearts" },
+            },
+            {
+              playerId: cpuPlayerId,
+              card: { id: "K-hearts", rank: "K", suit: "hearts" },
+            },
+          ],
+        },
+      ],
+      lastHandResult: result,
+      handResults: [result],
+      winnerPlayerId: phase === "finished" ? humanPlayerId : undefined,
+      finishedAt: phase === "finished" ? new Date().toISOString() : undefined,
+      players: state.players.map((player) => ({
+        ...player,
+        hand: [],
+        hiddenCards: [],
+        wonCards: [],
+        totalScore: player.playerId === humanPlayerId ? 2 : 1,
+      })),
+    } satisfies BelotState;
   }
 
   it("renders the CPU-only game without backend controls", async () => {
@@ -184,37 +367,13 @@ describe("StaticCpuApp", () => {
   });
 
   it("continues the stored static game on refresh", async () => {
-    let state = createBelotInitialState([
-      { playerId: "offline-human", displayName: "Stored human" },
-      { playerId: "offline-cpu", displayName: "Stored CPU" },
-    ]);
-    state = applyBelotAction(state, {
-      type: "set-ready",
-      playerId: "offline-human",
-      ready: true,
-    });
-    state = applyBelotAction(state, {
-      type: "set-ready",
-      playerId: "offline-cpu",
-      ready: true,
-    });
+    let state = createStartedState();
     state = applyBelotAction(state, {
       type: "trump-pass",
-      playerId: "offline-human",
+      playerId: humanPlayerId,
     });
 
-    localStorage.setItem(
-      staticCpuStorageKey,
-      JSON.stringify({
-        version: 1,
-        state,
-        hasHumanProgress: true,
-        gameStartedAt: Date.now(),
-        trackedHandCount: 0,
-        firstCardPlayTracked: false,
-        gameCompletedTracked: false,
-      }),
-    );
+    writeStoredGame(state);
 
     render(
       <I18nProvider>
@@ -230,43 +389,145 @@ describe("StaticCpuApp", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("updates stored CPU level progress after a finished game", async () => {
-    let state = createBelotInitialState([
-      { playerId: "offline-human", displayName: "Stored human" },
-      { playerId: "offline-cpu", displayName: "Stored CPU" },
-    ]);
-    state = applyBelotAction(state, {
-      type: "set-ready",
-      playerId: "offline-human",
-      ready: true,
+  it("resumes declarations by submitting the human declaration once and scheduling the CPU", async () => {
+    writeStoredGame(createDeclarationState());
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(staticCpuStorageKey) ?? "null",
+      ) as {
+        state?: {
+          phase?: string;
+          declarationsByPlayer?: Record<string, unknown[]>;
+        };
+      };
+
+      expect(stored.state?.phase).toBe("declarations");
+      expect(
+        Array.isArray(stored.state?.declarationsByPlayer?.[humanPlayerId]),
+      ).toBe(true);
+      expect(stored.state?.declarationsByPlayer?.[cpuPlayerId]).toBeUndefined();
     });
-    state = applyBelotAction(state, {
-      type: "set-ready",
-      playerId: "offline-cpu",
-      ready: true,
+
+    await waitFor(() => {
+      expect(testWorkers[0]?.postMessage).toHaveBeenCalledTimes(1);
     });
-    state = {
-      ...state,
-      phase: "finished",
-      winnerPlayerId: "offline-human",
-      finishedAt: new Date().toISOString(),
-      currentTurnPlayerId: undefined,
-      trumpTurnPlayerId: undefined,
+
+    const cpuRequest = testWorkers[0]?.postMessage.mock.calls[0]?.[0] as {
+      state?: BelotState;
     };
 
-    localStorage.setItem(
-      staticCpuStorageKey,
-      JSON.stringify({
-        version: 1,
-        state,
-        hasHumanProgress: true,
-        gameStartedAt: Date.now(),
-        trackedHandCount: 0,
-        firstCardPlayTracked: false,
-        gameCompletedTracked: true,
-        playerProgressUpdated: false,
-      }),
+    expect(cpuRequest.state?.phase).toBe("declarations");
+    expect(
+      Array.isArray(cpuRequest.state?.declarationsByPlayer[humanPlayerId]),
+    ).toBe(true);
+    expect(cpuRequest.state?.declarationsByPlayer[cpuPlayerId]).toBeUndefined();
+  });
+
+  it("resumes a human trick-play turn without replaying the previous completed trick", async () => {
+    writeStoredGame(createHumanTurnAfterCompletedTrickState(), {
+      firstCardPlayTracked: true,
+    });
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
     );
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("belot-hand-card").length).toBeGreaterThan(
+        0,
+      );
+    });
+
+    expect(
+      document.querySelectorAll(
+        '[data-testid="belot-hand-card"]:not([disabled])',
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByTestId("belot-current-trick")).toBeInTheDocument();
+    expect(screen.queryByTestId("belot-current-trick-card")).toBeNull();
+    expect(testWorkers[0]?.postMessage).not.toHaveBeenCalled();
+  });
+
+  it("resumes a CPU trick-play turn with exactly one worker request", () => {
+    vi.useFakeTimers();
+
+    try {
+      writeStoredGame(createCpuTurnTrickPlayState(), {
+        firstCardPlayTracked: true,
+      });
+
+      render(
+        <I18nProvider>
+          <StaticCpuApp />
+        </I18nProvider>,
+      );
+
+      expect(testWorkers).toHaveLength(1);
+      expect(testWorkers[0]?.postMessage).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(449);
+      });
+
+      expect(testWorkers[0]?.postMessage).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(testWorkers[0]?.postMessage).toHaveBeenCalledTimes(1);
+
+      const cpuRequest = testWorkers[0]?.postMessage.mock.calls[0]?.[0] as {
+        state?: BelotState;
+      };
+
+      expect(cpuRequest.state?.phase).toBe("trick-play");
+      expect(cpuRequest.state?.currentTurnPlayerId).toBe(cpuPlayerId);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("starts the next hand instead of showing a stored completed hand result", async () => {
+    writeStoredGame(storedCompletedHandState("hand-complete"), {
+      trackedHandCount: 1,
+      firstCardPlayTracked: true,
+    });
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    expect(screen.queryByTestId("belot-hand-result")).not.toBeInTheDocument();
+    expect(screen.queryByText("Next hand")).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(staticCpuStorageKey) ?? "null",
+      ) as { state?: { phase?: string; lastHandResult?: unknown } };
+
+      expect(stored.state?.phase).toBe("trump-round-one");
+      expect(stored.state?.lastHandResult).toBeUndefined();
+    });
+  });
+
+  it("updates stored CPU level progress after a finished game", async () => {
+    writeStoredGame(storedCompletedHandState("finished"), {
+      trackedHandCount: 1,
+      gameCompletedTracked: true,
+      playerProgressUpdated: false,
+    });
 
     render(
       <I18nProvider>
@@ -278,6 +539,10 @@ describe("StaticCpuApp", () => {
       name: "Your current rank is: Bronze",
     });
     expect(rankButton).toHaveTextContent("Bronze");
+    expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "New game" }),
+    ).not.toBeInTheDocument();
 
     await userEvent.click(rankButton);
 
@@ -294,6 +559,134 @@ describe("StaticCpuApp", () => {
         level: "Bronze",
         points: 2,
       });
+    });
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(staticCpuStorageKey) ?? "null",
+      ) as { state?: { phase?: string; handResults?: unknown[] } };
+
+      expect(stored.state?.phase).toBe("trump-round-one");
+      expect(stored.state?.handResults).toEqual([]);
+    });
+  });
+
+  it("does not update CPU level progress again when a stored finished game was already counted", async () => {
+    localStorage.setItem(
+      cpuLevelProgressStorageKey,
+      JSON.stringify({ level: "Bronze", points: 2 }),
+    );
+    writeStoredGame(storedCompletedHandState("finished"), {
+      trackedHandCount: 1,
+      gameCompletedTracked: true,
+      playerProgressUpdated: true,
+    });
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Your current rank is: Bronze",
+      }),
+    ).toHaveTextContent("Bronze");
+    expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(localStorage.getItem(cpuLevelProgressStorageKey) ?? "null"),
+      ).toEqual({
+        level: "Bronze",
+        points: 2,
+      });
+    });
+  });
+
+  it("updates stored finished game progress only once under React StrictMode", async () => {
+    writeStoredGame(storedCompletedHandState("finished"), {
+      trackedHandCount: 1,
+      gameCompletedTracked: true,
+      playerProgressUpdated: false,
+    });
+
+    render(
+      <StrictMode>
+        <I18nProvider>
+          <StaticCpuApp />
+        </I18nProvider>
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(localStorage.getItem(cpuLevelProgressStorageKey) ?? "null"),
+      ).toEqual({
+        level: "Bronze",
+        points: 2,
+      });
+    });
+    expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["invalid JSON", "{"],
+    [
+      "wrong storage version",
+      JSON.stringify({
+        version: 2,
+        state: {
+          gameId: "belot",
+          phase: "trump-round-one",
+          players: [],
+        },
+        hasHumanProgress: true,
+        gameStartedAt: Date.now(),
+        trackedHandCount: 0,
+        firstCardPlayTracked: false,
+        gameCompletedTracked: false,
+      }),
+    ],
+    [
+      "incomplete stored Belot state",
+      JSON.stringify({
+        version: 1,
+        state: {
+          gameId: "belot",
+          phase: "hand-complete",
+          players: [],
+          currentTrick: [],
+          completedTricks: [],
+          declarationsByPlayer: {},
+          publicCardsByPlayer: {},
+        },
+        hasHumanProgress: true,
+        gameStartedAt: Date.now(),
+        trackedHandCount: 1,
+        firstCardPlayTracked: true,
+        gameCompletedTracked: false,
+      }),
+    ],
+  ])("falls back to a new game when storage contains %s", async (_, value) => {
+    localStorage.setItem(staticCpuStorageKey, value);
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByRole("button", { name: "Pass" })).toBeEnabled();
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(staticCpuStorageKey) ?? "null",
+      ) as { state?: { phase?: string }; hasHumanProgress?: boolean };
+
+      expect(stored.hasHumanProgress).toBe(false);
+      expect(stored.state?.phase).toBe("trump-round-one");
     });
   });
 });

@@ -90,6 +90,7 @@ const baseState: BelotPublicState = {
 function renderTable(
   state: BelotPublicState = baseState,
   currentPlayerId = "p1",
+  options: { skipInitialCompletedTrickAnimation?: boolean } = {},
 ) {
   return render(
     <BelotTable
@@ -100,11 +101,41 @@ function renderTable(
       onPlayCard={vi.fn()}
       onNextHand={vi.fn()}
       onRestart={vi.fn()}
+      skipInitialCompletedTrickAnimation={
+        options.skipInitialCompletedTrickAnimation
+      }
     />,
   );
 }
 
 describe("BelotTable", () => {
+  it("does not replay a loaded completed trick animation when requested", () => {
+    vi.useFakeTimers();
+
+    try {
+      renderTable(baseState, "p1", {
+        skipInitialCompletedTrickAnimation: true,
+      });
+
+      const currentTrick = screen.getByTestId("belot-current-trick");
+
+      expect(
+        within(currentTrick).queryByTestId("belot-current-trick-card"),
+      ).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(2_000);
+      });
+
+      expect(
+        within(currentTrick).queryByTestId("belot-current-trick-card"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("belot-played-tricks")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps the current player's live section on the left while timeline stays dealer-first", () => {
     renderTable(
       {

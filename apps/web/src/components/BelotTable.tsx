@@ -317,6 +317,15 @@ function trickCardKey(play: BelotTrickPlay) {
   return `${play.playerId}-${play.card.id}`;
 }
 
+function completedTrickAnimationKey(
+  trickNumber: number,
+  trick: BelotPublicState["completedTricks"][number],
+) {
+  return `${trickNumber}|${trick.winnerPlayerId}|${trick.cards
+    .map(trickCardKey)
+    .join(",")}`;
+}
+
 function visibleGamePointsByPlayer(state: BelotPublicState) {
   const points = Object.fromEntries(
     state.players.map((player) => [player.playerId, 0]),
@@ -822,6 +831,7 @@ export function BelotTable({
   resignConfirmation,
   levelProgress,
   topControls,
+  skipInitialCompletedTrickAnimation = false,
 }: {
   state: BelotPublicState;
   currentPlayerId?: string;
@@ -842,6 +852,7 @@ export function BelotTable({
   };
   levelProgress?: CpuLevelProgress;
   topControls?: ReactNode;
+  skipInitialCompletedTrickAnimation?: boolean;
 }) {
   const { locale, messages } = useI18n();
   const rulesHref = `/rules/belot-user-${locale}.html`;
@@ -880,6 +891,20 @@ export function BelotTable({
     Record<string, CardCollectionTransform>
   >({});
   const [revealedHandResultKey, setRevealedHandResultKey] = useState<string>();
+  const skippedInitialCompletedTrickAnimationKeys = useRef(
+    new Set(
+      skipInitialCompletedTrickAnimation &&
+        !state.currentTrick.length &&
+        state.completedTricks.length
+        ? [
+            completedTrickAnimationKey(
+              state.completedTricks.length,
+              state.completedTricks[state.completedTricks.length - 1]!,
+            ),
+          ]
+        : [],
+    ),
+  );
   const playerPanelRefs = useRef<Record<string, HTMLElement | null>>({});
   const trickCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -1064,6 +1089,14 @@ export function BelotTable({
       return;
     }
 
+    const animationKey = completedTrickAnimationKey(trickNumber, lastTrick);
+
+    if (skippedInitialCompletedTrickAnimationKeys.current.has(animationKey)) {
+      setLingeringTrick(undefined);
+      setCardCollectionTransforms({});
+      return;
+    }
+
     setLingeringTrick({
       trickNumber,
       winnerPlayerId: lastTrick.winnerPlayerId,
@@ -1143,9 +1176,9 @@ export function BelotTable({
       : winnerPanelLossClass;
   const showFinishedWinnerInTrickArea = Boolean(
     winnerPlayer &&
-      state.phase === "finished" &&
-      !showHandResult &&
-      !waitingForHandResult,
+    state.phase === "finished" &&
+    !showHandResult &&
+    !waitingForHandResult,
   );
   const showTrickArea =
     !showHandResult &&
