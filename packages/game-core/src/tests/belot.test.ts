@@ -64,6 +64,17 @@ function readyState() {
   );
 }
 
+function seededReadyState(seed: number) {
+  const originalRandom = Math.random;
+  Math.random = seededRng(seed);
+
+  try {
+    return readyState();
+  } finally {
+    Math.random = originalRandom;
+  }
+}
+
 function scoringState(overrides: {
   callerPlayerId?: string;
   trumpSuit?: Suit;
@@ -798,7 +809,7 @@ describe("Belot", () => {
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
       }),
     ).toEqual({
-      type: "trump-accept-upcard",
+      type: "trump-pass",
       playerId: "p1",
     });
 
@@ -2953,287 +2964,38 @@ describe("Belot", () => {
     ).toEqual(["VII-hearts", "IX-hearts"]);
   });
 
-  it("gates voluntary CPU trump calls by rollout success rate", () => {
-    const state: BelotState = {
-      ...createBelotInitialState(players),
-      phase: "trump-round-one",
-      players: [
-        {
-          ...players[0],
-          ready: true,
-          hand: [card("A", "hearts"), card("X", "hearts")],
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 0,
-        },
-        {
-          ...players[1],
-          ready: true,
-          hand: [],
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 0,
-        },
-      ],
-      upcard: card("U", "hearts"),
-      trumpTurnPlayerId: "p1",
-      firstPlayerId: "p1",
-    };
-    const secondRoundOneTurnState: BelotState = {
-      ...state,
-      trumpPasses: ["p2"],
-    };
+  it("uses EV-only voluntary CPU trump calls with a fixed threshold", () => {
+    const acceptingState = seededReadyState(5);
+    const acceptingPlayerId = acceptingState.trumpTurnPlayerId!;
+    const passingState = seededReadyState(1);
+    const passingPlayerId = passingState.trumpTurnPlayerId!;
 
     expect(
-      chooseBelotCpuAction(state, "p1", {
+      chooseBelotCpuAction(acceptingState, acceptingPlayerId, {
+        rng: seededRng(1005),
+        trumpMonteCarloSamples: 4,
+        trumpSearchPlies: 4,
         trumpMinSuccessRate: Number.POSITIVE_INFINITY,
-        trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
+        trumpHighSuccessRate: Number.POSITIVE_INFINITY,
+        trumpMinExpectedValue: Number.POSITIVE_INFINITY,
       }),
     ).toEqual({
-      type: "trump-pass",
-      playerId: "p1",
+      type: "trump-accept-upcard",
+      playerId: acceptingPlayerId,
     });
 
     expect(
-      chooseBelotCpuAction(secondRoundOneTurnState, "p1", {
+      chooseBelotCpuAction(passingState, passingPlayerId, {
+        rng: seededRng(1001),
+        trumpMonteCarloSamples: 4,
+        trumpSearchPlies: 4,
         trumpMinSuccessRate: 0,
         trumpHighSuccessRate: 0,
         trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
       }),
     ).toEqual({
-      type: "trump-accept-upcard",
-      playerId: "p1",
-    });
-
-    expect(
-      chooseBelotCpuAction(state, "p1", {
-        trumpMinSuccessRate: 0,
-        trumpHighSuccessRate: Number.POSITIVE_INFINITY,
-        trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
-      }),
-    ).toEqual({
       type: "trump-pass",
-      playerId: "p1",
-    });
-
-    expect(
-      chooseBelotCpuAction(
-        {
-          ...secondRoundOneTurnState,
-          players: secondRoundOneTurnState.players.map((player) =>
-            player.playerId === "p1"
-              ? {
-                  ...player,
-                  hand: [
-                    card("A", "hearts"),
-                    card("X", "hearts"),
-                    card("K", "hearts"),
-                  ],
-                }
-              : player,
-          ),
-        },
-        "p1",
-        {
-          trumpMinSuccessRate: 0,
-          trumpHighSuccessRate: Number.POSITIVE_INFINITY,
-          trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
-        },
-      ),
-    ).toEqual({
-      type: "trump-accept-upcard",
-      playerId: "p1",
-    });
-  });
-
-  it("discounts visible strong cards for CPU trump success-rate gates", () => {
-    const stateForHand = (hand: Card[]): BelotState => ({
-      ...createBelotInitialState(players),
-      phase: "trump-round-one",
-      players: [
-        {
-          ...players[0],
-          ready: true,
-          hand,
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 0,
-        },
-        {
-          ...players[1],
-          ready: true,
-          hand: [],
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 0,
-        },
-      ],
-      upcard: card("A", "hearts"),
-      trumpTurnPlayerId: "p1",
-      firstPlayerId: "p1",
-      trumpPasses: ["p2"],
-    });
-    const successRateOptions = {
-      trumpMinSuccessRate: 0.03,
-      trumpHighSuccessRate: 2,
-      trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
-      trumpMonteCarloSamples: 1,
-      trumpSearchPlies: 1,
-    };
-    const expectedValueOptions = {
-      trumpMinSuccessRate: 0,
-      trumpHighSuccessRate: 2,
-      trumpMinExpectedValue: 1,
-      trumpMonteCarloSamples: 1,
-      trumpSearchPlies: 1,
-    };
-
-    expect(
-      chooseBelotCpuAction(
-        stateForHand([
-          card("K", "hearts"),
-          card("VII", "hearts"),
-          card("VIII", "hearts"),
-        ]),
-        "p1",
-        successRateOptions,
-      ),
-    ).toEqual({
-      type: "trump-pass",
-      playerId: "p1",
-    });
-    expect(
-      chooseBelotCpuAction(
-        stateForHand([
-          card("K", "hearts"),
-          card("VII", "hearts"),
-          card("VIII", "hearts"),
-        ]),
-        "p1",
-        expectedValueOptions,
-      ),
-    ).toEqual({
-      type: "trump-pass",
-      playerId: "p1",
-    });
-
-    for (const rank of ["U", "IX"] as const) {
-      expect(
-        chooseBelotCpuAction(
-          stateForHand([
-            card(rank, "hearts"),
-            card("VII", "hearts"),
-            card("VIII", "hearts"),
-          ]),
-          "p1",
-          successRateOptions,
-        ),
-      ).toEqual({
-        type: "trump-accept-upcard",
-        playerId: "p1",
-      });
-
-      expect(
-        chooseBelotCpuAction(
-          stateForHand([
-            card(rank, "hearts"),
-            card("VII", "hearts"),
-            card("VIII", "hearts"),
-          ]),
-          "p1",
-          expectedValueOptions,
-        ),
-      ).toEqual({
-        type: "trump-pass",
-        playerId: "p1",
-      });
-    }
-  });
-
-  it("requires the high trump success rate near victory with a large lead", () => {
-    const state: BelotState = {
-      ...createBelotInitialState(players),
-      phase: "trump-round-one",
-      players: [
-        {
-          ...players[0],
-          ready: true,
-          hand: [
-            card("A", "hearts"),
-            card("X", "hearts"),
-            card("K", "hearts"),
-          ],
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 421,
-        },
-        {
-          ...players[1],
-          ready: true,
-          hand: [],
-          hiddenCards: [],
-          wonCards: [],
-          tricksWon: 0,
-          totalScore: 261,
-        },
-      ],
-      upcard: card("U", "hearts"),
-      trumpTurnPlayerId: "p1",
-      firstPlayerId: "p1",
-      trumpPasses: ["p2"],
-    };
-    const options = {
-      trumpMinSuccessRate: 0,
-      trumpHighSuccessRate: Number.POSITIVE_INFINITY,
-      trumpMinExpectedValue: Number.NEGATIVE_INFINITY,
-      trumpMonteCarloSamples: 1,
-      trumpSearchPlies: 1,
-    };
-
-    expect(chooseBelotCpuAction(state, "p1", options)).toEqual({
-      type: "trump-pass",
-      playerId: "p1",
-    });
-
-    expect(
-      chooseBelotCpuAction(
-        {
-          ...state,
-          players: state.players.map((player) =>
-            player.playerId === "p1"
-              ? { ...player, totalScore: 420 }
-              : { ...player, totalScore: 260 },
-          ),
-        },
-        "p1",
-        options,
-      ),
-    ).toEqual({
-      type: "trump-accept-upcard",
-      playerId: "p1",
-    });
-
-    expect(
-      chooseBelotCpuAction(
-        {
-          ...state,
-          players: state.players.map((player) =>
-            player.playerId === "p2"
-              ? { ...player, totalScore: 262 }
-              : player,
-          ),
-        },
-        "p1",
-        options,
-      ),
-    ).toEqual({
-      type: "trump-accept-upcard",
-      playerId: "p1",
+      playerId: passingPlayerId,
     });
   });
 
@@ -3286,9 +3048,7 @@ describe("Belot", () => {
       trumpPasses: ["p1"],
     };
 
-    expect(
-      chooseBelotCpuAction(state, "p2", { rng: seededRng(3) }),
-    ).toEqual({
+    expect(chooseBelotCpuAction(state, "p2", { rng: seededRng(3) })).toEqual({
       type: "trump-choose-suit",
       playerId: "p2",
       suit: "leaves",
@@ -3344,9 +3104,7 @@ describe("Belot", () => {
       trumpPasses: ["p1"],
     };
 
-    expect(
-      chooseBelotCpuAction(state, "p2", { rng: seededRng(8) }),
-    ).toEqual({
+    expect(chooseBelotCpuAction(state, "p2", { rng: seededRng(8) })).toEqual({
       type: "trump-pass",
       playerId: "p2",
     });
@@ -3401,9 +3159,7 @@ describe("Belot", () => {
       trumpPasses: [],
     };
 
-    expect(
-      chooseBelotCpuAction(state, "p2", { rng: seededRng(1) }),
-    ).toEqual({
+    expect(chooseBelotCpuAction(state, "p2", { rng: seededRng(1) })).toEqual({
       type: "trump-pass",
       playerId: "p2",
     });
@@ -3459,9 +3215,7 @@ describe("Belot", () => {
       trumpPasses: ["p1"],
     };
 
-    expect(
-      chooseBelotCpuAction(state, "p2", { rng: seededRng(1) }),
-    ).toEqual({
+    expect(chooseBelotCpuAction(state, "p2", { rng: seededRng(1) })).toEqual({
       type: "trump-pass",
       playerId: "p2",
     });
@@ -3516,9 +3270,7 @@ describe("Belot", () => {
       trumpPasses: [],
     };
 
-    expect(
-      chooseBelotCpuAction(state, "p2", { rng: seededRng(1) }),
-    ).toEqual({
+    expect(chooseBelotCpuAction(state, "p2", { rng: seededRng(1) })).toEqual({
       type: "trump-pass",
       playerId: "p2",
     });

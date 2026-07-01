@@ -6,7 +6,6 @@ import {
   applyBelotAction,
   autoSelectBelotDeclarations,
   belotCardPoints,
-  belotTargetScore,
   compareBelotCards,
   legalBelotCards,
 } from "./belot";
@@ -41,14 +40,7 @@ export type BelotCpuOptions = {
 
 export const defaultBelotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
-const defaultTrumpMinSuccessRate = 0.9;
-const defaultTrumpHighSuccessRate = 0.95;
-const defaultTrumpMinCardsForStandardSuccess = 3;
-const defaultTrumpMinExpectedValue = 0;
-const trumpSuccessRateDiscountPerVisiblePowerCard = 0.03;
-const trumpMinExpectedValueDiscountPerVisiblePowerCard = 0;
-const cautiousTrumpCallVictoryMargin = 80;
-const cautiousTrumpCallLead = 160;
+const trumpMinExpectedValueForVoluntaryCall = 30;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
@@ -69,23 +61,12 @@ type TrumpSuitCandidate = {
   suit: Suit;
   score: TrumpCandidateScore;
   trumpCardCount: number;
-  minSuccessRate: number;
-  highSuccessRate: number;
-  minExpectedValue: number;
 };
 
 type TrumpRolloutSample = {
   cpuHiddenCards: Card[];
   opponentHand: Card[];
   unusedCards: Card[];
-};
-
-type TrumpCallThresholds = {
-  minSuccessRate: number;
-  highSuccessRate: number;
-  minTrumpCards: number;
-  minExpectedValue: number;
-  requireHighSuccessRateForStandardCall: boolean;
 };
 
 export type BelotCpuRootCardSampleStats = {
@@ -194,17 +175,6 @@ function chooseTrumpAction(
   options: BelotCpuOptions,
 ): BelotAction | undefined {
   const rng = options.rng ?? Math.random;
-  const minExpectedValue =
-    options.trumpMinExpectedValue ?? defaultTrumpMinExpectedValue;
-  const highSuccessRate =
-    options.trumpHighSuccessRate ?? defaultTrumpHighSuccessRate;
-  const minTrumpCards =
-    options.trumpMinCardsForStandardSuccess ??
-    defaultTrumpMinCardsForStandardSuccess;
-  const minSuccessRate =
-    options.trumpMinSuccessRate ?? defaultTrumpMinSuccessRate;
-  const requireHighSuccessRateForStandardCall =
-    shouldRequireCautiousTrumpCall(state, player.playerId);
 
   if (state.phase === "trump-round-one" && state.upcard) {
     const samples = createTrumpRolloutSamples(
@@ -212,7 +182,6 @@ function chooseTrumpAction(
       player.playerId,
       Math.max(1, belotCpuTrumpMonteCarloSamples(options)),
       rng,
-      state.upcard.suit,
     );
     const upcardCandidate = trumpSuitCandidate(
       state,
@@ -223,19 +192,7 @@ function chooseTrumpAction(
       samples,
     );
 
-    const trumpCardCount = countTrumpCards(player.hand, state.upcard.suit);
-    const thresholds = {
-      minSuccessRate,
-      highSuccessRate,
-      minTrumpCards,
-      minExpectedValue,
-      requireHighSuccessRateForStandardCall,
-    };
-    const shouldAcceptUpcard = shouldCallTrump({
-      score: upcardCandidate.score,
-      trumpCardCount,
-      thresholds: thresholdsForTrumpCandidate(upcardCandidate, thresholds),
-    });
+    const shouldAcceptUpcard = shouldCallTrump(upcardCandidate.score);
 
     if (!shouldAcceptUpcard) {
       return { type: "trump-pass", playerId: player.playerId };
@@ -248,7 +205,6 @@ function chooseTrumpAction(
         state,
         player.playerId,
         upcardCandidate,
-        thresholds,
         options,
         rng,
       );
@@ -270,18 +226,11 @@ function chooseTrumpAction(
       options,
       rng,
     );
-    const thresholds = {
-      minSuccessRate,
-      highSuccessRate,
-      minTrumpCards,
-      minExpectedValue,
-      requireHighSuccessRateForStandardCall,
-    };
     const bestCandidate = candidates[0];
     const acceptedCandidate =
       state.phase === "mus"
         ? bestCandidate
-        : bestAcceptedTrumpCandidate(candidates, thresholds);
+        : bestAcceptedTrumpCandidate(candidates);
 
     if (acceptedCandidate) {
       return {
@@ -301,7 +250,6 @@ function hasBetterRoundOneTrumpSuit(
   state: BelotState,
   cpuPlayerId: string,
   upcardCandidate: TrumpSuitCandidate,
-  thresholds: TrumpCallThresholds,
   options: BelotCpuOptions,
   rng: () => number,
 ) {
@@ -323,16 +271,11 @@ function hasBetterRoundOneTrumpSuit(
           cpuPlayerId,
           Math.max(1, belotCpuTrumpMonteCarloSamples(options)),
           rng,
-          suit,
         ),
       );
 
       return (
-        shouldCallTrump({
-          score: candidate.score,
-          trumpCardCount: candidate.trumpCardCount,
-          thresholds: thresholdsForTrumpCandidate(candidate, thresholds),
-        }) &&
+        shouldCallTrump(candidate.score) &&
         compareAcceptedTrumpCandidates(candidate, upcardCandidate) < 0
       );
     });
@@ -353,7 +296,6 @@ function trumpSuitCandidates(
         cpuPlayerId,
         Math.max(1, belotCpuTrumpMonteCarloSamples(options)),
         rng,
-        suit,
       );
 
       return trumpSuitCandidate(
@@ -395,21 +337,6 @@ function trumpSuitCandidate(
       samples,
     ),
     trumpCardCount: countTrumpCards(cpu.hand, suit),
-    minSuccessRate: adjustedTrumpSuccessRate(
-      options.trumpMinSuccessRate ?? defaultTrumpMinSuccessRate,
-      cpu.hand,
-      suit,
-    ),
-    highSuccessRate: adjustedTrumpSuccessRate(
-      options.trumpHighSuccessRate ?? defaultTrumpHighSuccessRate,
-      cpu.hand,
-      suit,
-    ),
-    minExpectedValue: adjustedTrumpMinExpectedValue(
-      options.trumpMinExpectedValue ?? defaultTrumpMinExpectedValue,
-      cpu.hand,
-      suit,
-    ),
   };
 }
 
@@ -431,130 +358,14 @@ function scoreTrumpCandidate(
   );
 }
 
-function bestAcceptedTrumpCandidate(
-  candidates: TrumpSuitCandidate[],
-  thresholds: TrumpCallThresholds,
-) {
+function bestAcceptedTrumpCandidate(candidates: TrumpSuitCandidate[]) {
   return candidates
-    .filter((candidate) =>
-      shouldCallTrump({
-        score: candidate.score,
-        trumpCardCount: candidate.trumpCardCount,
-        thresholds: thresholdsForTrumpCandidate(candidate, thresholds),
-      }),
-    )
-    .sort((left, right) =>
-      compareAcceptedTrumpCandidates(left, right),
-    )[0];
+    .filter((candidate) => shouldCallTrump(candidate.score))
+    .sort((left, right) => compareAcceptedTrumpCandidates(left, right))[0];
 }
 
-function shouldCallTrump(input: {
-  score: TrumpCandidateScore;
-  trumpCardCount: number;
-  thresholds: TrumpCallThresholds;
-}) {
-  return trumpAcceptanceTier(input) > 0;
-}
-
-function thresholdsForTrumpCandidate(
-  candidate: TrumpSuitCandidate,
-  thresholds: TrumpCallThresholds,
-): TrumpCallThresholds {
-  return {
-    ...thresholds,
-    minSuccessRate: thresholds.requireHighSuccessRateForStandardCall
-      ? Math.max(candidate.minSuccessRate, candidate.highSuccessRate)
-      : candidate.minSuccessRate,
-    highSuccessRate: candidate.highSuccessRate,
-    minExpectedValue: candidate.minExpectedValue,
-  };
-}
-
-function shouldRequireCautiousTrumpCall(
-  state: BelotState,
-  cpuPlayerId: string,
-) {
-  const cpu = playerById(state, cpuPlayerId);
-  const opponent = state.players.find(
-    (player) => player.playerId !== cpuPlayerId,
-  );
-
-  if (!opponent) {
-    return false;
-  }
-
-  return (
-    cpu.totalScore >= belotTargetScore - cautiousTrumpCallVictoryMargin &&
-    cpu.totalScore - opponent.totalScore >= cautiousTrumpCallLead
-  );
-}
-
-function adjustedTrumpSuccessRate(
-  successRate: number,
-  visibleHand: Card[],
-  trumpSuit: Suit,
-) {
-  const visiblePowerCardCount = countVisibleTrumpPowerThresholdCards(
-    visibleHand,
-    trumpSuit,
-  );
-
-  return Math.max(
-    0,
-    successRate -
-      visiblePowerCardCount * trumpSuccessRateDiscountPerVisiblePowerCard,
-  );
-}
-
-function adjustedTrumpMinExpectedValue(
-  minExpectedValue: number,
-  visibleHand: Card[],
-  trumpSuit: Suit,
-) {
-  return (
-    minExpectedValue -
-    countVisibleTrumpPowerThresholdCards(visibleHand, trumpSuit) *
-      trumpMinExpectedValueDiscountPerVisiblePowerCard
-  );
-}
-
-function countVisibleTrumpPowerThresholdCards(
-  visibleHand: Card[],
-  trumpSuit: Suit,
-) {
-  return visibleHand.filter(
-    (card) =>
-      (card.rank === "A" && card.suit !== trumpSuit) ||
-      (card.suit === trumpSuit && (card.rank === "U" || card.rank === "IX")),
-  ).length;
-}
-
-function trumpAcceptanceTier(input: {
-  score: TrumpCandidateScore;
-  trumpCardCount: number;
-  thresholds: TrumpCallThresholds;
-}) {
-  if (input.score.expectedValue < input.thresholds.minExpectedValue) {
-    return 0;
-  }
-
-  const highSuccessRate = Math.max(
-    input.thresholds.highSuccessRate,
-    input.thresholds.minSuccessRate,
-  );
-
-  if (input.score.successRate >= highSuccessRate) {
-    return 2;
-  }
-
-  if (
-    input.score.successRate >= input.thresholds.minSuccessRate &&
-    input.trumpCardCount >= input.thresholds.minTrumpCards
-  ) {
-    return 1;
-  }
-
-  return 0;
+function shouldCallTrump(score: TrumpCandidateScore) {
+  return score.expectedValue > trumpMinExpectedValueForVoluntaryCall;
 }
 
 function countTrumpCards(hand: Card[], trumpSuit: Suit) {
@@ -649,7 +460,6 @@ function createTrumpRolloutSamples(
   cpuPlayerId: string,
   sampleCount: number,
   rng: () => number,
-  trumpSuit: Suit,
 ) {
   const cpu = playerById(state, cpuPlayerId);
   const opponent = state.players.find(
@@ -1140,9 +950,7 @@ function strongerWinningTrumpAgainstSuperiorOpponentTrump(
 
   return winningTrumps
     .slice()
-    .sort((left, right) =>
-      compareBelotCards(right, left, state.trumpSuit!),
-    )[0];
+    .sort((left, right) => compareBelotCards(right, left, state.trumpSuit!))[0];
 }
 
 function hasPlayedCard(state: BelotState, suit: Suit, rank: Rank) {
@@ -1841,7 +1649,8 @@ function knownOpponentOriginalHandCards(
 ) {
   const knownCardsById = new Map<string, Card>();
 
-  for (const declaration of state.declarationsByPlayer[opponentPlayerId] ?? []) {
+  for (const declaration of state.declarationsByPlayer[opponentPlayerId] ??
+    []) {
     for (const card of declaration.cards) {
       knownCardsById.set(card.id, card);
     }
@@ -1869,10 +1678,7 @@ function knownOpponentOriginalHandCards(
 }
 
 function sumBelotDeclarationPoints(declarations: BelotDeclaration[]) {
-  return declarations.reduce(
-    (sum, declaration) => sum + declaration.points,
-    0,
-  );
+  return declarations.reduce((sum, declaration) => sum + declaration.points, 0);
 }
 
 function addImpossibleCardsFromResponse(
@@ -2069,10 +1875,13 @@ function knownUnplayedOpponentCards(
   );
 }
 
-export function belotCpuTrumpCandidateSucceeded(result: {
-  value: number;
-  callerFell?: boolean;
-}, initialValue = 0) {
+export function belotCpuTrumpCandidateSucceeded(
+  result: {
+    value: number;
+    callerFell?: boolean;
+  },
+  initialValue = 0,
+) {
   if (result.callerFell !== undefined) {
     return !result.callerFell;
   }
@@ -2114,7 +1923,10 @@ export function belotCpuOrderCardsForSearch(
 }
 
 export function belotCpuForcedSearchCard(cards: Card[], state: BelotState) {
-  const leadingTrumpShortVoidCard = leadingTrumpShortVoidForceCard(cards, state);
+  const leadingTrumpShortVoidCard = leadingTrumpShortVoidForceCard(
+    cards,
+    state,
+  );
 
   if (leadingTrumpShortVoidCard) {
     return leadingTrumpShortVoidCard;
@@ -2345,9 +2157,7 @@ function updateRootCardValueStats(
   });
 }
 
-function averageRootCardValue(
-  stats: BelotCpuRootCardValueStats | undefined,
-) {
+function averageRootCardValue(stats: BelotCpuRootCardValueStats | undefined) {
   return stats && stats.sampleCount > 0
     ? stats.totalValue / stats.sampleCount
     : -belotHandPlaySearchMaxUtility;
