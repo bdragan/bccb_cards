@@ -10,7 +10,7 @@ import {
 
 import type { CpuLevelName } from "./progress/cpu-levels";
 
-export const locales = ["sr", "en", "fr"] as const;
+export const locales = ["en", "fr", "sr"] as const;
 export type Locale = (typeof locales)[number];
 
 const storageKey = "card-games-locale";
