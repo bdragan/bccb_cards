@@ -3048,7 +3048,7 @@ describe("Belot", () => {
     });
   });
 
-  it("discounts visible strong cards when gating CPU trump calls", () => {
+  it("discounts visible strong cards for CPU trump success-rate gates", () => {
     const stateForHand = (hand: Card[]): BelotState => ({
       ...createBelotInitialState(players),
       phase: "trump-round-one",
@@ -3148,7 +3148,7 @@ describe("Belot", () => {
           expectedValueOptions,
         ),
       ).toEqual({
-        type: "trump-accept-upcard",
+        type: "trump-pass",
         playerId: "p1",
       });
     }
