@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { trackEvent } from "../analytics/posthog";
 import { BelotTable } from "../components/BelotTable";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
-import { useI18n } from "../i18n";
+import { type Messages, useI18n } from "../i18n";
 import type {
   BelotCpuWorkerRequest,
   BelotCpuWorkerResponse,
@@ -25,6 +25,18 @@ const cpuPlayerId = "offline-cpu";
 const cpuDecisionDelayMs = 250;
 const cpuPlayDelayMs = 450;
 const cpuCompletedTrickLeadDelayMs = 2_000;
+export const staticCpuStorageKey = "card-games-static-cpu-state-v1";
+
+type StaticCpuStoredGame = {
+  version: 1;
+  state: BelotState;
+  hasHumanProgress: boolean;
+  gameStartedAt: number;
+  trackedHandCount: number;
+  firstCardPlayTracked: boolean;
+  gameCompletedTracked: boolean;
+  trackedError?: string;
+};
 
 function playerKind(playerId: string | undefined) {
   if (playerId === humanPlayerId) {
@@ -79,11 +91,65 @@ function isCpuTurn(state: BelotState) {
   );
 }
 
-export function shouldConfirmStaticCpuLeave(
-  hasHumanProgress: boolean,
-  state: Pick<BelotState, "winnerPlayerId">,
-) {
-  return hasHumanProgress && !state.winnerPlayerId;
+function isStoredStaticCpuGame(value: unknown): value is StaticCpuStoredGame {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const stored = value as Partial<StaticCpuStoredGame>;
+  const state = stored.state as Partial<BelotState> | undefined;
+
+  return (
+    stored.version === 1 &&
+    typeof stored.hasHumanProgress === "boolean" &&
+    typeof stored.gameStartedAt === "number" &&
+    typeof stored.trackedHandCount === "number" &&
+    typeof stored.firstCardPlayTracked === "boolean" &&
+    typeof stored.gameCompletedTracked === "boolean" &&
+    state?.gameId === "belot" &&
+    Array.isArray(state.players)
+  );
+}
+
+function readStoredStaticCpuGame() {
+  try {
+    const stored = window.localStorage.getItem(staticCpuStorageKey);
+
+    if (!stored) {
+      return undefined;
+    }
+
+    const parsed: unknown = JSON.parse(stored);
+
+    return isStoredStaticCpuGame(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStoredStaticCpuGame(stored: StaticCpuStoredGame) {
+  try {
+    window.localStorage.setItem(staticCpuStorageKey, JSON.stringify(stored));
+  } catch {
+    // Local storage can be unavailable or full. The game should remain playable.
+  }
+}
+
+function withStaticCpuPlayerNames(state: BelotState, messages: Messages) {
+  return {
+    ...state,
+    players: state.players.map((player) => {
+      if (player.playerId === humanPlayerId) {
+        return { ...player, displayName: messages.offlineYou };
+      }
+
+      if (player.playerId === cpuPlayerId) {
+        return { ...player, displayName: messages.cpu };
+      }
+
+      return player;
+    }),
+  };
 }
 
 export function StaticCpuApp() {
@@ -96,7 +162,6 @@ export function StaticCpuApp() {
   const firstCardPlayTrackedRef = useRef(false);
   const gameCompletedTrackedRef = useRef(false);
   const trackedErrorRef = useRef<string | undefined>(undefined);
-  const [hasHumanProgress, setHasHumanProgress] = useState(false);
 
   const createState = useCallback(() => {
     let nextState = createBelotInitialState([
@@ -118,19 +183,31 @@ export function StaticCpuApp() {
     return nextState;
   }, [messages.cpu, messages.offlineYou]);
 
-  const [belotState, setBelotState] = useState<BelotState>(() => createState());
-  const shouldConfirmBeforeLeaving = shouldConfirmStaticCpuLeave(
-    hasHumanProgress,
-    belotState,
+  const [storedGame] = useState(() => readStoredStaticCpuGame());
+  const [hasHumanProgress, setHasHumanProgress] = useState(
+    () => storedGame?.hasHumanProgress ?? false,
   );
+  const [belotState, setBelotState] = useState<BelotState>(() => {
+    if (!storedGame) {
+      return createState();
+    }
+
+    gameStartedAtRef.current = storedGame.gameStartedAt;
+    trackedHandCountRef.current = storedGame.trackedHandCount;
+    firstCardPlayTrackedRef.current = storedGame.firstCardPlayTracked;
+    gameCompletedTrackedRef.current = storedGame.gameCompletedTracked;
+    trackedErrorRef.current = storedGame.trackedError;
+
+    return withStaticCpuPlayerNames(storedGame.state, messages);
+  });
 
   useEffect(() => {
     trackEvent("game_loaded");
   }, []);
 
   useEffect(() => {
-    setBelotState(createState());
-  }, [createState]);
+    setBelotState((current) => withStaticCpuPlayerNames(current, messages));
+  }, [messages]);
 
   useEffect(() => {
     const handCount =
@@ -194,21 +271,17 @@ export function StaticCpuApp() {
   }, [belotState]);
 
   useEffect(() => {
-    if (!shouldConfirmBeforeLeaving) {
-      return;
-    }
-
-    function confirmBeforeLeaving(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-
-    window.addEventListener("beforeunload", confirmBeforeLeaving);
-
-    return () => {
-      window.removeEventListener("beforeunload", confirmBeforeLeaving);
-    };
-  }, [shouldConfirmBeforeLeaving]);
+    writeStoredStaticCpuGame({
+      version: 1,
+      state: belotState,
+      hasHumanProgress,
+      gameStartedAt: gameStartedAtRef.current,
+      trackedHandCount: trackedHandCountRef.current,
+      firstCardPlayTracked: firstCardPlayTrackedRef.current,
+      gameCompletedTracked: gameCompletedTrackedRef.current,
+      trackedError: trackedErrorRef.current,
+    });
+  }, [belotState, hasHumanProgress]);
 
   useEffect(() => {
     const worker = new Worker(

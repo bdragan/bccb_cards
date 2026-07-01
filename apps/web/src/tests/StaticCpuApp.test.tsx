@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  applyBelotAction,
+  createBelotInitialState,
+} from "@card-games/game-core";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  shouldConfirmStaticCpuLeave,
-  StaticCpuApp,
-} from "../app/StaticCpuApp";
+import { StaticCpuApp, staticCpuStorageKey } from "../app/StaticCpuApp";
 import { I18nProvider } from "../i18n";
 
 class TestWorker {
@@ -22,6 +23,7 @@ describe("StaticCpuApp", () => {
   });
 
   afterEach(() => {
+    localStorage.removeItem(staticCpuStorageKey);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -69,7 +71,7 @@ describe("StaticCpuApp", () => {
     });
   });
 
-  it("confirms refreshes after the player acts", async () => {
+  it("does not confirm refreshes after the player acts", async () => {
     render(
       <I18nProvider>
         <StaticCpuApp />
@@ -79,14 +81,77 @@ describe("StaticCpuApp", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Pass" }));
 
     expect(dispatchBeforeUnload()).toEqual({
-      allowed: false,
-      defaultPrevented: true,
+      allowed: true,
+      defaultPrevented: false,
     });
   });
 
-  it("does not confirm refreshes after the game is finished", () => {
+  it("stores the static game after the player acts", async () => {
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Pass" }));
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(staticCpuStorageKey) ?? "null",
+      ) as {
+        hasHumanProgress?: boolean;
+        state?: { trumpPasses?: string[] };
+      };
+
+      expect(stored.hasHumanProgress).toBe(true);
+      expect(stored.state?.trumpPasses).toContain("offline-human");
+    });
+  });
+
+  it("continues the stored static game on refresh", async () => {
+    let state = createBelotInitialState([
+      { playerId: "offline-human", displayName: "Stored human" },
+      { playerId: "offline-cpu", displayName: "Stored CPU" },
+    ]);
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: "offline-human",
+      ready: true,
+    });
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: "offline-cpu",
+      ready: true,
+    });
+    state = applyBelotAction(state, {
+      type: "trump-pass",
+      playerId: "offline-human",
+    });
+
+    localStorage.setItem(
+      staticCpuStorageKey,
+      JSON.stringify({
+        version: 1,
+        state,
+        hasHumanProgress: true,
+        gameStartedAt: Date.now(),
+        trackedHandCount: 0,
+        firstCardPlayTracked: false,
+        gameCompletedTracked: false,
+      }),
+    );
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
     expect(
-      shouldConfirmStaticCpuLeave(true, { winnerPlayerId: "offline-human" }),
-    ).toBe(false);
+      await screen.findByRole("progressbar", { name: "AI to play" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Pass" }),
+    ).not.toBeInTheDocument();
   });
 });
