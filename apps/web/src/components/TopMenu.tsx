@@ -50,9 +50,9 @@ export function TopMenu({
 
   return (
     <div
-      className={`pointer-events-none fixed inset-x-0 ${
-        split ? "top-0" : "top-[3px]"
-      } z-30`}
+      className={`pointer-events-none inset-x-0 z-30 ${
+        split ? "relative" : "fixed top-[3px]"
+      }`}
     >
       <div
         className={`mx-auto flex max-w-6xl px-4 ${

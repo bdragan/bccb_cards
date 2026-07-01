@@ -44,8 +44,8 @@ input {
   height: 2.7rem;
 }
 
-.belot-table.belot-table-top-controls {
-  padding-top: 3rem;
+.belot-table-controls {
+  margin: -1rem -1rem 1rem;
 }
 
 @media (max-width: 767px) {
@@ -53,8 +53,8 @@ input {
     padding: 0.5rem;
   }
 
-  .belot-table.belot-table-top-controls {
-    padding-top: 3rem;
+  .belot-table-controls {
+    margin: -0.5rem -0.5rem 0.5rem;
   }
 
   .belot-scoreboard {

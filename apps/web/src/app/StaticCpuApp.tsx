@@ -595,23 +595,22 @@ export function StaticCpuApp() {
   }
 
   const visibleRank = visibleCpuLevelRank(levelProgress, messages);
+  const topControls = (
+    <TopMenu align="split" leading={<RankPopover visibleRank={visibleRank} />}>
+      <LanguageToggle />
+      <Button
+        type="button"
+        onClick={() =>
+          setResignConfirmationOpen(belotState.phase !== "finished")
+        }
+      >
+        {messages.resignGame}
+      </Button>
+    </TopMenu>
+  );
 
   return (
     <main className="app-background min-h-screen">
-      <TopMenu
-        align="split"
-        leading={<RankPopover visibleRank={visibleRank} />}
-      >
-        <LanguageToggle />
-        <Button
-          type="button"
-          onClick={() =>
-            setResignConfirmationOpen(belotState.phase !== "finished")
-          }
-        >
-          {messages.resignGame}
-        </Button>
-      </TopMenu>
       <div className="mx-auto max-w-6xl px-4 pb-6 pt-0">
         <BelotAssetsGate>
           <BelotTable
@@ -629,7 +628,7 @@ export function StaticCpuApp() {
             onNextHand={() => applyAction({ type: "next-hand" })}
             onRestart={restartGame}
             levelProgress={levelProgress}
-            topControlsInset
+            topControls={topControls}
             resignConfirmation={
               resignConfirmationOpen
                 ? {

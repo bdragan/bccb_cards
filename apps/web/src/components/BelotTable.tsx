@@ -821,7 +821,7 @@ export function BelotTable({
   debugHand,
   resignConfirmation,
   levelProgress,
-  topControlsInset = false,
+  topControls,
 }: {
   state: BelotPublicState;
   currentPlayerId?: string;
@@ -841,7 +841,7 @@ export function BelotTable({
     onCancel: () => void;
   };
   levelProgress?: CpuLevelProgress;
-  topControlsInset?: boolean;
+  topControls?: ReactNode;
 }) {
   const { locale, messages } = useI18n();
   const rulesHref = `/rules/belot-user-${locale}.html`;
@@ -1243,11 +1243,10 @@ export function BelotTable({
   });
 
   return (
-    <section
-      className={`belot-table rounded-md bg-felt p-4 text-white shadow-lg ${
-        topControlsInset ? "belot-table-top-controls" : ""
-      }`}
-    >
+    <section className="belot-table rounded-md bg-felt p-4 text-white shadow-lg">
+      {topControls ? (
+        <div className="belot-table-controls">{topControls}</div>
+      ) : null}
       <div className="belot-scoreboard grid gap-3">
         {playerPanels[0]}
         <div className="belot-center-panel min-w-0 rounded-md bg-white/10 p-3">
