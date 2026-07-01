@@ -12,19 +12,63 @@ export const locales = ["sr", "en", "fr"] as const;
 export type Locale = (typeof locales)[number];
 
 const storageKey = "card-games-locale";
-const defaultLocale: Locale = "sr";
+const fallbackLocale: Locale = "en";
+const serbianLocaleLanguages = new Set(["bs", "cnr", "hr", "sr"]);
+const serbianLocaleRegions = new Set(["me"]);
 
 function isLocale(value: string | null | undefined): value is Locale {
   return locales.includes(value as Locale);
 }
 
+function localePartsFromTag(languageTag: string) {
+  const parts = languageTag.trim().toLowerCase().split("-");
+
+  return {
+    language: parts[0],
+    region: parts.slice(1).find((part) => part.length === 2),
+  };
+}
+
+export function detectLocaleFromLanguageTags(
+  languageTags: readonly string[],
+): Locale {
+  for (const languageTag of languageTags) {
+    const { language, region } = localePartsFromTag(languageTag);
+
+    if (
+      serbianLocaleLanguages.has(language) ||
+      serbianLocaleRegions.has(region ?? "")
+    ) {
+      return "sr";
+    }
+
+    if (isLocale(language)) {
+      return language;
+    }
+  }
+
+  return fallbackLocale;
+}
+
+function detectBrowserLocale(): Locale {
+  if (typeof navigator === "undefined") {
+    return fallbackLocale;
+  }
+
+  const languages = navigator.languages?.length
+    ? navigator.languages
+    : [navigator.language];
+
+  return detectLocaleFromLanguageTags(languages);
+}
+
 function readStoredLocale(): Locale {
   if (typeof localStorage === "undefined") {
-    return defaultLocale;
+    return detectBrowserLocale();
   }
 
   const stored = localStorage.getItem(storageKey);
-  return isLocale(stored) ? stored : defaultLocale;
+  return isLocale(stored) ? stored : detectBrowserLocale();
 }
 
 let activeLocale: Locale = readStoredLocale();
