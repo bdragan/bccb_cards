@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { StaticCpuApp, staticCpuStorageKey } from "../app/StaticCpuApp";
 import { I18nProvider, setLocaleForTests } from "../i18n";
+import { cpuLevelProgressStorageKey } from "../progress/cpu-levels";
 
 class TestWorker {
   onerror: ((event: ErrorEvent) => void) | null = null;
@@ -32,6 +33,7 @@ describe("StaticCpuApp", () => {
 
   afterEach(() => {
     localStorage.removeItem(staticCpuStorageKey);
+    localStorage.removeItem(cpuLevelProgressStorageKey);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -230,5 +232,63 @@ describe("StaticCpuApp", () => {
     expect(
       screen.queryByRole("button", { name: "Pass" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("updates stored CPU level progress after a finished game", async () => {
+    let state = createBelotInitialState([
+      { playerId: "offline-human", displayName: "Stored human" },
+      { playerId: "offline-cpu", displayName: "Stored CPU" },
+    ]);
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: "offline-human",
+      ready: true,
+    });
+    state = applyBelotAction(state, {
+      type: "set-ready",
+      playerId: "offline-cpu",
+      ready: true,
+    });
+    state = {
+      ...state,
+      phase: "finished",
+      winnerPlayerId: "offline-human",
+      finishedAt: new Date().toISOString(),
+      currentTurnPlayerId: undefined,
+      trumpTurnPlayerId: undefined,
+    };
+
+    localStorage.setItem(
+      staticCpuStorageKey,
+      JSON.stringify({
+        version: 1,
+        state,
+        hasHumanProgress: true,
+        gameStartedAt: Date.now(),
+        trackedHandCount: 0,
+        firstCardPlayTracked: false,
+        gameCompletedTracked: true,
+        playerProgressUpdated: false,
+      }),
+    );
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByText("Silver 1")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(
+          localStorage.getItem(cpuLevelProgressStorageKey) ?? "null",
+        ),
+      ).toEqual({
+        level: "Silver",
+        points: 1,
+      });
+    });
   });
 });

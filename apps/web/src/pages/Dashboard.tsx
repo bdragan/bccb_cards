@@ -31,6 +31,11 @@ import { Lobby } from "../components/Lobby";
 import { TopMenu } from "../components/TopMenu";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { useI18n } from "../i18n";
+import {
+  applyCpuLevelResult,
+  readCpuLevelProgress,
+  writeCpuLevelProgress,
+} from "../progress/cpu-levels";
 import { createGameSocket, type GameSocket } from "../socket/game-socket";
 import { useAuthStore } from "../stores/auth-store";
 import type {
@@ -89,12 +94,16 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
   const [room, setRoom] = useState<RoomPublicState>();
   const [gameState, setGameState] = useState<GamePublicState>();
   const [offlineBelotState, setOfflineBelotState] = useState<BelotState>();
+  const [levelProgress, setLevelProgress] = useState(() =>
+    readCpuLevelProgress(),
+  );
   const [error, setError] = useState<string>();
   const [socket, setSocket] = useState<GameSocket>();
   const offlineCpuWorkerRef = useRef<Worker | null>(null);
   const offlineCpuRequestIdRef = useRef(0);
   const offlineCpuPendingStateRef = useRef<BelotState | null>(null);
   const autoStartedOfflineBelotRef = useRef(false);
+  const levelProgressUpdatedGameRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!token) {
@@ -257,6 +266,39 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
     return () => window.clearTimeout(timeout);
   }, [messages.cpuWorkerUnavailable, offlineBelotState]);
 
+  useEffect(() => {
+    if (
+      !offlineBelotState ||
+      !offlineHumanPlayerId ||
+      offlineBelotState.phase !== "finished" ||
+      !offlineBelotState.winnerPlayerId
+    ) {
+      return;
+    }
+
+    const gameKey = `${offlineBelotState.createdAt}:${
+      offlineBelotState.finishedAt ?? "finished"
+    }`;
+
+    if (levelProgressUpdatedGameRef.current === gameKey) {
+      return;
+    }
+
+    levelProgressUpdatedGameRef.current = gameKey;
+    setLevelProgress((current) => {
+      const nextProgress = applyCpuLevelResult(
+        current,
+        offlineBelotState.winnerPlayerId === offlineHumanPlayerId
+          ? "win"
+          : "loss",
+      );
+
+      writeCpuLevelProgress(nextProgress);
+
+      return nextProgress;
+    });
+  }, [offlineBelotState, offlineHumanPlayerId]);
+
   function createRoom() {
     setOfflineBelotState(undefined);
     socket?.emit("room:create", { gameId: "belot" }, (ack) => {
@@ -304,6 +346,7 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
     setRoom(undefined);
     setGameState(undefined);
     setError(undefined);
+    levelProgressUpdatedGameRef.current = undefined;
     setOfflineBelotState(createOfflineBelotState());
   }, [createOfflineBelotState]);
 
@@ -462,8 +505,14 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
                 onNextHand={() =>
                   applyOfflineBelotAction({ type: "next-hand" })
                 }
-                onRestart={() =>
-                  setOfflineBelotState(createOfflineBelotState())
+                onRestart={() => {
+                  levelProgressUpdatedGameRef.current = undefined;
+                  setOfflineBelotState(createOfflineBelotState());
+                }}
+                levelProgress={
+                  offlineBelotPublicState.phase === "finished"
+                    ? levelProgress
+                    : undefined
                 }
               />
             </BelotAssetsGate>

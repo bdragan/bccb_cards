@@ -816,6 +816,73 @@ describe("BelotTable", () => {
     }
   });
 
+  it("shows CPU level progress above the new game button", () => {
+    render(
+      <BelotTable
+        state={{
+          ...baseState,
+          phase: "finished",
+          winnerPlayerId: "p1",
+          currentTurnPlayerId: undefined,
+          currentTrick: [],
+        }}
+        currentPlayerId="p1"
+        onTrumpDecision={vi.fn()}
+        onDeclare={vi.fn()}
+        onPlayCard={vi.fn()}
+        onNextHand={vi.fn()}
+        onRestart={vi.fn()}
+        levelProgress={{ level: "Silver", points: 3 }}
+      />,
+    );
+
+    const winner = screen.getByTestId("belot-winner");
+    const progress = within(winner).getByTestId("cpu-level-progress");
+    const newGameButton = within(winner).getByRole("button", {
+      name: "New game",
+    });
+
+    expect(progress).toHaveTextContent("Silver 3");
+    expect(progress).toHaveAttribute("aria-valuemax", "5");
+    expect(
+      progress.compareDocumentPosition(newGameButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+
+    const dots = progress.querySelectorAll("[data-filled]");
+    expect(dots).toHaveLength(5);
+    expect(
+      Array.from(dots).map((dot) => dot.getAttribute("data-filled")),
+    ).toEqual(["true", "true", "true", "false", "false"]);
+  });
+
+  it("shows Grandmaster progress as a number without dots", () => {
+    render(
+      <BelotTable
+        state={{
+          ...baseState,
+          phase: "finished",
+          winnerPlayerId: "p1",
+          currentTurnPlayerId: undefined,
+          currentTrick: [],
+        }}
+        currentPlayerId="p1"
+        onTrumpDecision={vi.fn()}
+        onDeclare={vi.fn()}
+        onPlayCard={vi.fn()}
+        onNextHand={vi.fn()}
+        onRestart={vi.fn()}
+        levelProgress={{ level: "Grandmaster", points: 17 }}
+      />,
+    );
+
+    const progress = screen.getByTestId("cpu-level-progress");
+
+    expect(progress).toHaveTextContent("Grandmaster 17");
+    expect(progress.querySelector("[data-filled]")).toBeNull();
+    expect(progress).not.toHaveAttribute("aria-valuemax");
+  });
+
   it("sorts end-of-hand player rows by Belot point value within suit groups", () => {
     vi.useFakeTimers();
 

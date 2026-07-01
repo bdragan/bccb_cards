@@ -17,6 +17,11 @@ import { LanguageToggle } from "../components/LanguageToggle";
 import { TopMenu } from "../components/TopMenu";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { type Messages, useI18n } from "../i18n";
+import {
+  applyCpuLevelResult,
+  readCpuLevelProgress,
+  writeCpuLevelProgress,
+} from "../progress/cpu-levels";
 import type {
   BelotCpuWorkerRequest,
   BelotCpuWorkerResponse,
@@ -38,6 +43,7 @@ type StaticCpuStoredGame = {
   trackedHandCount: number;
   firstCardPlayTracked: boolean;
   gameCompletedTracked: boolean;
+  playerProgressUpdated?: boolean;
   trackedError?: string;
 };
 
@@ -164,6 +170,7 @@ export function StaticCpuApp() {
   const trackedHandCountRef = useRef(0);
   const firstCardPlayTrackedRef = useRef(false);
   const gameCompletedTrackedRef = useRef(false);
+  const playerProgressUpdatedRef = useRef(false);
   const trackedErrorRef = useRef<string | undefined>(undefined);
 
   const createState = useCallback(() => {
@@ -187,6 +194,9 @@ export function StaticCpuApp() {
   }, [messages.cpu, messages.offlineYou]);
 
   const [storedGame] = useState(() => readStoredStaticCpuGame());
+  const [levelProgress, setLevelProgress] = useState(() =>
+    readCpuLevelProgress(),
+  );
   const [resignConfirmationOpen, setResignConfirmationOpen] = useState(false);
   const [hasHumanProgress, setHasHumanProgress] = useState(
     () => storedGame?.hasHumanProgress ?? false,
@@ -200,6 +210,7 @@ export function StaticCpuApp() {
     trackedHandCountRef.current = storedGame.trackedHandCount;
     firstCardPlayTrackedRef.current = storedGame.firstCardPlayTracked;
     gameCompletedTrackedRef.current = storedGame.gameCompletedTracked;
+    playerProgressUpdatedRef.current = storedGame.playerProgressUpdated ?? false;
     trackedErrorRef.current = storedGame.trackedError;
 
     return withStaticCpuPlayerNames(storedGame.state, messages);
@@ -262,6 +273,24 @@ export function StaticCpuApp() {
     }
 
     if (
+      belotState.phase === "finished" &&
+      belotState.winnerPlayerId &&
+      !playerProgressUpdatedRef.current
+    ) {
+      playerProgressUpdatedRef.current = true;
+      setLevelProgress((current) => {
+        const nextProgress = applyCpuLevelResult(
+          current,
+          belotState.winnerPlayerId === humanPlayerId ? "win" : "loss",
+        );
+
+        writeCpuLevelProgress(nextProgress);
+
+        return nextProgress;
+      });
+    }
+
+    if (
       belotState.phase === "error" &&
       belotState.error !== trackedErrorRef.current
     ) {
@@ -283,6 +312,7 @@ export function StaticCpuApp() {
       trackedHandCount: trackedHandCountRef.current,
       firstCardPlayTracked: firstCardPlayTrackedRef.current,
       gameCompletedTracked: gameCompletedTrackedRef.current,
+      playerProgressUpdated: playerProgressUpdatedRef.current,
       trackedError: trackedErrorRef.current,
     });
   }, [belotState, hasHumanProgress]);
@@ -439,6 +469,7 @@ export function StaticCpuApp() {
     trackedHandCountRef.current = 0;
     firstCardPlayTrackedRef.current = false;
     gameCompletedTrackedRef.current = false;
+    playerProgressUpdatedRef.current = false;
     trackedErrorRef.current = undefined;
     setResignConfirmationOpen(false);
     setHasHumanProgress(false);
@@ -523,6 +554,9 @@ export function StaticCpuApp() {
             }
             onNextHand={() => applyAction({ type: "next-hand" })}
             onRestart={restartGame}
+            levelProgress={
+              publicState.phase === "finished" ? levelProgress : undefined
+            }
             resignConfirmation={
               resignConfirmationOpen
                 ? {

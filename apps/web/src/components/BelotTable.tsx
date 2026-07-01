@@ -26,6 +26,11 @@ import {
 import { suitImagePaths } from "../game/card-assets";
 import { PlayingCard } from "../game/cards";
 import { type Messages, useI18n } from "../i18n";
+import {
+  cpuLevelPointThreshold,
+  type CpuLevelProgress,
+  isGrandmasterLevel,
+} from "../progress/cpu-levels";
 import { Button } from "./Button";
 
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
@@ -734,11 +739,13 @@ function WinnerPanel({
   playerName,
   className,
   compact = false,
+  levelProgress,
   onRestart,
 }: {
   playerName: string;
   className: string;
   compact?: boolean;
+  levelProgress?: CpuLevelProgress;
   onRestart: () => void;
 }) {
   const { messages } = useI18n();
@@ -749,8 +756,50 @@ function WinnerPanel({
       data-testid="belot-winner"
     >
       <p className="text-lg font-bold">{messages.winner(playerName)}</p>
+      {levelProgress ? <LevelProgress progress={levelProgress} /> : null}
       <div className="mt-3">
         <Button onClick={onRestart}>{messages.nextGame}</Button>
+      </div>
+    </div>
+  );
+}
+
+function LevelProgress({ progress }: { progress: CpuLevelProgress }) {
+  const threshold = cpuLevelPointThreshold(progress.level);
+  const label = `${progress.level} ${progress.points}`;
+
+  if (isGrandmasterLevel(progress.level) || !threshold) {
+    return (
+      <p
+        className="mt-3 text-sm font-bold tracking-normal"
+        data-testid="cpu-level-progress"
+      >
+        {label}
+      </p>
+    );
+  }
+
+  return (
+    <div
+      aria-label={`${progress.level} ${progress.points} of ${threshold}`}
+      className="mt-3 flex flex-col items-center gap-2"
+      data-testid="cpu-level-progress"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={threshold}
+      aria-valuenow={progress.points}
+    >
+      <p className="text-sm font-bold tracking-normal">{label}</p>
+      <div className="flex justify-center gap-1.5" aria-hidden="true">
+        {Array.from({ length: threshold }, (_, index) => (
+          <span
+            key={index}
+            className={`h-2.5 w-2.5 rounded-full border border-ink/70 ${
+              index < progress.points ? "bg-ink" : "bg-transparent"
+            }`}
+            data-filled={index < progress.points ? "true" : "false"}
+          />
+        ))}
       </div>
     </div>
   );
@@ -766,6 +815,7 @@ export function BelotTable({
   onRestart,
   debugHand,
   resignConfirmation,
+  levelProgress,
 }: {
   state: BelotPublicState;
   currentPlayerId?: string;
@@ -784,6 +834,7 @@ export function BelotTable({
     onConfirm: () => void;
     onCancel: () => void;
   };
+  levelProgress?: CpuLevelProgress;
 }) {
   const { locale, messages } = useI18n();
   const rulesHref = `/rules/belot-user-${locale}.html`;
@@ -1341,6 +1392,7 @@ export function BelotTable({
               playerName={winnerPlayer.displayName}
               className={winnerPanelClass}
               compact
+              levelProgress={levelProgress}
               onRestart={onRestart}
             />
           ) : selectionLogs.length ? (
@@ -1413,6 +1465,7 @@ export function BelotTable({
             <WinnerPanel
               playerName={winnerPlayer.displayName}
               className={winnerPanelClass}
+              levelProgress={levelProgress}
               onRestart={onRestart}
             />
           ) : null}
