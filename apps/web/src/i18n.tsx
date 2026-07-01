@@ -269,7 +269,7 @@ export const messages: Record<Locale, Messages> = {
     bonus: "bonus",
     bonusPts: (points) => `${points} bonus poena`,
     points: (points) => `${points} poena`,
-    currentRank: (rank) => `Trenutni rang: ${rank}`,
+    currentRank: (rank) => `Tvoj trenutni rang je: ${rank}`,
     cpuLevelNames: {
       Bronze: "Bronza",
       Silver: "Srebro",
@@ -408,7 +408,7 @@ export const messages: Record<Locale, Messages> = {
     bonus: "bonus",
     bonusPts: (points) => `${points} bonus pts`,
     points: (points) => `${points} pts`,
-    currentRank: (rank) => `Your current rank: ${rank}`,
+    currentRank: (rank) => `Your current rank is: ${rank}`,
     cpuLevelNames: {
       Bronze: "Bronze",
       Silver: "Silver",
@@ -548,7 +548,7 @@ export const messages: Record<Locale, Messages> = {
     bonus: "bonus",
     bonusPts: (points) => `${points} pts de bonus`,
     points: (points) => `${points} pts`,
-    currentRank: (rank) => `Rang actuel : ${rank}`,
+    currentRank: (rank) => `Votre rang actuel est : ${rank}`,
     cpuLevelNames: {
       Bronze: "Bronze",
       Silver: "Argent",

@@ -73,6 +73,64 @@ function visibleCpuLevelRank(progress: CpuLevelProgress, messages: Messages) {
     : levelName;
 }
 
+function RankPopover({ visibleRank }: { visibleRank: string }) {
+  const { messages } = useI18n();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const label = messages.currentRank(visibleRank);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (containerRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      setOpen(false);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative max-w-[calc(100vw-7rem)]">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-label={label}
+        className="block max-w-full truncate rounded-full border border-emerald-200/45 bg-felt/95 px-3 py-1.5 text-sm font-bold leading-none text-emerald-50 shadow-sm shadow-ink/20 transition hover:border-emerald-100 hover:bg-[#17613f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-100"
+        data-testid="player-current-rank"
+        onClick={() => setOpen((current) => !current)}
+      >
+        {visibleRank}
+      </button>
+      {open ? (
+        <div
+          className="pointer-events-auto absolute left-0 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-md border border-emerald-200/50 bg-[#f6fbf8] p-3 text-ink shadow-lg shadow-ink/20"
+          data-testid="player-current-rank-popover"
+        >
+          <p className="text-sm font-semibold">{label}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function cpuActionDelay(state: BelotState) {
   if (
     state.phase !== "trick-play" ||
@@ -542,15 +600,7 @@ export function StaticCpuApp() {
     <main className="app-background min-h-screen">
       <TopMenu
         align="split"
-        leading={
-          <span
-            aria-label={messages.currentRank(visibleRank)}
-            className="max-w-[calc(100vw-7rem)] truncate rounded-full border border-emerald-200/45 bg-felt/95 px-3 py-1.5 text-sm font-bold leading-none text-emerald-50 shadow-sm shadow-ink/20"
-            data-testid="player-current-rank"
-          >
-            {visibleRank}
-          </span>
-        }
+        leading={<RankPopover visibleRank={visibleRank} />}
       >
         <LanguageToggle />
         <Button

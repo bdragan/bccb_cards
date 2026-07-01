@@ -842,7 +842,7 @@ describe("BelotTable", () => {
       name: "New game",
     });
 
-    expect(progress).toHaveTextContent("Your current rank: Silver");
+    expect(progress).toHaveTextContent("Your current rank is: Silver");
     expect(progress).not.toHaveTextContent("Silver 3");
     expect(progress).toHaveAttribute("aria-valuemax", "5");
     expect(
@@ -881,7 +881,7 @@ describe("BelotTable", () => {
 
     const progress = screen.getByTestId("cpu-level-progress");
 
-    expect(progress).toHaveTextContent("Rang actuel : Argent");
+    expect(progress).toHaveTextContent("Votre rang actuel est : Argent");
     expect(progress).not.toHaveTextContent("3");
     expect(progress.querySelectorAll("[data-filled]")).toHaveLength(5);
   });
@@ -908,7 +908,7 @@ describe("BelotTable", () => {
 
     const progress = screen.getByTestId("cpu-level-progress");
 
-    expect(progress).toHaveTextContent("Your current rank: Grandmaster 17");
+    expect(progress).toHaveTextContent("Your current rank is: Grandmaster 17");
     expect(progress.querySelector("[data-filled]")).toBeNull();
     expect(progress).not.toHaveAttribute("aria-valuemax");
   });

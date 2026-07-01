@@ -104,9 +104,7 @@ describe("StaticCpuApp", () => {
     expect(
       within(currentTrick).getByRole("button", { name: "New game" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getAllByTestId("belot-winner"),
-    ).toHaveLength(1);
+    expect(screen.getAllByTestId("belot-winner")).toHaveLength(1);
   });
 
   it("keeps the game active when resign confirmation is cancelled", async () => {
@@ -127,9 +125,7 @@ describe("StaticCpuApp", () => {
     );
 
     expect(screen.queryByText("Winner: AI")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Resign game?"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Resign game?")).not.toBeInTheDocument();
     expect(
       await screen.findByRole("button", { name: "Pass" }),
     ).toBeInTheDocument();
@@ -278,15 +274,22 @@ describe("StaticCpuApp", () => {
       </I18nProvider>,
     );
 
+    const rankButton = await screen.findByRole("button", {
+      name: "Your current rank is: Bronze",
+    });
+    expect(rankButton).toHaveTextContent("Bronze");
+
+    await userEvent.click(rankButton);
+
     expect(
-      await screen.findByText("Your current rank: Bronze"),
+      within(screen.getByTestId("player-current-rank-popover")).getByText(
+        "Your current rank is: Bronze",
+      ),
     ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(
-        JSON.parse(
-          localStorage.getItem(cpuLevelProgressStorageKey) ?? "null",
-        ),
+        JSON.parse(localStorage.getItem(cpuLevelProgressStorageKey) ?? "null"),
       ).toEqual({
         level: "Bronze",
         points: 2,
