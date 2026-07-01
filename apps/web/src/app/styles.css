@@ -40,6 +40,7 @@ input {
 }
 
 .belot-center-trump-suit {
+  display: block;
   width: 2.7rem;
   height: 2.7rem;
 }

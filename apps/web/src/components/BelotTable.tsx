@@ -1271,7 +1271,7 @@ export function BelotTable({
               />
             ) : null}
             {state.trumpSuit ? (
-              <div className="text-center">
+              <div className="belot-center-trump flex w-full flex-col items-center text-center">
                 <p className="mb-1 text-sm font-semibold">{messages.trump}</p>
                 <SuitImage
                   suit={state.trumpSuit}
