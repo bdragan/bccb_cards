@@ -25,6 +25,7 @@ function renderApp() {
 describe("App", () => {
   beforeEach(() => {
     localStorage.removeItem("card-games-token");
+    setLocaleForTests("en");
     useAuthStore.setState({
       token: undefined,
       user: undefined,
@@ -39,11 +40,23 @@ describe("App", () => {
   });
 
   it("starts an anonymous CPU game on the home page", async () => {
+    const user = userEvent.setup();
     renderApp();
 
     expect(await screen.findAllByText("Me")).not.toHaveLength(0);
     expect(screen.getAllByText("AI")).not.toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Menu" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Login" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+
     expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
+    await user.click(document.body);
+    expect(
+      screen.queryByRole("button", { name: "Login" }),
+    ).not.toBeInTheDocument();
     expect(document.title).toBe("Belot 1v1");
   });
 
@@ -51,7 +64,8 @@ describe("App", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.click(await screen.findByRole("button", { name: "Login" }));
+    await user.click(await screen.findByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("button", { name: "Login" }));
 
     expect(
       screen.getByRole("button", { name: "Register" }),

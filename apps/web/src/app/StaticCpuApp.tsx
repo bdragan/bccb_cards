@@ -12,6 +12,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { trackEvent } from "../analytics/posthog";
 import { BelotTable } from "../components/BelotTable";
+import { Button } from "../components/Button";
+import { LanguageToggle } from "../components/LanguageToggle";
+import { TopMenu } from "../components/TopMenu";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { type Messages, useI18n } from "../i18n";
 import type {
@@ -469,6 +472,12 @@ export function StaticCpuApp() {
 
   return (
     <main className="app-background min-h-screen">
+      <TopMenu>
+        <LanguageToggle />
+        <Button type="button" onClick={restartGame}>
+          {messages.resignGame}
+        </Button>
+      </TopMenu>
       <div className="mx-auto max-w-6xl px-4 py-6">
         <BelotAssetsGate>
           <BelotTable

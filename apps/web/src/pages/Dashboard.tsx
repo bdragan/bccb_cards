@@ -28,6 +28,7 @@ import { BelotTable } from "../components/BelotTable";
 import { Button } from "../components/Button";
 import { LanguageToggle } from "../components/LanguageToggle";
 import { Lobby } from "../components/Lobby";
+import { TopMenu } from "../components/TopMenu";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { useI18n } from "../i18n";
 import { createGameSocket, type GameSocket } from "../socket/game-socket";
@@ -364,36 +365,26 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
 
   return (
     <main className="app-background min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold">{messages.appTitle}</h1>
-            <p className="text-sm text-slate-600">
-              {user?.displayName ?? messages.offlineYou}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <LanguageToggle />
-            {offlineBelotState ? (
-              <Button
-                type="button"
-                onClick={() => setOfflineBelotState(undefined)}
-              >
-                {messages.leaveMatch}
-              </Button>
-            ) : null}
-            {token ? (
-              <Button type="button" onClick={logout}>
-                {messages.logout}
-              </Button>
-            ) : (
-              <Button type="button" onClick={onLogin}>
-                {messages.login}
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+      <TopMenu
+        title={messages.appTitle}
+        subtitle={user?.displayName ?? messages.offlineYou}
+      >
+        <LanguageToggle />
+        {offlineBelotState ? (
+          <Button type="button" onClick={() => setOfflineBelotState(undefined)}>
+            {messages.leaveMatch}
+          </Button>
+        ) : null}
+        {token ? (
+          <Button type="button" onClick={logout}>
+            {messages.logout}
+          </Button>
+        ) : (
+          <Button type="button" onClick={onLogin}>
+            {messages.login}
+          </Button>
+        )}
+      </TopMenu>
 
       <div
         className={`mx-auto grid max-w-6xl gap-5 px-4 py-6 ${

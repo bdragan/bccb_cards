@@ -3,10 +3,11 @@ import {
   createBelotInitialState,
 } from "@card-games/game-core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { StaticCpuApp, staticCpuStorageKey } from "../app/StaticCpuApp";
-import { I18nProvider } from "../i18n";
+import { I18nProvider, setLocaleForTests } from "../i18n";
 
 class TestWorker {
   onerror: ((event: ErrorEvent) => void) | null = null;
@@ -18,6 +19,7 @@ class TestWorker {
 
 describe("StaticCpuApp", () => {
   beforeEach(() => {
+    setLocaleForTests("en");
     vi.stubGlobal("Worker", TestWorker);
     vi.spyOn(Math, "random").mockReturnValue(0.75);
   });
@@ -38,6 +40,8 @@ describe("StaticCpuApp", () => {
   }
 
   it("renders the CPU-only game without backend controls", async () => {
+    const user = userEvent.setup();
+
     render(
       <I18nProvider>
         <StaticCpuApp />
@@ -46,6 +50,7 @@ describe("StaticCpuApp", () => {
 
     expect(await screen.findAllByText("Me")).not.toHaveLength(0);
     expect(screen.getAllByText("AI")).not.toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Menu" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "New game" }),
     ).not.toBeInTheDocument();
@@ -54,6 +59,18 @@ describe("StaticCpuApp", () => {
       screen.queryByRole("button", { name: "Login" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Room")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+
+    expect(
+      screen.getByRole("button", { name: "Resign game" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Switch language to Srpski" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Login" }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not confirm refreshes before the player acts", async () => {

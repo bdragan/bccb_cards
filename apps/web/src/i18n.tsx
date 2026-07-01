@@ -33,6 +33,7 @@ export type Messages = {
   localeName: string;
   language: string;
   switchLanguage: (localeName: string) => string;
+  menu: string;
   appTitle: string;
   authTitle: string;
   login: string;
@@ -44,6 +45,7 @@ export type Messages = {
   signedIn: string;
   logout: string;
   leaveMatch: string;
+  resignGame: string;
   room: string;
   createRoom: string;
   playBelotVsCpu: string;
@@ -136,6 +138,7 @@ export const messages: Record<Locale, Messages> = {
     localeName: "Srpski",
     language: "Jezik",
     switchLanguage: (localeName) => `Promeni jezik na ${localeName}`,
+    menu: "Meni",
     appTitle: "Bela 1v1",
     authTitle: "Bela",
     login: "Prijava",
@@ -147,6 +150,7 @@ export const messages: Record<Locale, Messages> = {
     signedIn: "Prijavljen",
     logout: "Odjavi se",
     leaveMatch: "Napusti partiju",
+    resignGame: "Predaj partiju",
     room: "Soba",
     createRoom: "Napravi sobu",
     playBelotVsCpu: "Igraj Belu protiv CPU-a",
@@ -268,6 +272,7 @@ export const messages: Record<Locale, Messages> = {
     localeName: "English",
     language: "Language",
     switchLanguage: (localeName) => `Switch language to ${localeName}`,
+    menu: "Menu",
     appTitle: "Belot 1v1",
     authTitle: "Card Games",
     login: "Login",
@@ -279,6 +284,7 @@ export const messages: Record<Locale, Messages> = {
     signedIn: "Signed in",
     logout: "Logout",
     leaveMatch: "Leave match",
+    resignGame: "Resign game",
     room: "Room",
     createRoom: "Create room",
     playBelotVsCpu: "Play Belot vs CPU",
