@@ -187,6 +187,7 @@ export function StaticCpuApp() {
   }, [messages.cpu, messages.offlineYou]);
 
   const [storedGame] = useState(() => readStoredStaticCpuGame());
+  const [resignConfirmationOpen, setResignConfirmationOpen] = useState(false);
   const [hasHumanProgress, setHasHumanProgress] = useState(
     () => storedGame?.hasHumanProgress ?? false,
   );
@@ -439,8 +440,31 @@ export function StaticCpuApp() {
     firstCardPlayTrackedRef.current = false;
     gameCompletedTrackedRef.current = false;
     trackedErrorRef.current = undefined;
+    setResignConfirmationOpen(false);
     setHasHumanProgress(false);
     setBelotState(createState());
+  }
+
+  function resignGame() {
+    trackEvent("game_resigned", {
+      duration_seconds: elapsedSeconds(gameStartedAtRef.current),
+      hand_count:
+        belotState.handResults?.length ?? (belotState.lastHandResult ? 1 : 0),
+    });
+
+    pendingStateRef.current = null;
+    requestIdRef.current += 1;
+    gameCompletedTrackedRef.current = true;
+    setResignConfirmationOpen(false);
+    setHasHumanProgress(true);
+    setBelotState((current) => ({
+      ...current,
+      phase: "finished",
+      winnerPlayerId: cpuPlayerId,
+      finishedAt: new Date().toISOString(),
+      currentTurnPlayerId: undefined,
+      trumpTurnPlayerId: undefined,
+    }));
   }
 
   function applyTrumpDecision(
@@ -474,7 +498,12 @@ export function StaticCpuApp() {
     <main className="app-background min-h-screen">
       <TopMenu>
         <LanguageToggle />
-        <Button type="button" onClick={restartGame}>
+        <Button
+          type="button"
+          onClick={() =>
+            setResignConfirmationOpen(belotState.phase !== "finished")
+          }
+        >
           {messages.resignGame}
         </Button>
       </TopMenu>
@@ -494,6 +523,14 @@ export function StaticCpuApp() {
             }
             onNextHand={() => applyAction({ type: "next-hand" })}
             onRestart={restartGame}
+            resignConfirmation={
+              resignConfirmationOpen
+                ? {
+                    onConfirm: resignGame,
+                    onCancel: () => setResignConfirmationOpen(false),
+                  }
+                : undefined
+            }
             debugHand={
               debugCpuHand
                 ? {

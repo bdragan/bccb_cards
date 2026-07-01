@@ -2,7 +2,13 @@ import {
   applyBelotAction,
   createBelotInitialState,
 } from "@card-games/game-core";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -71,6 +77,60 @@ describe("StaticCpuApp", () => {
     expect(
       screen.queryByRole("button", { name: "Login" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("confirms resigning in the trick area and shows the CPU as winner there", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("button", { name: "Resign game" }));
+
+    const currentTrick = screen.getByTestId("belot-current-trick");
+    expect(within(currentTrick).getByText("Resign game?")).toBeInTheDocument();
+
+    await user.click(within(currentTrick).getByRole("button", { name: "Yes" }));
+
+    expect(
+      await within(currentTrick).findByText("Winner: AI"),
+    ).toBeInTheDocument();
+    expect(
+      within(currentTrick).getByRole("button", { name: "New game" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByTestId("belot-winner"),
+    ).toHaveLength(1);
+  });
+
+  it("keeps the game active when resign confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("button", { name: "Resign game" }));
+    await user.click(
+      within(screen.getByTestId("belot-current-trick")).getByRole("button", {
+        name: "No",
+      }),
+    );
+
+    expect(screen.queryByText("Winner: AI")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Resign game?"),
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Pass" }),
+    ).toBeInTheDocument();
   });
 
   it("does not confirm refreshes before the player acts", async () => {

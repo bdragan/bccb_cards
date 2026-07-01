@@ -46,6 +46,9 @@ export type Messages = {
   logout: string;
   leaveMatch: string;
   resignGame: string;
+  confirmResignGame: string;
+  yes: string;
+  no: string;
   room: string;
   createRoom: string;
   playBelotVsCpu: string;
@@ -151,6 +154,9 @@ export const messages: Record<Locale, Messages> = {
     logout: "Odjavi se",
     leaveMatch: "Napusti partiju",
     resignGame: "Predaj partiju",
+    confirmResignGame: "Predaješ partiju?",
+    yes: "Da",
+    no: "Ne",
     room: "Soba",
     createRoom: "Napravi sobu",
     playBelotVsCpu: "Igraj Belu protiv CPU-a",
@@ -285,6 +291,9 @@ export const messages: Record<Locale, Messages> = {
     logout: "Logout",
     leaveMatch: "Leave match",
     resignGame: "Resign game",
+    confirmResignGame: "Resign game?",
+    yes: "Yes",
+    no: "No",
     room: "Room",
     createRoom: "Create room",
     playBelotVsCpu: "Play Belot vs CPU",

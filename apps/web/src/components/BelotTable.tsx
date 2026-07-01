@@ -733,17 +733,19 @@ function DebugHandPanel({
 function WinnerPanel({
   playerName,
   className,
+  compact = false,
   onRestart,
 }: {
   playerName: string;
   className: string;
+  compact?: boolean;
   onRestart: () => void;
 }) {
   const { messages } = useI18n();
 
   return (
     <div
-      className={`mt-4 rounded-md p-3 text-center ${className}`}
+      className={`${compact ? "" : "mt-4"} rounded-md p-3 text-center ${className}`}
       data-testid="belot-winner"
     >
       <p className="text-lg font-bold">{messages.winner(playerName)}</p>
@@ -763,6 +765,7 @@ export function BelotTable({
   onNextHand,
   onRestart,
   debugHand,
+  resignConfirmation,
 }: {
   state: BelotPublicState;
   currentPlayerId?: string;
@@ -777,6 +780,10 @@ export function BelotTable({
   onNextHand: () => void;
   onRestart: () => void;
   debugHand?: BelotDebugHand;
+  resignConfirmation?: {
+    onConfirm: () => void;
+    onCancel: () => void;
+  };
 }) {
   const { locale, messages } = useI18n();
   const rulesHref =
@@ -916,11 +923,6 @@ export function BelotTable({
             ),
           }
         : undefined;
-  const showTrickArea =
-    !showHandResult &&
-    (state.phase === "trick-play" ||
-      trumpSelectionPhases.includes(state.phase) ||
-      Boolean(visibleTrick));
   const displayedCompletedTricks = state.completedTricks
     .map((trick, index) => ({ index, trick }))
     .reverse();
@@ -1082,6 +1084,17 @@ export function BelotTable({
     state.winnerPlayerId === currentPlayerId
       ? winnerPanelWinClass
       : winnerPanelLossClass;
+  const showFinishedWinnerInTrickArea = Boolean(
+    winnerPlayer && state.phase === "finished" && !showHandResult,
+  );
+  const showTrickArea =
+    !showHandResult &&
+    (Boolean(resignConfirmation) ||
+      showFinishedWinnerInTrickArea ||
+      state.phase === "trick-play" ||
+      trumpSelectionPhases.includes(state.phase) ||
+      Boolean(visibleTrick));
+  const showWinnerPanel = Boolean(winnerPlayer && showHandResult);
   const playerPanels = displayedPlayers.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
     const declarationGroups = visibleDeclarationGroups(declarations);
@@ -1312,22 +1325,41 @@ export function BelotTable({
           className="mt-4 rounded-md bg-white/10 p-3"
           data-testid="belot-current-trick"
         >
-          {selectionLogs.length ? (
-            <p className="mb-2 text-sm font-semibold">
-              {messages.trumpSelection}
-            </p>
-          ) : null}
-          {selectionLogs.length ? (
-            <ol className="min-h-[114px] space-y-2 text-sm text-white/85">
-              {selectionLogs.map((log, index) => (
-                <li
-                  key={`${index}-${log}`}
-                  className="rounded-md bg-black/15 px-3 py-2"
-                >
-                  {log}
-                </li>
-              ))}
-            </ol>
+          {resignConfirmation ? (
+            <div className="flex min-h-[114px] flex-col items-center justify-center gap-3 text-center">
+              <p className="text-lg font-bold">{messages.confirmResignGame}</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button type="button" onClick={resignConfirmation.onConfirm}>
+                  {messages.yes}
+                </Button>
+                <Button type="button" onClick={resignConfirmation.onCancel}>
+                  {messages.no}
+                </Button>
+              </div>
+            </div>
+          ) : showFinishedWinnerInTrickArea && winnerPlayer ? (
+            <WinnerPanel
+              playerName={winnerPlayer.displayName}
+              className={winnerPanelClass}
+              compact
+              onRestart={onRestart}
+            />
+          ) : selectionLogs.length ? (
+            <>
+              <p className="mb-2 text-sm font-semibold">
+                {messages.trumpSelection}
+              </p>
+              <ol className="min-h-[114px] space-y-2 text-sm text-white/85">
+                {selectionLogs.map((log, index) => (
+                  <li
+                    key={`${index}-${log}`}
+                    className="rounded-md bg-black/15 px-3 py-2"
+                  >
+                    {log}
+                  </li>
+                ))}
+              </ol>
+            </>
           ) : (
             <div className="belot-current-trick-grid grid h-[138px] grid-cols-[repeat(2,71px)] items-start justify-center gap-3 overflow-visible">
               {visibleTrick?.cards.map((play) => {
@@ -1376,48 +1408,50 @@ export function BelotTable({
         </div>
       ) : null}
 
-      {showHandResult ? (
+      {showWinnerPanel || showHandResult ? (
         <>
-          {winnerPlayer ? (
+          {showWinnerPanel && winnerPlayer ? (
             <WinnerPanel
               playerName={winnerPlayer.displayName}
               className={winnerPanelClass}
               onRestart={onRestart}
             />
           ) : null}
-          <div
-            className="belot-starting-cards mt-4 rounded-md bg-white/10 p-3 text-white"
-            data-testid="belot-starting-cards"
-          >
-            <h3 className="font-bold">{messages.startingCards}</h3>
-            <div className="mt-2 space-y-4">
-              {resultCurrentPlayer ? (
+          {showHandResult ? (
+            <div
+              className="belot-starting-cards mt-4 rounded-md bg-white/10 p-3 text-white"
+              data-testid="belot-starting-cards"
+            >
+              <h3 className="font-bold">{messages.startingCards}</h3>
+              <div className="mt-2 space-y-4">
+                {resultCurrentPlayer ? (
+                  <ResultCardRow
+                    label={resultCurrentPlayer.displayName}
+                    cards={
+                      resultCardsByPlayer[resultCurrentPlayer.playerId] ?? []
+                    }
+                    pickupCardIds={resultCurrentPlayer.pickupCardIds}
+                    trumpSuit={state.trumpSuit}
+                  />
+                ) : null}
+                {resultOpponentPlayer ? (
+                  <ResultCardRow
+                    label={resultOpponentPlayer.displayName}
+                    cards={
+                      resultCardsByPlayer[resultOpponentPlayer.playerId] ?? []
+                    }
+                    pickupCardIds={resultOpponentPlayer.pickupCardIds}
+                    trumpSuit={state.trumpSuit}
+                  />
+                ) : null}
                 <ResultCardRow
-                  label={resultCurrentPlayer.displayName}
-                  cards={
-                    resultCardsByPlayer[resultCurrentPlayer.playerId] ?? []
-                  }
-                  pickupCardIds={resultCurrentPlayer.pickupCardIds}
+                  label={messages.remainingCards}
+                  cards={state.unusedCards ?? []}
                   trumpSuit={state.trumpSuit}
                 />
-              ) : null}
-              {resultOpponentPlayer ? (
-                <ResultCardRow
-                  label={resultOpponentPlayer.displayName}
-                  cards={
-                    resultCardsByPlayer[resultOpponentPlayer.playerId] ?? []
-                  }
-                  pickupCardIds={resultOpponentPlayer.pickupCardIds}
-                  trumpSuit={state.trumpSuit}
-                />
-              ) : null}
-              <ResultCardRow
-                label={messages.remainingCards}
-                cards={state.unusedCards ?? []}
-                trumpSuit={state.trumpSuit}
-              />
+              </div>
             </div>
-          </div>
+          ) : null}
         </>
       ) : currentHand.length ? (
         <div className="mt-4">
