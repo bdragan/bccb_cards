@@ -1142,7 +1142,10 @@ export function BelotTable({
       ? winnerPanelWinClass
       : winnerPanelLossClass;
   const showFinishedWinnerInTrickArea = Boolean(
-    winnerPlayer && state.phase === "finished" && !showHandResult,
+    winnerPlayer &&
+      state.phase === "finished" &&
+      !showHandResult &&
+      !waitingForHandResult,
   );
   const showTrickArea =
     !showHandResult &&

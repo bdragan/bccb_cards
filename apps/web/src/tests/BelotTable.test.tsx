@@ -732,6 +732,10 @@ describe("BelotTable", () => {
         />,
       );
 
+      expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("belot-hand-result")).not.toBeInTheDocument();
+      expect(screen.getByTestId("belot-current-trick")).toBeInTheDocument();
+
       act(() => {
         vi.advanceTimersByTime(2_000);
       });
