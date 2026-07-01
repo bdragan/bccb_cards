@@ -404,6 +404,19 @@ describe("BelotTable", () => {
 
     expect(trumpCards).toEqual(["IX of Hearts", "K of Hearts", "A of Hearts"]);
     for (const container of screen.getAllByTestId("belot-trump-card")) {
+      expect(within(container).getByText("T")).toBeInTheDocument();
+    }
+  });
+
+  it("uses A as the French trump marker", () => {
+    setLocaleForTests("fr");
+    renderTable({
+      ...baseState,
+      currentTrick: [{ playerId: "p2", card: card("K", "hearts") }],
+      completedTricks: [],
+    });
+
+    for (const container of screen.getAllByTestId("belot-trump-card")) {
       expect(within(container).getByText("A")).toBeInTheDocument();
     }
   });

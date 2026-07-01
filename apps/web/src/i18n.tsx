@@ -429,7 +429,7 @@ export const messages: Record<Locale, Messages> = {
     dealer: "Dealer",
     first: "First",
     caller: "CALLER",
-    trumpMarker: "A",
+    trumpMarker: "T",
     bonusMarker: "B",
     trump: "Trump",
     upcard: "Upcard",
