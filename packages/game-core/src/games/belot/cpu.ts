@@ -596,6 +596,7 @@ function averageTrumpRolloutScore(
   options: BelotCpuOptions,
   samples: TrumpRolloutSample[],
 ): TrumpCandidateScore {
+  const initialValue = evaluateScoreDifferential(state, cpuPlayerId);
   const rolloutStates = samples.map((sample) =>
     createTrumpRolloutState(state, cpuPlayerId, trumpSuit, isMus, sample),
   );
@@ -618,13 +619,29 @@ function averageTrumpRolloutScore(
       searchContext,
     );
   });
-  const successes = results.filter(belotCpuTrumpCandidateSucceeded).length;
+  const successes = results.filter((result) =>
+    belotCpuTrumpCandidateSucceeded(result, initialValue),
+  ).length;
 
   return {
     expectedValue:
-      results.reduce((sum, result) => sum + result.value, 0) / results.length,
+      results.reduce((sum, result) => sum + result.value - initialValue, 0) /
+      results.length,
     successRate: successes / results.length,
   };
+}
+
+function evaluateScoreDifferential(state: BelotState, playerId: string) {
+  const player = playerById(state, playerId);
+  const opponent = state.players.find(
+    (candidate) => candidate.playerId !== playerId,
+  );
+
+  if (!opponent) {
+    return 0;
+  }
+
+  return player.totalScore - opponent.totalScore;
 }
 
 function createTrumpRolloutSamples(
@@ -2052,8 +2069,15 @@ function knownUnplayedOpponentCards(
   );
 }
 
-export function belotCpuTrumpCandidateSucceeded(result: { value: number }) {
-  return result.value > 0;
+export function belotCpuTrumpCandidateSucceeded(result: {
+  value: number;
+  callerFell?: boolean;
+}, initialValue = 0) {
+  if (result.callerFell !== undefined) {
+    return !result.callerFell;
+  }
+
+  return result.value - initialValue > 0;
 }
 
 export function belotCpuOrderCardsForSearch(

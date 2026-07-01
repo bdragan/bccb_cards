@@ -1272,6 +1272,14 @@ describe("Belot", () => {
     expect(belotCpuTrumpCandidateSucceeded({ value: 100 })).toBe(true);
     expect(belotCpuTrumpCandidateSucceeded({ value: 0 })).toBe(false);
     expect(belotCpuTrumpCandidateSucceeded({ value: -100 })).toBe(false);
+    expect(
+      belotCpuTrumpCandidateSucceeded({ value: 100, callerFell: true }),
+    ).toBe(false);
+    expect(
+      belotCpuTrumpCandidateSucceeded({ value: -100, callerFell: false }),
+    ).toBe(true);
+    expect(belotCpuTrumpCandidateSucceeded({ value: 260 }, 250)).toBe(true);
+    expect(belotCpuTrumpCandidateSucceeded({ value: 260 }, 300)).toBe(false);
   });
 
   it("uses cheap Belot search moves for distant rollout plies", () => {
@@ -3391,6 +3399,64 @@ describe("Belot", () => {
       firstPlayerId: "p2",
       trumpRound: 2,
       trumpPasses: [],
+    };
+
+    expect(
+      chooseBelotCpuAction(state, "p2", { rng: seededRng(1) }),
+    ).toEqual({
+      type: "trump-pass",
+      playerId: "p2",
+    });
+  }, 10_000);
+
+  it("does not treat a running score lead as trump-call success", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trump-round-one",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [
+            card("IX", "acorns"),
+            card("O", "bells"),
+            card("X", "bells"),
+            card("VII", "hearts"),
+            card("K", "hearts"),
+            card("A", "hearts"),
+            card("VIII", "leaves"),
+            card("IX", "leaves"),
+          ],
+          hiddenCards: [card("VIII", "hearts"), card("O", "hearts")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [
+            card("O", "acorns"),
+            card("X", "acorns"),
+            card("VII", "bells"),
+            card("VIII", "bells"),
+            card("IX", "hearts"),
+            card("U", "hearts"),
+            card("VII", "leaves"),
+            card("U", "leaves"),
+          ],
+          hiddenCards: [card("K", "acorns"), card("A", "acorns")],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 160,
+        },
+      ],
+      upcard: card("A", "leaves"),
+      dealerPlayerId: "p2",
+      firstPlayerId: "p1",
+      trumpTurnPlayerId: "p2",
+      trumpRound: 1,
+      trumpPasses: ["p1"],
     };
 
     expect(
