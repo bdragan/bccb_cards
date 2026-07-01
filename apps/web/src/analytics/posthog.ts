@@ -4,6 +4,7 @@ type AnalyticsProperties = Record<
   string,
   boolean | number | string | null | undefined
 >;
+type AnalyticsEventName = "first_hand_completed" | "game_completed";
 
 let initialized = false;
 let initialAcquisitionProperties: AnalyticsProperties | undefined;
@@ -80,7 +81,7 @@ export function initAnalytics() {
     api_host:
       import.meta.env.VITE_POSTHOG_HOST ?? "https://eu.i.posthog.com",
     autocapture: false,
-    capture_pageview: true,
+    capture_pageview: false,
     disable_session_recording: true,
   });
 
@@ -89,7 +90,7 @@ export function initAnalytics() {
 }
 
 export function trackEvent(
-  eventName: string,
+  eventName: AnalyticsEventName,
   properties: AnalyticsProperties = {},
 ) {
   if (!initialized) {

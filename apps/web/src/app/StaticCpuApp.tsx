@@ -36,6 +36,8 @@ const cpuDecisionDelayMs = 250;
 const cpuPlayDelayMs = 450;
 const cpuCompletedTrickLeadDelayMs = 2_000;
 export const staticCpuStorageKey = "card-games-static-cpu-state-v1";
+export const staticCpuFirstHandCompletedStorageKey =
+  "card-games-static-cpu-first-hand-completed-v1";
 
 type StaticCpuStoredGame = {
   version: 1;
@@ -43,10 +45,8 @@ type StaticCpuStoredGame = {
   hasHumanProgress: boolean;
   gameStartedAt: number;
   trackedHandCount: number;
-  firstCardPlayTracked: boolean;
   gameCompletedTracked: boolean;
   playerProgressUpdated?: boolean;
-  trackedError?: string;
 };
 
 const belotPhases = new Set<BelotState["phase"]>([
@@ -213,7 +213,6 @@ function isStoredStaticCpuGame(value: unknown): value is StaticCpuStoredGame {
     typeof stored.hasHumanProgress === "boolean" &&
     typeof stored.gameStartedAt === "number" &&
     typeof stored.trackedHandCount === "number" &&
-    typeof stored.firstCardPlayTracked === "boolean" &&
     typeof stored.gameCompletedTracked === "boolean" &&
     isStoredBelotStateShape(state)
   );
@@ -240,6 +239,28 @@ function writeStoredStaticCpuGame(stored: StaticCpuStoredGame) {
     window.localStorage.setItem(staticCpuStorageKey, JSON.stringify(stored));
   } catch {
     // Local storage can be unavailable or full. The game should remain playable.
+  }
+}
+
+function readFirstHandCompletedTracked() {
+  try {
+    return (
+      window.localStorage.getItem(staticCpuFirstHandCompletedStorageKey) ===
+      "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function writeFirstHandCompletedTracked() {
+  try {
+    window.localStorage.setItem(
+      staticCpuFirstHandCompletedStorageKey,
+      "true",
+    );
+  } catch {
+    // Analytics de-duplication should not affect gameplay if storage is unavailable.
   }
 }
 
@@ -317,10 +338,8 @@ export function StaticCpuApp() {
   const pendingStateRef = useRef<BelotState | null>(null);
   const gameStartedAtRef = useRef(Date.now());
   const trackedHandCountRef = useRef(0);
-  const firstCardPlayTrackedRef = useRef(false);
   const gameCompletedTrackedRef = useRef(false);
   const playerProgressUpdatedRef = useRef(false);
-  const trackedErrorRef = useRef<string | undefined>(undefined);
 
   const createState = useCallback(() => {
     let nextState = createBelotInitialState([
@@ -343,6 +362,10 @@ export function StaticCpuApp() {
   }, [messages.cpu, messages.offlineYou]);
 
   const [storedGame] = useState(() => readStoredStaticCpuGame());
+  const firstHandCompletedTrackedRef = useRef(
+    readFirstHandCompletedTracked() ||
+      Boolean(storedGame && storedGame.trackedHandCount > 0),
+  );
   const [levelProgress, setLevelProgress] = useState(() =>
     readCpuLevelProgress(),
   );
@@ -359,11 +382,9 @@ export function StaticCpuApp() {
 
     gameStartedAtRef.current = storedGame.gameStartedAt;
     trackedHandCountRef.current = storedGame.trackedHandCount;
-    firstCardPlayTrackedRef.current = storedGame.firstCardPlayTracked;
     gameCompletedTrackedRef.current = storedGame.gameCompletedTracked;
     playerProgressUpdatedRef.current =
       storedGame.playerProgressUpdated ?? false;
-    trackedErrorRef.current = storedGame.trackedError;
 
     const storedState = withStaticCpuPlayerNames(storedGame.state, messages);
 
@@ -374,10 +395,8 @@ export function StaticCpuApp() {
     if (shouldStartNewGameAfterLoad(storedGame)) {
       gameStartedAtRef.current = Date.now();
       trackedHandCountRef.current = 0;
-      firstCardPlayTrackedRef.current = false;
       gameCompletedTrackedRef.current = false;
       playerProgressUpdatedRef.current = false;
-      trackedErrorRef.current = undefined;
 
       return createState();
     }
@@ -386,7 +405,9 @@ export function StaticCpuApp() {
   });
 
   useEffect(() => {
-    trackEvent("game_loaded");
+    if (firstHandCompletedTrackedRef.current) {
+      writeFirstHandCompletedTracked();
+    }
   }, []);
 
   useEffect(() => {
@@ -420,22 +441,28 @@ export function StaticCpuApp() {
       const lastHandResult =
         belotState.handResults?.at(-1) ?? belotState.lastHandResult;
 
-      trackEvent("hand_completed", {
-        hand_number: handCount,
-        phase: belotState.phase,
-        duration_seconds: elapsedSeconds(gameStartedAtRef.current),
-        trump_suit: lastHandResult?.trumpSuit,
-        caller: playerKind(lastHandResult?.callerPlayerId),
-        hand_winner: playerKind(lastHandResult?.lastTrickWinnerPlayerId),
-        human_hand_score: lastHandResult?.handScoreByPlayer[humanPlayerId] ?? 0,
-        cpu_hand_score: lastHandResult?.handScoreByPlayer[cpuPlayerId] ?? 0,
-        human_total_score:
-          belotState.players.find((player) => player.playerId === humanPlayerId)
-            ?.totalScore ?? 0,
-        cpu_total_score:
-          belotState.players.find((player) => player.playerId === cpuPlayerId)
-            ?.totalScore ?? 0,
-      });
+      if (!firstHandCompletedTrackedRef.current) {
+        trackEvent("first_hand_completed", {
+          hand_number: handCount,
+          phase: belotState.phase,
+          duration_seconds: elapsedSeconds(gameStartedAtRef.current),
+          trump_suit: lastHandResult?.trumpSuit,
+          caller: playerKind(lastHandResult?.callerPlayerId),
+          hand_winner: playerKind(lastHandResult?.lastTrickWinnerPlayerId),
+          human_hand_score:
+            lastHandResult?.handScoreByPlayer[humanPlayerId] ?? 0,
+          cpu_hand_score: lastHandResult?.handScoreByPlayer[cpuPlayerId] ?? 0,
+          human_total_score:
+            belotState.players.find(
+              (player) => player.playerId === humanPlayerId,
+            )?.totalScore ?? 0,
+          cpu_total_score:
+            belotState.players.find((player) => player.playerId === cpuPlayerId)
+              ?.totalScore ?? 0,
+        });
+        firstHandCompletedTrackedRef.current = true;
+        writeFirstHandCompletedTracked();
+      }
 
       trackedHandCountRef.current = handCount;
     }
@@ -478,17 +505,6 @@ export function StaticCpuApp() {
       });
     }
 
-    if (
-      belotState.phase === "error" &&
-      belotState.error !== trackedErrorRef.current
-    ) {
-      trackEvent("game_error", {
-        phase: belotState.phase,
-        error: belotState.error,
-        duration_seconds: elapsedSeconds(gameStartedAtRef.current),
-      });
-      trackedErrorRef.current = belotState.error;
-    }
   }, [belotState]);
 
   useEffect(() => {
@@ -498,10 +514,8 @@ export function StaticCpuApp() {
       hasHumanProgress,
       gameStartedAt: gameStartedAtRef.current,
       trackedHandCount: trackedHandCountRef.current,
-      firstCardPlayTracked: firstCardPlayTrackedRef.current,
       gameCompletedTracked: gameCompletedTrackedRef.current,
       playerProgressUpdated: playerProgressUpdatedRef.current,
-      trackedError: trackedErrorRef.current,
     });
   }, [belotState, hasHumanProgress]);
 
@@ -620,60 +634,23 @@ export function StaticCpuApp() {
     : undefined;
 
   function applyAction(action: BelotAction) {
-    if (!hasHumanProgress) {
-      trackEvent("game_started", {
-        first_action: action.type,
-        phase: belotState.phase,
-      });
-    }
-
-    if (
-      action.type === "play-card" &&
-      action.playerId === humanPlayerId &&
-      !firstCardPlayTrackedRef.current
-    ) {
-      trackEvent("first_card_played", {
-        completed_tricks: belotState.completedTricks.length,
-        hand_number:
-          (belotState.handResults?.length ??
-            (belotState.lastHandResult ? 1 : 0)) + 1,
-      });
-      firstCardPlayTrackedRef.current = true;
-    }
-
     setBelotState((current) => applyBelotAction(current, action));
     setHasHumanProgress(true);
   }
 
   function restartGame() {
-    trackEvent("new_game_started", {
-      previous_duration_seconds: elapsedSeconds(gameStartedAtRef.current),
-      previous_hand_count:
-        belotState.handResults?.length ?? (belotState.lastHandResult ? 1 : 0),
-      previous_winner: playerKind(belotState.winnerPlayerId),
-    });
-
     gameStartedAtRef.current = Date.now();
     trackedHandCountRef.current = 0;
-    firstCardPlayTrackedRef.current = false;
     gameCompletedTrackedRef.current = false;
     playerProgressUpdatedRef.current = false;
-    trackedErrorRef.current = undefined;
     setResignConfirmationOpen(false);
     setHasHumanProgress(false);
     setBelotState(createState());
   }
 
   function resignGame() {
-    trackEvent("game_resigned", {
-      duration_seconds: elapsedSeconds(gameStartedAtRef.current),
-      hand_count:
-        belotState.handResults?.length ?? (belotState.lastHandResult ? 1 : 0),
-    });
-
     pendingStateRef.current = null;
     requestIdRef.current += 1;
-    gameCompletedTrackedRef.current = true;
     setResignConfirmationOpen(false);
     setHasHumanProgress(true);
     setBelotState((current) => ({

@@ -899,7 +899,7 @@ export function BelotTable({
         ? [
             completedTrickAnimationKey(
               state.completedTricks.length,
-              state.completedTricks[state.completedTricks.length - 1]!,
+              state.completedTricks[state.completedTricks.length - 1],
             ),
           ]
         : [],

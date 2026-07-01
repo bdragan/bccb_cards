@@ -1,7 +1,7 @@
 import {
   applyBelotAction,
-  createBelotInitialState,
   type BelotState,
+  createBelotInitialState,
 } from "@card-games/game-core";
 import {
   act,
@@ -15,9 +15,18 @@ import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { StaticCpuApp, staticCpuStorageKey } from "../app/StaticCpuApp";
+import { trackEvent } from "../analytics/posthog";
+import {
+  StaticCpuApp,
+  staticCpuFirstHandCompletedStorageKey,
+  staticCpuStorageKey,
+} from "../app/StaticCpuApp";
 import { I18nProvider, setLocaleForTests } from "../i18n";
 import { cpuLevelProgressStorageKey } from "../progress/cpu-levels";
+
+vi.mock("../analytics/posthog", () => ({
+  trackEvent: vi.fn(),
+}));
 
 const humanPlayerId = "offline-human";
 const cpuPlayerId = "offline-cpu";
@@ -41,10 +50,12 @@ describe("StaticCpuApp", () => {
     setLocaleForTests("en");
     vi.stubGlobal("Worker", TestWorker);
     vi.spyOn(Math, "random").mockReturnValue(0.75);
+    vi.mocked(trackEvent).mockClear();
   });
 
   afterEach(() => {
     localStorage.removeItem(staticCpuStorageKey);
+    localStorage.removeItem(staticCpuFirstHandCompletedStorageKey);
     localStorage.removeItem(cpuLevelProgressStorageKey);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -154,7 +165,6 @@ describe("StaticCpuApp", () => {
     overrides: Partial<{
       hasHumanProgress: boolean;
       trackedHandCount: number;
-      firstCardPlayTracked: boolean;
       gameCompletedTracked: boolean;
       playerProgressUpdated: boolean;
     }> = {},
@@ -167,7 +177,6 @@ describe("StaticCpuApp", () => {
         hasHumanProgress: true,
         gameStartedAt: Date.now(),
         trackedHandCount: 0,
-        firstCardPlayTracked: false,
         gameCompletedTracked: false,
         ...overrides,
       }),
@@ -288,6 +297,16 @@ describe("StaticCpuApp", () => {
       within(currentTrick).getByRole("button", { name: "New game" }),
     ).toBeInTheDocument();
     expect(screen.getAllByTestId("belot-winner")).toHaveLength(1);
+
+    await waitFor(() => {
+      expect(trackEvent).toHaveBeenCalledWith(
+        "game_completed",
+        expect.objectContaining({
+          hand_count: 0,
+          winner: "cpu",
+        }),
+      );
+    });
   });
 
   it("keeps the game active when resign confirmation is cancelled", async () => {
@@ -431,9 +450,7 @@ describe("StaticCpuApp", () => {
   });
 
   it("resumes a human trick-play turn without replaying the previous completed trick", async () => {
-    writeStoredGame(createHumanTurnAfterCompletedTrickState(), {
-      firstCardPlayTracked: true,
-    });
+    writeStoredGame(createHumanTurnAfterCompletedTrickState());
 
     render(
       <I18nProvider>
@@ -461,9 +478,7 @@ describe("StaticCpuApp", () => {
     vi.useFakeTimers();
 
     try {
-      writeStoredGame(createCpuTurnTrickPlayState(), {
-        firstCardPlayTracked: true,
-      });
+      writeStoredGame(createCpuTurnTrickPlayState());
 
       render(
         <I18nProvider>
@@ -500,7 +515,6 @@ describe("StaticCpuApp", () => {
   it("starts the next hand instead of showing a stored completed hand result", async () => {
     writeStoredGame(storedCompletedHandState("hand-complete"), {
       trackedHandCount: 1,
-      firstCardPlayTracked: true,
     });
 
     render(
@@ -520,6 +534,54 @@ describe("StaticCpuApp", () => {
       expect(stored.state?.phase).toBe("trump-round-one");
       expect(stored.state?.lastHandResult).toBeUndefined();
     });
+  });
+
+  it("tracks the first completed hand once and stores the local analytics guard", async () => {
+    writeStoredGame(storedCompletedHandState("hand-complete"));
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(trackEvent).toHaveBeenCalledWith(
+        "first_hand_completed",
+        expect.objectContaining({
+          caller: "human",
+          hand_number: 1,
+          hand_winner: "human",
+          trump_suit: "hearts",
+        }),
+      );
+    });
+    expect(localStorage.getItem(staticCpuFirstHandCompletedStorageKey)).toBe(
+      "true",
+    );
+  });
+
+  it("does not track the first completed hand after the local analytics guard exists", async () => {
+    localStorage.setItem(staticCpuFirstHandCompletedStorageKey, "true");
+    writeStoredGame(storedCompletedHandState("hand-complete"));
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(staticCpuStorageKey) ?? "null",
+      ) as { state?: { phase?: string } };
+
+      expect(stored.state?.phase).toBe("trump-round-one");
+    });
+    expect(trackEvent).not.toHaveBeenCalledWith(
+      "first_hand_completed",
+      expect.anything(),
+    );
   });
 
   it("updates stored CPU level progress after a finished game", async () => {
@@ -645,7 +707,6 @@ describe("StaticCpuApp", () => {
         hasHumanProgress: true,
         gameStartedAt: Date.now(),
         trackedHandCount: 0,
-        firstCardPlayTracked: false,
         gameCompletedTracked: false,
       }),
     ],
@@ -665,7 +726,6 @@ describe("StaticCpuApp", () => {
         hasHumanProgress: true,
         gameStartedAt: Date.now(),
         trackedHandCount: 1,
-        firstCardPlayTracked: true,
         gameCompletedTracked: false,
       }),
     ],

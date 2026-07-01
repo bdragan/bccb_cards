@@ -35,6 +35,13 @@ describe("posthog analytics", () => {
 
     expect(window.location.href).toBe("http://localhost:3000/#game");
     expect(posthog.init).toHaveBeenCalledTimes(1);
+    expect(posthog.init).toHaveBeenCalledWith(
+      "test-key",
+      expect.objectContaining({
+        autocapture: false,
+        capture_pageview: false,
+      }),
+    );
   });
 
   it("keeps initial attribution properties after cleaning the URL", async () => {
@@ -47,10 +54,10 @@ describe("posthog analytics", () => {
     const { initAnalytics, trackEvent } = await import("../analytics/posthog");
 
     initAnalytics();
-    trackEvent("game_loaded");
+    trackEvent("game_completed");
 
     expect(posthog.capture).toHaveBeenCalledWith(
-      "game_loaded",
+      "game_completed",
       expect.objectContaining({
         fbclid: "facebook-click",
         game: "belot",
