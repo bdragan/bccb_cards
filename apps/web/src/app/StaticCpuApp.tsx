@@ -78,6 +78,10 @@ function elapsedSeconds(startedAt: number) {
   return Math.round((Date.now() - startedAt) / 1000);
 }
 
+function cpuLevelRank(progress: CpuLevelProgress) {
+  return `${progress.level} ${progress.points}`;
+}
+
 function visibleCpuLevelRank(progress: CpuLevelProgress, messages: Messages) {
   const levelName = messages.cpuLevelNames[progress.level];
 
@@ -476,6 +480,9 @@ export function StaticCpuApp() {
         duration_seconds: elapsedSeconds(gameStartedAtRef.current),
         hand_count: handCount,
         winner: playerKind(belotState.winnerPlayerId),
+        player_current_rank: cpuLevelRank(levelProgress),
+        player_current_rank_level: levelProgress.level,
+        player_current_rank_points: levelProgress.points,
         human_total_score:
           belotState.players.find((player) => player.playerId === humanPlayerId)
             ?.totalScore ?? 0,
@@ -505,7 +512,7 @@ export function StaticCpuApp() {
       });
     }
 
-  }, [belotState]);
+  }, [belotState, levelProgress]);
 
   useEffect(() => {
     writeStoredStaticCpuGame({

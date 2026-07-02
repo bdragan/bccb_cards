@@ -275,6 +275,10 @@ describe("StaticCpuApp", () => {
 
   it("confirms resigning in the trick area and shows the CPU as winner there", async () => {
     const user = userEvent.setup();
+    localStorage.setItem(
+      cpuLevelProgressStorageKey,
+      JSON.stringify({ level: "Silver", points: 3 }),
+    );
 
     render(
       <I18nProvider>
@@ -303,6 +307,9 @@ describe("StaticCpuApp", () => {
         "game_completed",
         expect.objectContaining({
           hand_count: 0,
+          player_current_rank: "Silver 3",
+          player_current_rank_level: "Silver",
+          player_current_rank_points: 3,
           winner: "cpu",
         }),
       );
