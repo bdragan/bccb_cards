@@ -78,7 +78,8 @@ input {
 
 .cpu-level-icon {
   --cpu-level-color: #f4a35d;
-  --cpu-level-bg: #3d2719;
+  --cpu-level-bg: #1f5f45;
+  --cpu-level-bg-deep: #12382c;
   --cpu-level-ring: #fed7aa;
   --cpu-level-detail: #fff7ed;
   display: inline-grid;
@@ -90,7 +91,7 @@ input {
   border-radius: 9999px;
   background:
     radial-gradient(circle at 32% 24%, rgb(255 255 255 / 36%), transparent 32%),
-    linear-gradient(145deg, var(--cpu-level-bg), #10251d);
+    linear-gradient(145deg, var(--cpu-level-bg), var(--cpu-level-bg-deep));
   color: var(--cpu-level-color);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 24%),
@@ -146,49 +147,56 @@ input {
 
 .cpu-level-icon[data-level="Bronze"] {
   --cpu-level-color: #c98247;
-  --cpu-level-bg: #3d2719;
+  --cpu-level-bg: #245f42;
+  --cpu-level-bg-deep: #14372a;
   --cpu-level-ring: #fed7aa;
   --cpu-level-detail: #fff7ed;
 }
 
 .cpu-level-icon[data-level="Silver"] {
   --cpu-level-color: #d8e2ec;
-  --cpu-level-bg: #2f3d45;
+  --cpu-level-bg: #2a6850;
+  --cpu-level-bg-deep: #173d32;
   --cpu-level-ring: #f8fafc;
   --cpu-level-detail: #ffffff;
 }
 
 .cpu-level-icon[data-level="Gold"] {
   --cpu-level-color: #f3c84b;
-  --cpu-level-bg: #4a3414;
+  --cpu-level-bg: #28633f;
+  --cpu-level-bg-deep: #173826;
   --cpu-level-ring: #fef08a;
   --cpu-level-detail: #fff9c9;
 }
 
 .cpu-level-icon[data-level="Platinum"] {
   --cpu-level-color: #c8ece8;
-  --cpu-level-bg: #263d43;
+  --cpu-level-bg: #286a57;
+  --cpu-level-bg-deep: #173f35;
   --cpu-level-ring: #e0fffb;
   --cpu-level-detail: #ffffff;
 }
 
 .cpu-level-icon[data-level="Diamond"] {
   --cpu-level-color: #74dff0;
-  --cpu-level-bg: #143747;
+  --cpu-level-bg: #226a5e;
+  --cpu-level-bg-deep: #123e38;
   --cpu-level-ring: #cffafe;
   --cpu-level-detail: #ffffff;
 }
 
 .cpu-level-icon[data-level="Master"] {
   --cpu-level-color: #eadb84;
-  --cpu-level-bg: #43351d;
+  --cpu-level-bg: #2d6742;
+  --cpu-level-bg-deep: #183b2a;
   --cpu-level-ring: #fff7ad;
   --cpu-level-detail: #fffbe0;
 }
 
 .cpu-level-icon[data-level="Grandmaster"] {
   --cpu-level-color: #ffdf70;
-  --cpu-level-bg: #4a2430;
+  --cpu-level-bg: #2f6547;
+  --cpu-level-bg-deep: #193a2e;
   --cpu-level-ring: #fff1a8;
   --cpu-level-detail: #ffffff;
 }
