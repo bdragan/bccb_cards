@@ -32,6 +32,7 @@ import {
   isGrandmasterLevel,
 } from "../progress/cpu-levels";
 import { Button } from "./Button";
+import { CpuLevelIcon } from "./CpuLevelIcon";
 
 const suitOrder: Suit[] = ["acorns", "bells", "hearts", "leaves"];
 const rankOrder: Rank[] = ["VII", "VIII", "IX", "X", "U", "O", "K", "A"];
@@ -784,12 +785,17 @@ function LevelProgress({ progress }: { progress: CpuLevelProgress }) {
 
   if (isGrandmasterLevel(progress.level) || !threshold) {
     return (
-      <p
-        className="mt-3 text-sm font-bold tracking-normal"
+      <div
+        className="mt-3 flex items-center justify-center gap-2 text-sm font-bold tracking-normal"
         data-testid="cpu-level-progress"
       >
-        {label}
-      </p>
+        <CpuLevelIcon
+          className="cpu-level-icon--progress"
+          level={progress.level}
+          testId="cpu-level-progress-icon"
+        />
+        <span>{label}</span>
+      </div>
     );
   }
 
@@ -803,7 +809,14 @@ function LevelProgress({ progress }: { progress: CpuLevelProgress }) {
       aria-valuemax={threshold}
       aria-valuenow={progress.points}
     >
-      <p className="text-sm font-bold tracking-normal">{label}</p>
+      <p className="flex items-center justify-center gap-2 text-sm font-bold tracking-normal">
+        <CpuLevelIcon
+          className="cpu-level-icon--progress"
+          level={progress.level}
+          testId="cpu-level-progress-icon"
+        />
+        <span>{label}</span>
+      </p>
       <div className="flex justify-center gap-1.5" aria-hidden="true">
         {Array.from({ length: threshold }, (_, index) => (
           <span
