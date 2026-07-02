@@ -9,7 +9,13 @@ describe("i18n locale detection", () => {
     ["sr-Latn-ME"],
     ["hr-HR"],
     ["cnr-ME"],
+    ["en-RS"],
+    ["en-BA"],
+    ["en-HR"],
     ["en-ME"],
+    ["de-RS"],
+    ["de-BA"],
+    ["de-HR"],
     ["de-ME"],
   ])("defaults %s to Serbian", (languageTag) => {
     expect(detectLocaleFromLanguageTags([languageTag])).toBe("sr");

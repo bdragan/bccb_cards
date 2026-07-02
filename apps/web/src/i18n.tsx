@@ -15,10 +15,8 @@ export type Locale = (typeof locales)[number];
 
 const storageKey = "card-games-locale";
 const fallbackLocale: Locale = "en";
-const temporaryDefaultLocale: Locale = "sr";
-const useTemporaryDefaultLocale = true;
 const serbianLocaleLanguages = new Set(["bs", "cnr", "hr", "sr"]);
-const serbianLocaleRegions = new Set(["me"]);
+const serbianLocaleRegions = new Set(["ba", "hr", "me", "rs"]);
 
 function isLocale(value: string | null | undefined): value is Locale {
   return locales.includes(value as Locale);
@@ -70,19 +68,13 @@ function detectBrowserLocale(): Locale {
   return detectLocaleFromLanguageTags(languages);
 }
 
-function defaultLocale(): Locale {
-  return useTemporaryDefaultLocale
-    ? temporaryDefaultLocale
-    : detectBrowserLocale();
-}
-
 function readStoredLocale(): Locale {
   if (typeof localStorage === "undefined") {
-    return defaultLocale();
+    return detectBrowserLocale();
   }
 
   const stored = localStorage.getItem(storageKey);
-  return isLocale(stored) ? stored : defaultLocale();
+  return isLocale(stored) ? stored : detectBrowserLocale();
 }
 
 let activeLocale: Locale = readStoredLocale();
