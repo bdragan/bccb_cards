@@ -220,6 +220,7 @@ function RankPopover({
         onClick={() => setOpen((current) => !current)}
       >
         <CpuLevelIcon
+          className="cpu-level-icon--chip"
           level={levelProgress.level}
           testId="player-current-rank-icon"
         />
