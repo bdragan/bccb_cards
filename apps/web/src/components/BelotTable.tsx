@@ -821,10 +821,9 @@ function LevelProgress({ progress }: { progress: CpuLevelProgress }) {
         {Array.from({ length: threshold }, (_, index) => (
           <span
             key={index}
-            className={`h-2.5 w-2.5 rounded-full border border-ink/70 ${
-              index < progress.points ? "bg-emerald-600" : "bg-transparent"
-            }`}
+            className="cpu-level-point"
             data-filled={index < progress.points ? "true" : "false"}
+            data-level={progress.level}
           />
         ))}
       </div>

@@ -155,6 +155,28 @@ input {
   height: 1.1rem;
 }
 
+.cpu-level-point {
+  --cpu-level-bg: #1f5f45;
+  --cpu-level-bg-deep: #12382c;
+  display: block;
+  box-sizing: border-box;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 1px solid rgb(24 33 47 / 70%);
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.cpu-level-point[data-filled="true"] {
+  border-color: rgb(24 33 47 / 70%);
+  background: linear-gradient(
+    145deg,
+    var(--cpu-level-bg),
+    var(--cpu-level-bg-deep)
+  );
+  box-shadow: none;
+}
+
 .cpu-level-icon[data-level="Bronze"] {
   --cpu-level-color: #c98247;
   --cpu-level-bg: #245f42;
@@ -209,6 +231,41 @@ input {
   --cpu-level-bg-deep: #193a2e;
   --cpu-level-ring: #fff1a8;
   --cpu-level-detail: #ffffff;
+}
+
+.cpu-level-point[data-level="Bronze"] {
+  --cpu-level-bg: #398861;
+  --cpu-level-bg-deep: #266249;
+}
+
+.cpu-level-point[data-level="Silver"] {
+  --cpu-level-bg: #408d6f;
+  --cpu-level-bg-deep: #2b6854;
+}
+
+.cpu-level-point[data-level="Gold"] {
+  --cpu-level-bg: #3e885e;
+  --cpu-level-bg-deep: #296345;
+}
+
+.cpu-level-point[data-level="Platinum"] {
+  --cpu-level-bg: #409079;
+  --cpu-level-bg-deep: #2b6b5b;
+}
+
+.cpu-level-point[data-level="Diamond"] {
+  --cpu-level-bg: #389082;
+  --cpu-level-bg-deep: #266b61;
+}
+
+.cpu-level-point[data-level="Master"] {
+  --cpu-level-bg: #438b5f;
+  --cpu-level-bg-deep: #2d6646;
+}
+
+.cpu-level-point[data-level="Grandmaster"] {
+  --cpu-level-bg: #458a63;
+  --cpu-level-bg-deep: #2e664b;
 }
 
 @media (max-width: 767px) {

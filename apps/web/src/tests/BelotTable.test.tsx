@@ -906,6 +906,8 @@ describe("BelotTable", () => {
     expect(
       Array.from(dots).map((dot) => dot.getAttribute("data-filled")),
     ).toEqual(["true", "true", "true", "false", "false"]);
+    expect(Array.from(dots).map((dot) => dot.getAttribute("data-level")))
+      .toEqual(["Silver", "Silver", "Silver", "Silver", "Silver"]);
   });
 
   it("translates level names and keeps capped rank points in dots only", () => {
