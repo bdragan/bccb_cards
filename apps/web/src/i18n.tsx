@@ -93,6 +93,10 @@ export type Messages = {
   login: string;
   register: string;
   createAccount: string;
+  analyticsConsentTitle: string;
+  analyticsConsentBody: string;
+  analyticsConsentAllow: string;
+  analyticsConsentDecline: string;
   email: string;
   password: string;
   displayName: string;
@@ -203,6 +207,11 @@ export const messages: Record<Locale, Messages> = {
     login: "Prijava",
     register: "Registracija",
     createAccount: "Napravi nalog",
+    analyticsConsentTitle: "Analitika i čuvanje podataka",
+    analyticsConsentBody:
+      "Koristimo neophodno čuvanje u pregledaču da aplikacija radi. Uz tvoju dozvolu koristimo dodatnu analitiku da poboljšamo igru.",
+    analyticsConsentAllow: "Prihvati",
+    analyticsConsentDecline: "Odbij",
     email: "Email",
     password: "Lozinka",
     displayName: "Ime za prikaz",
@@ -350,6 +359,11 @@ export const messages: Record<Locale, Messages> = {
     login: "Login",
     register: "Register",
     createAccount: "Create account",
+    analyticsConsentTitle: "Analytics and browser storage",
+    analyticsConsentBody:
+      "We use necessary browser storage to make the app work. With your permission, we use optional analytics to improve the game.",
+    analyticsConsentAllow: "Accept",
+    analyticsConsentDecline: "Reject",
     email: "Email",
     password: "Password",
     displayName: "Display name",
@@ -490,6 +504,11 @@ export const messages: Record<Locale, Messages> = {
     login: "Connexion",
     register: "Inscription",
     createAccount: "Créer un compte",
+    analyticsConsentTitle: "Analytique et stockage du navigateur",
+    analyticsConsentBody:
+      "Nous utilisons le stockage nécessaire du navigateur pour faire fonctionner l'application. Avec votre accord, nous utilisons une analytique optionnelle pour améliorer le jeu.",
+    analyticsConsentAllow: "Accepter",
+    analyticsConsentDecline: "Refuser",
     email: "Email",
     password: "Mot de passe",
     displayName: "Nom affiché",
