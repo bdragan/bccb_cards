@@ -607,7 +607,10 @@ describe("StaticCpuApp", () => {
     const rankButton = await screen.findByRole("button", {
       name: "Your current rank is: Bronze",
     });
-    expect(rankButton).toHaveTextContent("Bronze");
+    expect(rankButton).not.toHaveTextContent("Bronze");
+    expect(
+      within(rankButton).getByTestId("player-current-rank-icon"),
+    ).toHaveAttribute("data-level", "Bronze");
     expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "New game" }),
@@ -680,11 +683,13 @@ describe("StaticCpuApp", () => {
       </I18nProvider>,
     );
 
+    const rankButton = await screen.findByRole("button", {
+      name: "Your current rank is: Bronze",
+    });
+    expect(rankButton).not.toHaveTextContent("Bronze");
     expect(
-      await screen.findByRole("button", {
-        name: "Your current rank is: Bronze",
-      }),
-    ).toHaveTextContent("Bronze");
+      within(rankButton).getByTestId("player-current-rank-icon"),
+    ).toHaveAttribute("data-level", "Bronze");
     expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
 
     await waitFor(() => {
