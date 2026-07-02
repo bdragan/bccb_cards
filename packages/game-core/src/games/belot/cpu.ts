@@ -32,8 +32,6 @@ export type BelotCpuOptions = {
   rng?: () => number;
   trumpSearchPlies?: number;
   trumpMonteCarloSamples?: number;
-  trumpMinSuccessRate?: number;
-  trumpHighSuccessRate?: number;
   trumpMinCardsForStandardSuccess?: number;
   trumpMinExpectedValue?: number;
 };
