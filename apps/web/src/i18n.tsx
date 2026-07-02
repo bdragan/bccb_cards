@@ -17,6 +17,7 @@ const storageKey = "card-games-locale";
 const fallbackLocale: Locale = "en";
 const serbianLocaleLanguages = new Set(["bs", "cnr", "hr", "sr"]);
 const serbianLocaleRegions = new Set(["ba", "hr", "me", "rs"]);
+const frenchLocaleRegions = new Set(["fr"]);
 
 function isLocale(value: string | null | undefined): value is Locale {
   return locales.includes(value as Locale);
@@ -42,6 +43,10 @@ export function detectLocaleFromLanguageTags(
       serbianLocaleRegions.has(region ?? "")
     ) {
       return "sr";
+    }
+
+    if (frenchLocaleRegions.has(region ?? "")) {
+      return "fr";
     }
 
     if (isLocale(language)) {

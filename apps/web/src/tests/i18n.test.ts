@@ -21,6 +21,10 @@ describe("i18n locale detection", () => {
     expect(detectLocaleFromLanguageTags([languageTag])).toBe("sr");
   });
 
+  it.each([["en-FR"], ["de-FR"]])("defaults %s to French", (languageTag) => {
+    expect(detectLocaleFromLanguageTags([languageTag])).toBe("fr");
+  });
+
   it("uses supported browser languages", () => {
     expect(detectLocaleFromLanguageTags(["fr-FR"])).toBe("fr");
     expect(detectLocaleFromLanguageTags(["en-US"])).toBe("en");
