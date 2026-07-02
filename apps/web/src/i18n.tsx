@@ -10,7 +10,7 @@ import {
 
 import type { CpuLevelName } from "./progress/cpu-levels";
 
-export const locales = ["en", "fr", "sr"] as const;
+export const locales = ["en", "fr", "sr", "bg"] as const;
 export type Locale = (typeof locales)[number];
 
 const storageKey = "card-games-locale";
@@ -18,6 +18,7 @@ const fallbackLocale: Locale = "en";
 const serbianLocaleLanguages = new Set(["bs", "cnr", "hr", "sr"]);
 const serbianLocaleRegions = new Set(["ba", "hr", "me", "rs"]);
 const frenchLocaleRegions = new Set(["fr"]);
+const bulgarianLocaleRegions = new Set(["bg"]);
 
 function isLocale(value: string | null | undefined): value is Locale {
   return locales.includes(value as Locale);
@@ -47,6 +48,10 @@ export function detectLocaleFromLanguageTags(
 
     if (frenchLocaleRegions.has(region ?? "")) {
       return "fr";
+    }
+
+    if (language === "bg" || bulgarianLocaleRegions.has(region ?? "")) {
+      return "bg";
     }
 
     if (isLocale(language)) {
@@ -353,6 +358,159 @@ export const messages: Record<Locale, Messages> = {
     noTricksCompleted: "Još nema završenih štihova.",
     rules: "Pravila",
     rulesOfBelotSuffix: "za Belu 1v1.",
+  },
+  bg: {
+    localeName: "Български",
+    language: "Език",
+    switchLanguage: (localeName) => `Смени езика на ${localeName}`,
+    menu: "Меню",
+    appTitle: "Белот 1v1",
+    authTitle: "Белот",
+    login: "Вход",
+    register: "Регистрация",
+    createAccount: "Създай акаунт",
+    analyticsConsentTitle: "Аналитика и съхранение в браузъра",
+    analyticsConsentBody:
+      "Използваме задължително съхранение в браузъра, за да работи приложението. С твое разрешение използваме допълнителна аналитика, за да подобряваме играта.",
+    analyticsConsentAllow: "Приемам",
+    analyticsConsentDecline: "Отказвам",
+    email: "Email",
+    password: "Парола",
+    displayName: "Име за показване",
+    signedIn: "Влязъл",
+    logout: "Изход",
+    leaveMatch: "Напусни мача",
+    resignGame: "Предай играта",
+    confirmResignGame: "Предаваш играта?",
+    yes: "Да",
+    no: "Не",
+    room: "Стая",
+    createRoom: "Създай стая",
+    playBelotVsCpu: "Играй белот срещу CPU",
+    roomCode: "Код на стаята",
+    join: "Влез",
+    matchHistory: "История на мачовете",
+    completedMatches: (count) => `${count} завършени мача`,
+    lobby: "Лоби",
+    game: "Игра",
+    ready: "Готов",
+    unready: "Не съм готов",
+    waiting: "Изчакване",
+    lobbyAutoStart: (gameName) =>
+      `Сървърът стартира ${gameName} автоматично, когато се присъединят поне двама играчи и всички са готови.`,
+    belotName: "Белот",
+    offlineYou: "Аз",
+    cpu: "AI",
+    requestFailed: "Заявката не успя",
+    registrationFailed: "Регистрацията не успя",
+    loginFailed: "Входът не успя",
+    cpuActionFailed: "CPU ходът не успя",
+    cpuWorkerUnavailable: "CPU worker не е достъпен",
+    loadingCards: "Зареждане на карти...",
+    drawn: "Изтеглена",
+    hiddenPickupCard: "Скрита карта за взимане",
+    unknownPlayer: "Непознат играч",
+    statusYou: "Ти",
+    toPlay: (playerName) => `${playerName} е на ход`,
+    suits: {
+      acorns: "Жълъди",
+      bells: "Звънци",
+      hearts: "Сърца",
+      leaves: "Листа",
+    },
+    cardLabel: (rank, suit) =>
+      `${rank} ${
+        {
+          acorns: "жълъди",
+          bells: "звънци",
+          hearts: "сърца",
+          leaves: "листа",
+        }[suit]
+      }`,
+    phase: {
+      "waiting-for-players": "изчакване на играчи",
+      "ready-check": "потвърждение за готовност",
+      "trump-round-one": "първи кръг за коз",
+      "trump-round-two": "втори кръг за коз",
+      mus: "мус",
+      declarations: "анонси",
+      "trick-play": "игра на взятки",
+      "hand-complete": "раздаването приключи",
+      finished: "завършено",
+      error: "грешка",
+    },
+    status: "Статус",
+    mus: "Мус",
+    gameTimeline: "Ход на играта",
+    hand: "Раздаване",
+    noHandsScored: "Още няма записани раздавания.",
+    total: "Общо",
+    bonus: "бонус",
+    bonusPts: (points) => `${points} бонус т.`,
+    points: (points) => `${points} т.`,
+    currentRank: (rank) => `Текущият ти ранг е: ${rank}`,
+    currentRanksIntro: "В Белот 1v1 има следните рангове:",
+    cpuLevelNames: {
+      Bronze: "Бронз",
+      Silver: "Сребро",
+      Gold: "Злато",
+      Platinum: "Платина",
+      Diamond: "Диамант",
+      Master: "Майстор",
+      Grandmaster: "Гросмайстор",
+    },
+    dealer: "Раздава",
+    first: "Първи",
+    caller: "ИЗБРАЛ",
+    trumpMarker: "К",
+    bonusMarker: "Б",
+    trump: "Коз",
+    upcard: "Обърната карта",
+    handResult: "Резултат от раздаването",
+    leftHandResult: "Ляв резултат от раздаването",
+    rightHandResult: "Десен резултат от раздаването",
+    nextHand: "Следващо раздаване",
+    newGame: "Нова игра",
+    nextGame: "Нова игра",
+    chooseTrump: "Избери коз",
+    accept: "Приеми",
+    acceptSuit: (suit) => `Приеми ${suit}`,
+    acceptUpcard: "Приеми обърнатата карта",
+    pass: "Пас",
+    chooseSuit: (suit) => `Избери ${suit}`,
+    trumpSelection: "Избор на коз",
+    currentTrick: "Текуща взятка",
+    completedTrick: (trickNumber) => `Завършена взятка ${trickNumber}`,
+    upcardIs: (rank, suit) => `Обърнатата карта е ${rank} ${suit}.`,
+    playerPassedOnSuit: (playerName, suit) => `${playerName}: пас за ${suit}.`,
+    upcardSuit: "боята на обърнатата карта",
+    playerDecidingUpcard: (playerName) =>
+      `${playerName} решава дали да приеме боята на обърнатата карта.`,
+    youDecidingUpcard: "Ти решаваш дали да приемеш боята на обърнатата карта.",
+    bothPlayersPassedSuit: (suit) => `И двамата играчи пасуваха за ${suit}.`,
+    playerPassedChoosingAnotherSuit: (playerName) =>
+      `${playerName}: пас за избор на друга боя.`,
+    playerChoosingOtherSuit: (playerName, suit) =>
+      `${playerName} избира боя, различна от ${suit}.`,
+    youChoosingOtherSuit: (suit) => `Ти избираш боя, различна от ${suit}.`,
+    bothPlayersPassedTwice: "И двамата играчи пасуваха два пъти.",
+    playerMustChooseTrumpOnMus: (playerName) =>
+      `${playerName} е на мус и трябва да избере коз.`,
+    youMustChooseTrumpOnMus: "Ти си на мус и трябва да избереш коз.",
+    winner: (playerName) => `Победител: ${playerName}`,
+    startingCards: "Начални карти",
+    remainingCards: "Извън игра",
+    yourHand: "Твоите карти",
+    cpuDebugHand: "AI карти",
+    playLegalCard: "изиграй позволена карта",
+    hideDetails: "Скрий детайлите",
+    showDetails: "Покажи детайлите",
+    playedTricks: "Изиграни взятки",
+    trickWinner: (trickNumber, playerName) =>
+      `Взятка ${trickNumber}${playerName ? ` · ${playerName}` : ""}`,
+    noTricksCompleted: "Още няма завършени взятки.",
+    rules: "Правила",
+    rulesOfBelotSuffix: "на Белот 1v1.",
   },
   en: {
     localeName: "English",
