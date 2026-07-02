@@ -147,6 +147,7 @@ export type Messages = {
   bonusPts: (points: number) => string;
   points: (points: number) => string;
   currentRank: (rank: string) => string;
+  currentRanksIntro: string;
   cpuLevelNames: Record<CpuLevelName, string>;
   dealer: string;
   first: string;
@@ -287,6 +288,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} bonus poena`,
     points: (points) => `${points} poena`,
     currentRank: (rank) => `Tvoj trenutni rang je: ${rank}`,
+    currentRanksIntro: "U igri Bela 1v1 postoje sledeći rangovi:",
     cpuLevelNames: {
       Bronze: "Bronza",
       Silver: "Srebro",
@@ -431,6 +433,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} bonus pts`,
     points: (points) => `${points} pts`,
     currentRank: (rank) => `Your current rank is: ${rank}`,
+    currentRanksIntro: "There are the following ranks in Belot 1v1:",
     cpuLevelNames: {
       Bronze: "Bronze",
       Silver: "Silver",
@@ -576,6 +579,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} pts de bonus`,
     points: (points) => `${points} pts`,
     currentRank: (rank) => `Votre rang actuel est : ${rank}`,
+    currentRanksIntro: "Il y a les rangs suivants dans Belote 1v1 :",
     cpuLevelNames: {
       Bronze: "Bronze",
       Silver: "Argent",

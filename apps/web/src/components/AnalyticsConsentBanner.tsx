@@ -63,17 +63,6 @@ export function AnalyticsConsentBanner() {
           <Button
             className="w-full sm:w-auto"
             type="button"
-            variant="primary"
-            onClick={() => {
-              storeConsent("rejected");
-              setVisible(false);
-            }}
-          >
-            {messages.analyticsConsentDecline}
-          </Button>
-          <Button
-            className="w-full sm:w-auto"
-            type="button"
             variant="selected"
             onClick={() => {
               storeConsent("accepted");
@@ -82,6 +71,17 @@ export function AnalyticsConsentBanner() {
             }}
           >
             {messages.analyticsConsentAllow}
+          </Button>
+          <Button
+            className="w-full sm:w-auto"
+            type="button"
+            variant="primary"
+            onClick={() => {
+              storeConsent("rejected");
+              setVisible(false);
+            }}
+          >
+            {messages.analyticsConsentDecline}
           </Button>
         </div>
       </div>

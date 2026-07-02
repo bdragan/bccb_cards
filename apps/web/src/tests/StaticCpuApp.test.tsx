@@ -620,6 +620,22 @@ describe("StaticCpuApp", () => {
         "Your current rank is: Bronze",
       ),
     ).toBeInTheDocument();
+    const rankPopover = within(
+      screen.getByTestId("player-current-rank-popover"),
+    );
+    expect(
+      rankPopover.getByText("There are the following ranks in Belot 1v1:"),
+    ).toBeInTheDocument();
+    expect(rankPopover.getAllByRole("listitem").map((item) => item.textContent))
+      .toEqual([
+        "Bronze",
+        "Silver",
+        "Gold",
+        "Platinum",
+        "Diamond",
+        "Master",
+        "Grandmaster",
+      ]);
 
     await waitFor(() => {
       expect(

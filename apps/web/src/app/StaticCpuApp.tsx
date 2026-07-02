@@ -20,6 +20,7 @@ import { type Messages, useI18n } from "../i18n";
 import {
   applyCpuLevelResult,
   type CpuLevelProgress,
+  cpuLevelNames,
   isGrandmasterLevel,
   readCpuLevelProgress,
   writeCpuLevelProgress,
@@ -142,6 +143,12 @@ function RankPopover({ visibleRank }: { visibleRank: string }) {
           data-testid="player-current-rank-popover"
         >
           <p className="text-sm font-semibold">{label}</p>
+          <p className="mt-3 text-sm">{messages.currentRanksIntro}</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
+            {cpuLevelNames.map((levelName) => (
+              <li key={levelName}>{messages.cpuLevelNames[levelName]}</li>
+            ))}
+          </ol>
         </div>
       ) : null}
     </div>
