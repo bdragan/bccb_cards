@@ -39,6 +39,8 @@ export type BelotCpuOptions = {
 export const defaultBelotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
 const trumpMinExpectedValueForVoluntaryCall = 30;
+const singleVisibleTrumpCardExpectedValuePenalty = 10;
+const noVisibleTrumpCardExpectedValuePenalty = 20;
 const initialTrickHandCards = 10;
 const cheapOpeningSearchPlies = 4;
 const sampleIncreasePerMissingCard = 0.3;
@@ -167,6 +169,26 @@ export function inferBelotCpuImpossibleOpponentCardIds(
   );
 }
 
+export function belotCpuTrumpCallExpectedValueThreshold(
+  visibleTrumpCardCount: number,
+) {
+  if (visibleTrumpCardCount <= 0) {
+    return (
+      trumpMinExpectedValueForVoluntaryCall +
+      noVisibleTrumpCardExpectedValuePenalty
+    );
+  }
+
+  if (visibleTrumpCardCount === 1) {
+    return (
+      trumpMinExpectedValueForVoluntaryCall +
+      singleVisibleTrumpCardExpectedValuePenalty
+    );
+  }
+
+  return trumpMinExpectedValueForVoluntaryCall;
+}
+
 function chooseTrumpAction(
   state: BelotState,
   player: BelotPlayerState,
@@ -190,7 +212,7 @@ function chooseTrumpAction(
       samples,
     );
 
-    const shouldAcceptUpcard = shouldCallTrump(upcardCandidate.score);
+    const shouldAcceptUpcard = shouldCallTrump(upcardCandidate);
 
     if (!shouldAcceptUpcard) {
       return { type: "trump-pass", playerId: player.playerId };
@@ -273,7 +295,7 @@ function hasBetterRoundOneTrumpSuit(
       );
 
       return (
-        shouldCallTrump(candidate.score) &&
+        shouldCallTrump(candidate) &&
         compareAcceptedTrumpCandidates(candidate, upcardCandidate) < 0
       );
     });
@@ -358,12 +380,18 @@ function scoreTrumpCandidate(
 
 function bestAcceptedTrumpCandidate(candidates: TrumpSuitCandidate[]) {
   return candidates
-    .filter((candidate) => shouldCallTrump(candidate.score))
+    .filter((candidate) => shouldCallTrump(candidate))
     .sort((left, right) => compareAcceptedTrumpCandidates(left, right))[0];
 }
 
-function shouldCallTrump(score: TrumpCandidateScore) {
-  return score.expectedValue > trumpMinExpectedValueForVoluntaryCall;
+function shouldCallTrump(candidate: TrumpSuitCandidate) {
+  return (
+    candidate.score.expectedValue > trumpCallExpectedValueThreshold(candidate)
+  );
+}
+
+function trumpCallExpectedValueThreshold(candidate: TrumpSuitCandidate) {
+  return belotCpuTrumpCallExpectedValueThreshold(candidate.trumpCardCount);
 }
 
 function countTrumpCards(hand: Card[], trumpSuit: Suit) {

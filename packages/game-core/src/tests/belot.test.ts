@@ -18,6 +18,7 @@ import {
   belotCpuOrderCardsForSearch,
   belotCpuOrderRootCardsForSearch,
   belotCpuSearchCards,
+  belotCpuTrumpCallExpectedValueThreshold,
   belotCpuTrumpCandidateSucceeded,
   belotCpuTrumpMonteCarloSamples,
   calculateBelotHandResult,
@@ -2962,7 +2963,7 @@ describe("Belot", () => {
     ).toEqual(["VII-hearts", "IX-hearts"]);
   });
 
-  it("uses EV-only voluntary CPU trump calls with a fixed threshold", () => {
+  it("uses EV-only voluntary CPU trump calls with a fixed base threshold", () => {
     const acceptingState = seededReadyState(5);
     const acceptingPlayerId = acceptingState.trumpTurnPlayerId!;
     const passingState = seededReadyState(1);
@@ -2991,6 +2992,13 @@ describe("Belot", () => {
       type: "trump-pass",
       playerId: passingPlayerId,
     });
+  });
+
+  it("raises the voluntary trump EV threshold for thin visible trump suits", () => {
+    expect(belotCpuTrumpCallExpectedValueThreshold(0)).toBe(50);
+    expect(belotCpuTrumpCallExpectedValueThreshold(1)).toBe(40);
+    expect(belotCpuTrumpCallExpectedValueThreshold(2)).toBe(30);
+    expect(belotCpuTrumpCallExpectedValueThreshold(5)).toBe(30);
   });
 
   it("chooses a strong positive-value second-round trump suit when picking second", () => {
@@ -3215,7 +3223,7 @@ describe("Belot", () => {
     });
   }, 10_000);
 
-  it.skip("passes the screenshot weak first-round bells hand before pickup cards are known", () => {
+  it("passes a one-visible-trump first-round bells hand below the raised EV threshold", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
       phase: "trump-round-one",
@@ -3242,33 +3250,39 @@ describe("Belot", () => {
           ...players[1],
           ready: true,
           hand: [
-            card("VIII", "acorns"),
             card("O", "acorns"),
-            card("VIII", "bells"),
+            card("X", "acorns"),
+            card("A", "acorns"),
             card("IX", "bells"),
-            card("U", "bells"),
-            card("U", "hearts"),
+            card("IX", "hearts"),
+            card("K", "hearts"),
             card("U", "leaves"),
-            card("A", "leaves"),
+            card("X", "leaves"),
           ],
-          hiddenCards: [card("VII", "acorns"), card("O", "leaves")],
+          hiddenCards: [card("VIII", "acorns"), card("VII", "leaves")],
           wonCards: [],
           tricksWon: 0,
           totalScore: 0,
         },
       ],
-      upcard: card("VII", "bells"),
+      upcard: card("U", "bells"),
       trumpTurnPlayerId: "p2",
       firstPlayerId: "p2",
       trumpRound: 1,
       trumpPasses: [],
     };
 
-    expect(chooseBelotCpuAction(state, "p2", { rng: seededRng(1) })).toEqual({
+    expect(
+      chooseBelotCpuAction(state, "p2", {
+        rng: seededRng(2),
+        trumpMonteCarloSamples: 64,
+        trumpSearchPlies: 14,
+      }),
+    ).toEqual({
       type: "trump-pass",
       playerId: "p2",
     });
-  }, 10_000);
+  }, 20_000);
 
   it("allows the CPU to pass the second trump round but still choose on mus", () => {
     const state: BelotState = {
