@@ -16,7 +16,7 @@ import { Button } from "../components/Button";
 import { LanguageToggle } from "../components/LanguageToggle";
 import { TopMenu } from "../components/TopMenu";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
-import { type Messages, useI18n } from "../i18n";
+import { belotRulesHref, type Messages, useI18n } from "../i18n";
 import {
   applyCpuLevelResult,
   type CpuLevelProgress,
@@ -92,10 +92,11 @@ function visibleCpuLevelRank(progress: CpuLevelProgress, messages: Messages) {
 }
 
 function RankPopover({ visibleRank }: { visibleRank: string }) {
-  const { messages } = useI18n();
+  const { locale, messages } = useI18n();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const label = messages.currentRank(visibleRank);
+  const rulesHref = belotRulesHref(locale);
 
   useEffect(() => {
     if (!open) {
@@ -149,6 +150,17 @@ function RankPopover({ visibleRank }: { visibleRank: string }) {
               <li key={levelName}>{messages.cpuLevelNames[levelName]}</li>
             ))}
           </ol>
+          <p className="mt-3 text-sm">
+            <a
+              href={rulesHref}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-emerald-800 underline decoration-emerald-700/50 underline-offset-2 hover:text-emerald-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            >
+              {messages.rules}
+            </a>{" "}
+            {messages.rulesOfBelotSuffix}
+          </p>
         </div>
       ) : null}
     </div>

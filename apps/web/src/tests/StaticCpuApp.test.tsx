@@ -636,6 +636,13 @@ describe("StaticCpuApp", () => {
         "Master",
         "Grandmaster",
       ]);
+    expect(screen.getByTestId("player-current-rank-popover")).toHaveTextContent(
+      "Rules of Belot 1v1.",
+    );
+    expect(rankPopover.getByRole("link", { name: "Rules" })).toHaveAttribute(
+      "href",
+      "/rules/belot-user-en.html",
+    );
 
     await waitFor(() => {
       expect(

@@ -54,6 +54,10 @@ export function detectLocaleFromLanguageTags(
   return fallbackLocale;
 }
 
+export function belotRulesHref(locale: Locale) {
+  return `/rules/belot-user-${locale}.html`;
+}
+
 function detectBrowserLocale(): Locale {
   if (typeof navigator === "undefined") {
     return fallbackLocale;
@@ -195,6 +199,7 @@ export type Messages = {
   trickWinner: (trickNumber: number, playerName?: string) => string;
   noTricksCompleted: string;
   rules: string;
+  rulesOfBelotSuffix: string;
 };
 
 export const messages: Record<Locale, Messages> = {
@@ -350,6 +355,7 @@ export const messages: Record<Locale, Messages> = {
       `Štih ${trickNumber}${playerName ? ` · ${playerName}` : ""}`,
     noTricksCompleted: "Još nema završenih štihova.",
     rules: "Pravila",
+    rulesOfBelotSuffix: "za Belu 1v1.",
   },
   en: {
     localeName: "English",
@@ -496,6 +502,7 @@ export const messages: Record<Locale, Messages> = {
       `Trick ${trickNumber}${playerName ? ` · ${playerName}` : ""}`,
     noTricksCompleted: "No tricks completed yet.",
     rules: "Rules",
+    rulesOfBelotSuffix: "of Belot 1v1.",
   },
   fr: {
     localeName: "Français",
@@ -643,6 +650,7 @@ export const messages: Record<Locale, Messages> = {
       `Pli ${trickNumber}${playerName ? ` · ${playerName}` : ""}`,
     noTricksCompleted: "Aucun pli terminé.",
     rules: "Règles",
+    rulesOfBelotSuffix: "de la Belote 1v1.",
   },
 };
 

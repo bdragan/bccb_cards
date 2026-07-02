@@ -25,7 +25,7 @@ import {
 
 import { suitImagePaths } from "../game/card-assets";
 import { PlayingCard } from "../game/cards";
-import { type Messages, useI18n } from "../i18n";
+import { belotRulesHref, type Messages, useI18n } from "../i18n";
 import {
   cpuLevelPointThreshold,
   type CpuLevelProgress,
@@ -855,7 +855,7 @@ export function BelotTable({
   skipInitialCompletedTrickAnimation?: boolean;
 }) {
   const { locale, messages } = useI18n();
-  const rulesHref = `/rules/belot-user-${locale}.html`;
+  const rulesHref = belotRulesHref(locale);
   const currentPlayer = state.players.find(
     (player) => player.playerId === currentPlayerId,
   );
