@@ -9,11 +9,11 @@ import {
 describe("CPU level progress", () => {
   it("uses increasing thresholds until Grandmaster", () => {
     expect(cpuLevelPointThreshold("Bronze")).toBe(3);
-    expect(cpuLevelPointThreshold("Silver")).toBe(5);
-    expect(cpuLevelPointThreshold("Gold")).toBe(7);
-    expect(cpuLevelPointThreshold("Platinum")).toBe(9);
-    expect(cpuLevelPointThreshold("Diamond")).toBe(11);
-    expect(cpuLevelPointThreshold("Master")).toBe(13);
+    expect(cpuLevelPointThreshold("Silver")).toBe(4);
+    expect(cpuLevelPointThreshold("Gold")).toBe(5);
+    expect(cpuLevelPointThreshold("Platinum")).toBe(6);
+    expect(cpuLevelPointThreshold("Diamond")).toBe(7);
+    expect(cpuLevelPointThreshold("Master")).toBe(8);
     expect(cpuLevelPointThreshold("Grandmaster")).toBeUndefined();
   });
 
@@ -24,6 +24,17 @@ describe("CPU level progress", () => {
     });
   });
 
+  it("keeps over-capped saved progress one point short in the same level", () => {
+    expect(normalizeCpuLevelProgress({ level: "Silver", points: 5 })).toEqual({
+      level: "Silver",
+      points: 3,
+    });
+    expect(normalizeCpuLevelProgress({ level: "Master", points: 12 })).toEqual({
+      level: "Master",
+      points: 7,
+    });
+  });
+
   it("promotes to the next level at the threshold with one starting point", () => {
     expect(applyCpuLevelResult({ level: "Bronze", points: 2 }, "win")).toEqual(
       {
@@ -31,7 +42,7 @@ describe("CPU level progress", () => {
         points: 1,
       },
     );
-    expect(applyCpuLevelResult({ level: "Master", points: 12 }, "win")).toEqual(
+    expect(applyCpuLevelResult({ level: "Master", points: 7 }, "win")).toEqual(
       {
         level: "Grandmaster",
         points: 1,
@@ -50,7 +61,7 @@ describe("CPU level progress", () => {
       applyCpuLevelResult({ level: "Grandmaster", points: 1 }, "loss"),
     ).toEqual({
       level: "Master",
-      points: 12,
+      points: 7,
     });
   });
 

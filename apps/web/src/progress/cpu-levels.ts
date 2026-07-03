@@ -44,7 +44,7 @@ export function cpuLevelPointThreshold(level: CpuLevelName) {
     return undefined;
   }
 
-  return 3 + levelIndex(level) * 2;
+  return 3 + levelIndex(level);
 }
 
 function lastPointBeforePromotion(level: CpuLevelName) {
