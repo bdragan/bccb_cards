@@ -10,15 +10,16 @@ import {
 
 import type { CpuLevelName } from "./progress/cpu-levels";
 
-export const locales = ["en", "bg", "fr", "sr"] as const;
+export const locales = ["en", "bg", "fr", "hr", "sr"] as const;
 export type Locale = (typeof locales)[number];
 
 const storageKey = "card-games-locale";
 const fallbackLocale: Locale = "en";
-const serbianLocaleLanguages = new Set(["bs", "cnr", "hr", "sr"]);
-const serbianLocaleRegions = new Set(["ba", "hr", "me", "rs"]);
+const serbianLocaleLanguages = new Set(["bs", "cnr", "sr"]);
+const serbianLocaleRegions = new Set(["ba", "me", "rs"]);
 const frenchLocaleRegions = new Set(["fr"]);
 const bulgarianLocaleRegions = new Set(["bg"]);
+const croatianLocaleRegions = new Set(["hr"]);
 
 function isLocale(value: string | null | undefined): value is Locale {
   return locales.includes(value as Locale);
@@ -52,6 +53,10 @@ export function detectLocaleFromLanguageTags(
 
     if (language === "bg" || bulgarianLocaleRegions.has(region ?? "")) {
       return "bg";
+    }
+
+    if (language === "hr" || croatianLocaleRegions.has(region ?? "")) {
+      return "hr";
     }
 
     if (isLocale(language)) {
@@ -345,6 +350,161 @@ export const messages: Record<Locale, Messages> = {
       `${playerName} je na musu i mora izabrati adut.`,
     youMustChooseTrumpOnMus: "Ti si na musu i moraš izabrati adut.",
     winner: (playerName) => `Pobednik: ${playerName}`,
+    startingCards: "Početne karte",
+    remainingCards: "Van igre",
+    yourHand: "Tvoje karte",
+    cpuDebugHand: "AI karte",
+    playLegalCard: "odigraj dozvoljenu kartu",
+    hideDetails: "Sakrij detalje",
+    showDetails: "Prikaži detalje",
+    playedTricks: "Odigrani štihovi",
+    trickWinner: (trickNumber, playerName) =>
+      `Štih ${trickNumber}${playerName ? ` · ${playerName}` : ""}`,
+    noTricksCompleted: "Još nema završenih štihova.",
+    rules: "Pravila",
+    rulesOfBelotSuffix: "za Belu 1v1.",
+  },
+  hr: {
+    localeName: "Hrvatski",
+    language: "Jezik",
+    switchLanguage: (localeName) => `Promijeni jezik na ${localeName}`,
+    menu: "Izbornik",
+    appTitle: "Bela 1v1",
+    authTitle: "Bela",
+    login: "Prijava",
+    register: "Registracija",
+    createAccount: "Napravi račun",
+    analyticsConsentTitle: "Analitika i pohrana u pregledniku",
+    analyticsConsentBody:
+      "Koristimo nužnu pohranu u pregledniku kako bi aplikacija radila. Uz tvoju dozvolu koristimo dodatnu analitiku za poboljšanje igre.",
+    analyticsConsentAllow: "Prihvati",
+    analyticsConsentDecline: "Odbij",
+    email: "Email",
+    password: "Lozinka",
+    displayName: "Ime za prikaz",
+    signedIn: "Prijavljen",
+    logout: "Odjavi se",
+    leaveMatch: "Napusti partiju",
+    resignGame: "Predaj partiju",
+    confirmResignGame: "Predaješ partiju?",
+    yes: "Da",
+    no: "Ne",
+    room: "Soba",
+    createRoom: "Napravi sobu",
+    playBelotVsCpu: "Igraj Belu protiv CPU-a",
+    roomCode: "Kod sobe",
+    join: "Uđi",
+    matchHistory: "Povijest partija",
+    completedMatches: (count) => `${count} završenih partija`,
+    lobby: "Lobi",
+    game: "Igra",
+    ready: "Spreman",
+    unready: "Nisam spreman",
+    waiting: "Čeka",
+    lobbyAutoStart: (gameName) =>
+      `Server automatski pokreće igru ${gameName} kada se pridruže najmanje dva igrača i svi su spremni.`,
+    belotName: "Bela",
+    offlineYou: "Ja",
+    cpu: "AI",
+    requestFailed: "Zahtjev nije uspio",
+    registrationFailed: "Registracija nije uspjela",
+    loginFailed: "Prijava nije uspjela",
+    cpuActionFailed: "CPU potez nije uspio",
+    cpuWorkerUnavailable: "CPU worker nije dostupan",
+    loadingCards: "Učitavanje karata...",
+    drawn: "Izvučeno",
+    hiddenPickupCard: "Skrivena pokupljena karta",
+    unknownPlayer: "Nepoznat igrač",
+    statusYou: "Ti",
+    toPlay: (playerName) => `${playerName} je na potezu`,
+    suits: {
+      acorns: "Žir",
+      bells: "Tikva",
+      hearts: "Srce",
+      leaves: "List",
+    },
+    cardLabel: (rank, suit) =>
+      `${rank} ${
+        {
+          acorns: "žir",
+          bells: "tikva",
+          hearts: "srce",
+          leaves: "list",
+        }[suit]
+      }`,
+    phase: {
+      "waiting-for-players": "čekanje igrača",
+      "ready-check": "spremanje",
+      "trump-round-one": "prvi krug aduta",
+      "trump-round-two": "drugi krug aduta",
+      mus: "mus",
+      declarations: "zvanja",
+      "trick-play": "igra štihova",
+      "hand-complete": "ruka završena",
+      finished: "završeno",
+      error: "greška",
+    },
+    status: "Status",
+    mus: "Mus",
+    gameTimeline: "Tijek igre",
+    hand: "Ruka",
+    noHandsScored: "Još nema upisanih ruku.",
+    total: "Ukupno",
+    bonus: "bonus",
+    bonusPts: (points) => `${points} bonus bodova`,
+    points: (points) => `${points} bodova`,
+    currentRank: (rank) => `Tvoj trenutačni rang je: ${rank}`,
+    currentRanksIntro: "U igri Bela 1v1 postoje sljedeći rangovi:",
+    cpuLevelNames: {
+      Bronze: "Bronca",
+      Silver: "Srebro",
+      Gold: "Zlato",
+      Platinum: "Platina",
+      Diamond: "Dijamant",
+      Master: "Majstor",
+      Grandmaster: "Velemajstor",
+    },
+    dealer: "Dijeli",
+    first: "Prvi",
+    caller: "ZVAO",
+    trumpMarker: "A",
+    bonusMarker: "B",
+    trump: "Adut",
+    upcard: "Presječeno",
+    handResult: "Rezultat ruke",
+    leftHandResult: "Lijevi rezultat ruke",
+    rightHandResult: "Desni rezultat ruke",
+    nextHand: "Sljedeća ruka",
+    newGame: "Nova igra",
+    nextGame: "Nova partija",
+    chooseTrump: "Izaberi adut",
+    accept: "Prihvati",
+    acceptSuit: (suit) => `Prihvati ${suit}`,
+    acceptUpcard: "Prihvati presječeno",
+    pass: "Dalje",
+    chooseSuit: (suit) => `Izaberi ${suit}`,
+    trumpSelection: "Biranje aduta",
+    currentTrick: "Trenutačni štih",
+    completedTrick: (trickNumber) => `Završen štih ${trickNumber}`,
+    upcardIs: (rank, suit) => `Presječena karta je ${rank} ${suit}.`,
+    playerPassedOnSuit: (playerName, suit) =>
+      `${playerName}: Dalje za ${suit}.`,
+    upcardSuit: "boja presječene karte",
+    playerDecidingUpcard: (playerName) =>
+      `${playerName} odlučuje hoće li prihvatiti boju presječene karte.`,
+    youDecidingUpcard:
+      "Ti odlučuješ hoćeš li prihvatiti boju presječene karte.",
+    bothPlayersPassedSuit: (suit) => `Oba igrača: Dalje za ${suit}.`,
+    playerPassedChoosingAnotherSuit: (playerName) =>
+      `${playerName}: Dalje za drugu boju.`,
+    playerChoosingOtherSuit: (playerName, suit) =>
+      `${playerName} bira boju različitu od ${suit}.`,
+    youChoosingOtherSuit: (suit) => `Ti biraš boju različitu od ${suit}.`,
+    bothPlayersPassedTwice: "Oba igrača: Dalje dva puta.",
+    playerMustChooseTrumpOnMus: (playerName) =>
+      `${playerName} je na musu i mora izabrati adut.`,
+    youMustChooseTrumpOnMus: "Ti si na musu i moraš izabrati adut.",
+    winner: (playerName) => `Pobjednik: ${playerName}`,
     startingCards: "Početne karte",
     remainingCards: "Van igre",
     yourHand: "Tvoje karte",

@@ -1,25 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { detectLocaleFromLanguageTags, getMessages } from "../i18n";
+import { detectLocaleFromLanguageTags, getMessages, locales } from "../i18n";
 
 describe("i18n locale detection", () => {
+  it("keeps Croatian next to last before Serbian in the selector order", () => {
+    expect(locales).toEqual(["en", "bg", "fr", "hr", "sr"]);
+  });
+
   it.each([
     ["bs-BA"],
     ["sr-RS"],
     ["sr-Latn-ME"],
-    ["hr-HR"],
     ["cnr-ME"],
     ["en-RS"],
     ["en-BA"],
-    ["en-HR"],
     ["en-ME"],
     ["de-RS"],
     ["de-BA"],
-    ["de-HR"],
     ["de-ME"],
   ])("defaults %s to Serbian", (languageTag) => {
     expect(detectLocaleFromLanguageTags([languageTag])).toBe("sr");
   });
+
+  it.each([["hr-HR"], ["en-HR"], ["de-HR"]])(
+    "defaults %s to Croatian",
+    (languageTag) => {
+      expect(detectLocaleFromLanguageTags([languageTag])).toBe("hr");
+    },
+  );
 
   it.each([["en-FR"], ["de-FR"]])("defaults %s to French", (languageTag) => {
     expect(detectLocaleFromLanguageTags([languageTag])).toBe("fr");
@@ -32,6 +40,7 @@ describe("i18n locale detection", () => {
   it("uses supported browser languages", () => {
     expect(detectLocaleFromLanguageTags(["fr-FR"])).toBe("fr");
     expect(detectLocaleFromLanguageTags(["bg-BG"])).toBe("bg");
+    expect(detectLocaleFromLanguageTags(["hr-HR"])).toBe("hr");
     expect(detectLocaleFromLanguageTags(["en-US"])).toBe("en");
   });
 
