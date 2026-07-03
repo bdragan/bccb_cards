@@ -2,6 +2,7 @@ import type { Card } from "@card-games/shared";
 
 import {
   applyBelotAction,
+  calculateBelotHandResult,
   legalBelotCards,
 } from "./belot";
 import type { BelotState, BelotTrickPlay } from "./types";
@@ -92,6 +93,15 @@ export function belotHandPlayAlphaBetaResult(
     !state.currentTurnPlayerId
   ) {
     return evaluateSearchLeaf(state, maximizingPlayerId);
+  }
+
+  const dominantLeaderResult = fastForwardDominantTrickLeader(
+    state,
+    maximizingPlayerId,
+  );
+
+  if (dominantLeaderResult) {
+    return dominantLeaderResult;
   }
 
   const currentPlayer = playerById(state, state.currentTurnPlayerId);
@@ -354,6 +364,81 @@ function remainingSearchPlies(state: BelotState) {
   }
 
   return state.players.reduce((sum, player) => sum + player.hand.length, 0);
+}
+
+function fastForwardDominantTrickLeader(
+  state: BelotState,
+  maximizingPlayerId: string,
+): BelotHandPlaySearchResult | undefined {
+  if (
+    state.currentTrick.length > 0 ||
+    !state.currentTurnPlayerId ||
+    !state.trumpSuit ||
+    !state.callerPlayerId
+  ) {
+    return undefined;
+  }
+
+  const leader = playerById(state, state.currentTurnPlayerId);
+  const opponent = state.players.find(
+    (player) => player.playerId !== leader.playerId,
+  );
+
+  if (
+    !opponent ||
+    leader.hand.length === 0 ||
+    leader.hand.length !== opponent.hand.length
+  ) {
+    return undefined;
+  }
+
+  const leaderSuits = new Set(leader.hand.map((card) => card.suit));
+  const opponentCanTakeLead = opponent.hand.some(
+    (card) => card.suit === state.trumpSuit || leaderSuits.has(card.suit),
+  );
+
+  if (opponentCanTakeLead) {
+    return undefined;
+  }
+
+  const remainingCards = [...leader.hand, ...opponent.hand];
+  const remainingTrickCount = leader.hand.length;
+  const fastForwardedPlayers = state.players.map((player) =>
+    player.playerId === leader.playerId
+      ? {
+          ...player,
+          hand: [],
+          wonCards: [...player.wonCards, ...remainingCards],
+          tricksWon: player.tricksWon + remainingTrickCount,
+        }
+      : { ...player, hand: [] },
+  );
+  const fastForwardedForScoring: BelotState = {
+    ...state,
+    players: fastForwardedPlayers,
+    currentTurnPlayerId: undefined,
+    completedTricks: [
+      ...state.completedTricks,
+      ...Array.from({ length: remainingTrickCount }, () => ({
+        winnerPlayerId: leader.playerId,
+        cards: [],
+      })),
+    ],
+  };
+  const result = calculateBelotHandResult(fastForwardedForScoring);
+  const scoredState: BelotState = {
+    ...fastForwardedForScoring,
+    phase: "hand-complete",
+    players: fastForwardedForScoring.players.map((player) => ({
+      ...player,
+      totalScore:
+        player.totalScore + (result.handScoreByPlayer[player.playerId] ?? 0),
+    })),
+    lastHandResult: result,
+    handResults: [...(state.handResults ?? []), result],
+  };
+
+  return evaluateSearchLeaf(scoredState, maximizingPlayerId);
 }
 
 function evaluateSearchLeaf(

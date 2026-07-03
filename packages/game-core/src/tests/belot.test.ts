@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { BelotState } from "../games/belot";
 import type { BelotHandPlaySearchPolicy } from "../games/belot/hand-play-search";
 import {
+  belotHandPlayAlphaBetaResult,
   belotHandPlayAlphaBetaValue,
   belotHandPlaySearchMaxUtility,
   createBelotHandPlaySearchContext,
@@ -1628,6 +1629,60 @@ describe("Belot", () => {
         createBelotHandPlaySearchContext(1, policy),
       ),
     ).not.toThrow();
+  });
+
+  it("fast-forwards alpha-beta when a trick leader must win all remaining sampled tricks", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns"), card("X", "acorns")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("VII", "bells"), card("VIII", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 0,
+      searchCards: () => {
+        throw new Error("dominant leader should bypass card search");
+      },
+      orderCards: () => {
+        throw new Error("dominant leader should bypass card ordering");
+      },
+      cheapSearchCard: (cards) => cards[0],
+    };
+
+    const result = belotHandPlayAlphaBetaResult(
+      state,
+      "p1",
+      2,
+      -belotHandPlaySearchMaxUtility,
+      belotHandPlaySearchMaxUtility,
+      createBelotHandPlaySearchContext(2, policy),
+    );
+
+    expect(result).toEqual({ value: 131, callerFell: false });
   });
 
   it("reuses alpha-beta values from the Belot hand-play transposition table", () => {
