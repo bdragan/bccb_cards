@@ -36,7 +36,7 @@ export type BelotHandPlaySearchContext = {
 export type BelotHandPlaySearchResult = {
   value: number;
   callerFell?: boolean;
-  schusterPlayerIds?: string[];
+  hasSchuster?: boolean;
 };
 
 export type BelotHandPlayTranspositionBound = "exact" | "lower" | "upper";
@@ -45,7 +45,7 @@ export type BelotHandPlayTranspositionEntry = {
   bound: BelotHandPlayTranspositionBound;
   value: number;
   callerFell?: boolean;
-  schusterPlayerIds?: string[];
+  hasSchuster?: boolean;
 };
 
 export function createBelotHandPlaySearchContext(
@@ -169,7 +169,7 @@ export function belotHandPlayAlphaBetaResult(
         return {
           value: transpositionEntry.value,
           callerFell: transpositionEntry.callerFell,
-          schusterPlayerIds: transpositionEntry.schusterPlayerIds,
+          hasSchuster: transpositionEntry.hasSchuster,
         };
       }
 
@@ -183,7 +183,7 @@ export function belotHandPlayAlphaBetaResult(
         return {
           value: transpositionEntry.value,
           callerFell: transpositionEntry.callerFell,
-          schusterPlayerIds: transpositionEntry.schusterPlayerIds,
+          hasSchuster: transpositionEntry.hasSchuster,
         };
       }
     }
@@ -270,12 +270,20 @@ function rememberBelotHandPlayTransposition(
     }
   }
 
-  context.transpositionTable.set(key, {
+  const entry: BelotHandPlayTranspositionEntry = {
     bound,
     value: result.value,
-    callerFell: bound === "exact" ? result.callerFell : undefined,
-    schusterPlayerIds: result.schusterPlayerIds,
-  });
+  };
+
+  if (bound === "exact" && result.callerFell !== undefined) {
+    entry.callerFell = result.callerFell;
+  }
+
+  if (result.hasSchuster) {
+    entry.hasSchuster = true;
+  }
+
+  context.transpositionTable.set(key, entry);
 }
 
 function belotHandPlayTranspositionKey(
@@ -453,14 +461,19 @@ function evaluateSearchLeaf(
   state: BelotState,
   maximizingPlayerId: string,
 ): BelotHandPlaySearchResult {
-  return {
+  const result: BelotHandPlaySearchResult = {
     value: evaluateState(state, maximizingPlayerId),
-    callerFell:
-      state.callerPlayerId === maximizingPlayerId
-        ? state.lastHandResult?.callerFell
-        : undefined,
-    schusterPlayerIds: state.lastHandResult?.schusterPlayerIds,
   };
+
+  if (state.callerPlayerId === maximizingPlayerId) {
+    result.callerFell = state.lastHandResult?.callerFell;
+  }
+
+  if (state.lastHandResult?.schusterPlayerIds.length) {
+    result.hasSchuster = true;
+  }
+
+  return result;
 }
 
 function searchResultBetter(

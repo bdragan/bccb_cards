@@ -457,16 +457,30 @@ function averageTrumpRolloutScore(
       searchContext,
     );
   });
-  const successes = results.filter((result) =>
-    belotCpuTrumpCandidateSucceeded(result, initialValue),
-  ).length;
-  const valueDeltas = results.map((result) => ({
-    value: result.value - initialValue,
-    hasSchuster: searchResultHasSchuster(result),
-  }));
+  let successes = 0;
+  let totalValue = 0;
+  let nonSchusterSampleCount = 0;
+  let nonSchusterTotalValue = 0;
+
+  for (const result of results) {
+    if (belotCpuTrumpCandidateSucceeded(result, initialValue)) {
+      successes += 1;
+    }
+
+    const value = result.value - initialValue;
+    totalValue += value;
+
+    if (!searchResultHasSchuster(result)) {
+      nonSchusterSampleCount += 1;
+      nonSchusterTotalValue += value;
+    }
+  }
 
   return {
-    expectedValue: averageNonSchusterValue(valueDeltas),
+    expectedValue:
+      nonSchusterSampleCount > 0
+        ? nonSchusterTotalValue / nonSchusterSampleCount
+        : totalValue / results.length,
     successRate: successes / results.length,
   };
 }
@@ -2230,21 +2244,8 @@ function averageRootCardValue(
   return stats.totalValue / stats.sampleCount;
 }
 
-function averageNonSchusterValue(
-  values: Array<{ value: number; hasSchuster: boolean }>,
-) {
-  const nonSchusterValues = values.filter((result) => !result.hasSchuster);
-  const averagedValues =
-    nonSchusterValues.length > 0 ? nonSchusterValues : values;
-
-  return (
-    averagedValues.reduce((sum, result) => sum + result.value, 0) /
-    averagedValues.length
-  );
-}
-
-function searchResultHasSchuster(result: { schusterPlayerIds?: string[] }) {
-  return Boolean(result.schusterPlayerIds?.length);
+function searchResultHasSchuster(result: { hasSchuster?: boolean }) {
+  return Boolean(result.hasSchuster);
 }
 
 function updateRootCardSampleStats(

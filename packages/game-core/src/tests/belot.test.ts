@@ -1685,7 +1685,7 @@ describe("Belot", () => {
     expect(result).toEqual({
       value: 131,
       callerFell: false,
-      schusterPlayerIds: ["p2"],
+      hasSchuster: true,
     });
   });
 
