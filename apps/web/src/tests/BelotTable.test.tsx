@@ -880,7 +880,12 @@ describe("BelotTable", () => {
         onPlayCard={vi.fn()}
         onNextHand={vi.fn()}
         onRestart={vi.fn()}
-        levelProgress={{ level: "Silver", points: 3 }}
+        levelProgress={{
+          level: "Silver",
+          points: 1,
+          highestLevel: "Silver",
+          highestPoints: 1,
+        }}
       />,
     );
 
@@ -895,22 +900,17 @@ describe("BelotTable", () => {
     expect(
       within(progress).getByTestId("cpu-level-progress-icon"),
     ).toHaveAttribute("data-level", "Silver");
-    expect(progress).toHaveAttribute("aria-valuemax", "4");
+    expect(progress).not.toHaveAttribute("aria-valuemax");
+    expect(progress).not.toHaveAttribute("role", "progressbar");
     expect(
       progress.compareDocumentPosition(newGameButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0);
 
-    const dots = progress.querySelectorAll("[data-filled]");
-    expect(dots).toHaveLength(4);
-    expect(
-      Array.from(dots).map((dot) => dot.getAttribute("data-filled")),
-    ).toEqual(["true", "true", "true", "false"]);
-    expect(Array.from(dots).map((dot) => dot.getAttribute("data-level")))
-      .toEqual(["Silver", "Silver", "Silver", "Silver"]);
+    expect(progress.querySelector("[data-filled]")).toBeNull();
   });
 
-  it("translates level names and keeps capped rank points in dots only", () => {
+  it("translates level names without showing non-Grandmaster rank points", () => {
     setLocaleForTests("fr");
 
     render(
@@ -928,7 +928,12 @@ describe("BelotTable", () => {
         onPlayCard={vi.fn()}
         onNextHand={vi.fn()}
         onRestart={vi.fn()}
-        levelProgress={{ level: "Silver", points: 3 }}
+        levelProgress={{
+          level: "Silver",
+          points: 1,
+          highestLevel: "Silver",
+          highestPoints: 1,
+        }}
       />,
     );
 
@@ -936,7 +941,7 @@ describe("BelotTable", () => {
 
     expect(progress).toHaveTextContent("Votre rang actuel est : Argent");
     expect(progress).not.toHaveTextContent("3");
-    expect(progress.querySelectorAll("[data-filled]")).toHaveLength(4);
+    expect(progress.querySelector("[data-filled]")).toBeNull();
   });
 
   it("shows Grandmaster progress as a number without dots", () => {
@@ -955,7 +960,12 @@ describe("BelotTable", () => {
         onPlayCard={vi.fn()}
         onNextHand={vi.fn()}
         onRestart={vi.fn()}
-        levelProgress={{ level: "Grandmaster", points: 17 }}
+        levelProgress={{
+          level: "Grandmaster",
+          points: 17,
+          highestLevel: "Grandmaster",
+          highestPoints: 17,
+        }}
       />,
     );
 

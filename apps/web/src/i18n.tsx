@@ -158,6 +158,7 @@ export type Messages = {
   bonusPts: (points: number) => string;
   points: (points: number) => string;
   currentRank: (rank: string) => string;
+  highestRank: (rank: string) => string;
   currentRanksIntro: string;
   cpuLevelNames: Record<CpuLevelName, string>;
   dealer: string;
@@ -300,6 +301,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} bonus poena`,
     points: (points) => `${points} poena`,
     currentRank: (rank) => `Tvoj trenutni rang je: ${rank}`,
+    highestRank: (rank) => `Tvoj najviši rang je: ${rank}`,
     currentRanksIntro: "U igri Bela 1v1 postoje sledeći rangovi:",
     cpuLevelNames: {
       Bronze: "Bronza",
@@ -454,6 +456,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} bonus bodova`,
     points: (points) => `${points} bodova`,
     currentRank: (rank) => `Tvoj trenutačni rang je: ${rank}`,
+    highestRank: (rank) => `Tvoj najviši rang je: ${rank}`,
     currentRanksIntro: "U igri Bela 1v1 postoje sljedeći rangovi:",
     cpuLevelNames: {
       Bronze: "Bronca",
@@ -609,6 +612,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} бонус т.`,
     points: (points) => `${points} т.`,
     currentRank: (rank) => `Текущият ти ранг е: ${rank}`,
+    highestRank: (rank) => `Най-високият ти ранг е: ${rank}`,
     currentRanksIntro: "В Белот 1v1 има следните рангове:",
     cpuLevelNames: {
       Bronze: "Бронз",
@@ -754,6 +758,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} bonus pts`,
     points: (points) => `${points} pts`,
     currentRank: (rank) => `Your current rank is: ${rank}`,
+    highestRank: (rank) => `Your highest rank: ${rank}`,
     currentRanksIntro: "There are the following ranks in Belot 1v1:",
     cpuLevelNames: {
       Bronze: "Bronze",
@@ -901,6 +906,7 @@ export const messages: Record<Locale, Messages> = {
     bonusPts: (points) => `${points} pts de bonus`,
     points: (points) => `${points} pts`,
     currentRank: (rank) => `Votre rang actuel est : ${rank}`,
+    highestRank: (rank) => `Votre meilleur rang est : ${rank}`,
     currentRanksIntro: "Il y a les rangs suivants dans Belote 1v1 :",
     cpuLevelNames: {
       Bronze: "Bronze",

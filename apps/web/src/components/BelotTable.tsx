@@ -27,7 +27,6 @@ import { suitImagePaths } from "../game/card-assets";
 import { PlayingCard } from "../game/cards";
 import { belotRulesHref, type Messages, useI18n } from "../i18n";
 import {
-  cpuLevelPointThreshold,
   type CpuLevelProgress,
   isGrandmasterLevel,
 } from "../progress/cpu-levels";
@@ -776,57 +775,23 @@ function WinnerPanel({
 
 function LevelProgress({ progress }: { progress: CpuLevelProgress }) {
   const { messages } = useI18n();
-  const threshold = cpuLevelPointThreshold(progress.level);
   const levelName = messages.cpuLevelNames[progress.level];
   const visibleRank = isGrandmasterLevel(progress.level)
     ? `${levelName} ${progress.points}`
     : levelName;
   const label = messages.currentRank(visibleRank);
 
-  if (isGrandmasterLevel(progress.level) || !threshold) {
-    return (
-      <div
-        className="mt-3 flex items-center justify-center gap-2 text-sm font-bold tracking-normal"
-        data-testid="cpu-level-progress"
-      >
-        <CpuLevelIcon
-          className="cpu-level-icon--progress"
-          level={progress.level}
-          testId="cpu-level-progress-icon"
-        />
-        <span>{label}</span>
-      </div>
-    );
-  }
-
   return (
     <div
-      aria-label={`${label}, ${progress.points} of ${threshold}`}
-      className="mt-3 flex flex-col items-center gap-2"
+      className="mt-3 flex items-center justify-center gap-2 text-sm font-bold tracking-normal"
       data-testid="cpu-level-progress"
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={threshold}
-      aria-valuenow={progress.points}
     >
-      <p className="flex items-center justify-center gap-2 text-sm font-bold tracking-normal">
-        <CpuLevelIcon
-          className="cpu-level-icon--progress"
-          level={progress.level}
-          testId="cpu-level-progress-icon"
-        />
-        <span>{label}</span>
-      </p>
-      <div className="flex justify-center gap-1.5" aria-hidden="true">
-        {Array.from({ length: threshold }, (_, index) => (
-          <span
-            key={index}
-            className="cpu-level-point"
-            data-filled={index < progress.points ? "true" : "false"}
-            data-level={progress.level}
-          />
-        ))}
-      </div>
+      <CpuLevelIcon
+        className="cpu-level-icon--progress"
+        level={progress.level}
+        testId="cpu-level-progress-icon"
+      />
+      <span>{label}</span>
     </div>
   );
 }

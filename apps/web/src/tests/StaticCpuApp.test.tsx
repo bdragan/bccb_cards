@@ -307,9 +307,9 @@ describe("StaticCpuApp", () => {
         "game_completed",
         expect.objectContaining({
           hand_count: 0,
-          player_current_rank: "Silver 3",
+          player_current_rank: "Silver",
           player_current_rank_level: "Silver",
-          player_current_rank_points: 3,
+          player_current_rank_points: 1,
           winner: "cpu",
         }),
       );
@@ -605,12 +605,12 @@ describe("StaticCpuApp", () => {
     );
 
     const rankButton = await screen.findByRole("button", {
-      name: "Your current rank is: Bronze",
+      name: "Your current rank is: Silver",
     });
-    expect(rankButton).not.toHaveTextContent("Bronze");
+    expect(rankButton).not.toHaveTextContent("Silver");
     expect(
       within(rankButton).getByTestId("player-current-rank-icon"),
-    ).toHaveAttribute("data-level", "Bronze");
+    ).toHaveAttribute("data-level", "Silver");
     expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "New game" }),
@@ -620,25 +620,29 @@ describe("StaticCpuApp", () => {
 
     expect(
       within(screen.getByTestId("player-current-rank-popover")).getByText(
-        "Your current rank is: Bronze",
+        "Your current rank is: Silver",
       ),
     ).toBeInTheDocument();
     const rankPopover = within(
       screen.getByTestId("player-current-rank-popover"),
     );
     expect(
+      rankPopover.getByText("Your highest rank: Silver"),
+    ).toBeInTheDocument();
+    expect(
       rankPopover.getByText("There are the following ranks in Belot 1v1:"),
     ).toBeInTheDocument();
-    expect(rankPopover.getAllByRole("listitem").map((item) => item.textContent))
-      .toEqual([
-        "Bronze",
-        "Silver",
-        "Gold",
-        "Platinum",
-        "Diamond",
-        "Master",
-        "Grandmaster",
-      ]);
+    expect(
+      rankPopover.getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual([
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Diamond",
+      "Master",
+      "Grandmaster",
+    ]);
     expect(screen.getByTestId("player-current-rank-popover")).toHaveTextContent(
       "Rules of Belot 1v1.",
     );
@@ -651,8 +655,10 @@ describe("StaticCpuApp", () => {
       expect(
         JSON.parse(localStorage.getItem(cpuLevelProgressStorageKey) ?? "null"),
       ).toEqual({
-        level: "Bronze",
-        points: 2,
+        level: "Silver",
+        points: 1,
+        highestLevel: "Silver",
+        highestPoints: 1,
       });
     });
 
@@ -664,6 +670,38 @@ describe("StaticCpuApp", () => {
       expect(stored.state?.phase).toBe("trump-round-one");
       expect(stored.state?.handResults).toEqual([]);
     });
+  });
+
+  it("shows Grandmaster points for the highest rank in the rank popover", async () => {
+    localStorage.setItem(
+      cpuLevelProgressStorageKey,
+      JSON.stringify({
+        level: "Master",
+        points: 1,
+        highestLevel: "Grandmaster",
+        highestPoints: 17,
+      }),
+    );
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    const rankButton = await screen.findByRole("button", {
+      name: "Your current rank is: Master",
+    });
+
+    await userEvent.click(rankButton);
+
+    const rankPopover = within(
+      screen.getByTestId("player-current-rank-popover"),
+    );
+
+    expect(
+      rankPopover.getByText("Your highest rank: Grandmaster 17"),
+    ).toBeInTheDocument();
   });
 
   it("does not update CPU level progress again when a stored finished game was already counted", async () => {
@@ -721,8 +759,10 @@ describe("StaticCpuApp", () => {
       expect(
         JSON.parse(localStorage.getItem(cpuLevelProgressStorageKey) ?? "null"),
       ).toEqual({
-        level: "Bronze",
-        points: 2,
+        level: "Silver",
+        points: 1,
+        highestLevel: "Silver",
+        highestPoints: 1,
       });
     });
     expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();

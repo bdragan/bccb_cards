@@ -20,8 +20,8 @@ import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { belotRulesHref, type Messages, useI18n } from "../i18n";
 import {
   applyCpuLevelResult,
-  type CpuLevelProgress,
   cpuLevelNames,
+  type CpuLevelProgress,
   isGrandmasterLevel,
   readCpuLevelProgress,
   writeCpuLevelProgress,
@@ -81,10 +81,15 @@ function elapsedSeconds(startedAt: number) {
 }
 
 function cpuLevelRank(progress: CpuLevelProgress) {
-  return `${progress.level} ${progress.points}`;
+  return isGrandmasterLevel(progress.level)
+    ? `${progress.level} ${progress.points}`
+    : progress.level;
 }
 
-function visibleCpuLevelRank(progress: CpuLevelProgress, messages: Messages) {
+function visibleCpuLevelRank(
+  progress: Pick<CpuLevelProgress, "level" | "points">,
+  messages: Messages,
+) {
   const levelName = messages.cpuLevelNames[progress.level];
 
   return isGrandmasterLevel(progress.level)
@@ -92,16 +97,18 @@ function visibleCpuLevelRank(progress: CpuLevelProgress, messages: Messages) {
     : levelName;
 }
 
-function RankPopover({
-  levelProgress,
-  visibleRank,
-}: {
-  levelProgress: CpuLevelProgress;
-  visibleRank: string;
-}) {
+function RankPopover({ levelProgress }: { levelProgress: CpuLevelProgress }) {
   const { locale, messages } = useI18n();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const visibleRank = visibleCpuLevelRank(levelProgress, messages);
+  const visibleHighestRank = visibleCpuLevelRank(
+    {
+      level: levelProgress.highestLevel,
+      points: levelProgress.highestPoints,
+    },
+    messages,
+  );
   const label = messages.currentRank(visibleRank);
   const rulesHref = belotRulesHref(locale);
 
@@ -156,6 +163,9 @@ function RankPopover({
           data-testid="player-current-rank-popover"
         >
           <p className="text-sm font-semibold">{label}</p>
+          <p className="mt-2 text-sm">
+            {messages.highestRank(visibleHighestRank)}
+          </p>
           <p className="mt-3 text-sm">{messages.currentRanksIntro}</p>
           <ol className="mt-2 space-y-1 text-sm">
             {cpuLevelNames.map((levelName) => (
@@ -296,10 +306,7 @@ function readFirstHandCompletedTracked() {
 
 function writeFirstHandCompletedTracked() {
   try {
-    window.localStorage.setItem(
-      staticCpuFirstHandCompletedStorageKey,
-      "true",
-    );
+    window.localStorage.setItem(staticCpuFirstHandCompletedStorageKey, "true");
   } catch {
     // Analytics de-duplication should not affect gameplay if storage is unavailable.
   }
@@ -548,7 +555,6 @@ export function StaticCpuApp() {
         return nextProgress;
       });
     }
-
   }, [belotState, levelProgress]);
 
   useEffect(() => {
@@ -734,13 +740,10 @@ export function StaticCpuApp() {
     });
   }
 
-  const visibleRank = visibleCpuLevelRank(levelProgress, messages);
   const topControls = (
     <TopMenu
       align="split"
-      leading={
-        <RankPopover levelProgress={levelProgress} visibleRank={visibleRank} />
-      }
+      leading={<RankPopover levelProgress={levelProgress} />}
     >
       <LanguageToggle />
       <Button
