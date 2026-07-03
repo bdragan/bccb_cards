@@ -1682,7 +1682,11 @@ describe("Belot", () => {
       createBelotHandPlaySearchContext(2, policy),
     );
 
-    expect(result).toEqual({ value: 131, callerFell: false });
+    expect(result).toEqual({
+      value: 131,
+      callerFell: false,
+      schusterPlayerIds: ["p2"],
+    });
   });
 
   it("reuses alpha-beta values from the Belot hand-play transposition table", () => {
@@ -3050,10 +3054,10 @@ describe("Belot", () => {
   });
 
   it("raises the voluntary trump EV threshold for thin visible trump suits", () => {
-    expect(belotCpuTrumpCallExpectedValueThreshold(0)).toBe(50);
-    expect(belotCpuTrumpCallExpectedValueThreshold(1)).toBe(40);
-    expect(belotCpuTrumpCallExpectedValueThreshold(2)).toBe(30);
-    expect(belotCpuTrumpCallExpectedValueThreshold(5)).toBe(30);
+    expect(belotCpuTrumpCallExpectedValueThreshold(0)).toBe(40);
+    expect(belotCpuTrumpCallExpectedValueThreshold(1)).toBe(30);
+    expect(belotCpuTrumpCallExpectedValueThreshold(2)).toBe(20);
+    expect(belotCpuTrumpCallExpectedValueThreshold(5)).toBe(20);
   });
 
   it("chooses a strong positive-value second-round trump suit when picking second", () => {
@@ -3167,7 +3171,7 @@ describe("Belot", () => {
     });
   }, 10_000);
 
-  it("passes the mobile screenshot weak hearts hand before pickup cards are known", () => {
+  it("chooses the mobile screenshot hearts hand at the EV20 threshold", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
       phase: "trump-round-two",
@@ -3217,8 +3221,9 @@ describe("Belot", () => {
     };
 
     expect(chooseBelotCpuAction(state, "p2", { rng: seededRng(1) })).toEqual({
-      type: "trump-pass",
+      type: "trump-choose-suit",
       playerId: "p2",
+      suit: "hearts",
     });
   }, 10_000);
 
@@ -3278,7 +3283,7 @@ describe("Belot", () => {
     });
   }, 10_000);
 
-  it("passes a one-visible-trump first-round bells hand below the raised EV threshold", () => {
+  it("accepts a one-visible-trump first-round bells hand at the EV20 threshold", () => {
     const state: BelotState = {
       ...createBelotInitialState(players),
       phase: "trump-round-one",
@@ -3334,7 +3339,7 @@ describe("Belot", () => {
         trumpSearchPlies: 14,
       }),
     ).toEqual({
-      type: "trump-pass",
+      type: "trump-accept-upcard",
       playerId: "p2",
     });
   }, 20_000);

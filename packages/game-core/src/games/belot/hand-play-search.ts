@@ -36,6 +36,7 @@ export type BelotHandPlaySearchContext = {
 export type BelotHandPlaySearchResult = {
   value: number;
   callerFell?: boolean;
+  schusterPlayerIds?: string[];
 };
 
 export type BelotHandPlayTranspositionBound = "exact" | "lower" | "upper";
@@ -44,6 +45,7 @@ export type BelotHandPlayTranspositionEntry = {
   bound: BelotHandPlayTranspositionBound;
   value: number;
   callerFell?: boolean;
+  schusterPlayerIds?: string[];
 };
 
 export function createBelotHandPlaySearchContext(
@@ -167,6 +169,7 @@ export function belotHandPlayAlphaBetaResult(
         return {
           value: transpositionEntry.value,
           callerFell: transpositionEntry.callerFell,
+          schusterPlayerIds: transpositionEntry.schusterPlayerIds,
         };
       }
 
@@ -177,7 +180,11 @@ export function belotHandPlayAlphaBetaResult(
       }
 
       if (alpha >= beta) {
-        return { value: transpositionEntry.value };
+        return {
+          value: transpositionEntry.value,
+          callerFell: transpositionEntry.callerFell,
+          schusterPlayerIds: transpositionEntry.schusterPlayerIds,
+        };
       }
     }
   }
@@ -267,6 +274,7 @@ function rememberBelotHandPlayTransposition(
     bound,
     value: result.value,
     callerFell: bound === "exact" ? result.callerFell : undefined,
+    schusterPlayerIds: result.schusterPlayerIds,
   });
 }
 
@@ -451,6 +459,7 @@ function evaluateSearchLeaf(
       state.callerPlayerId === maximizingPlayerId
         ? state.lastHandResult?.callerFell
         : undefined,
+    schusterPlayerIds: state.lastHandResult?.schusterPlayerIds,
   };
 }
 

@@ -15,7 +15,6 @@ import type {
 } from "./hand-play-search";
 import {
   belotHandPlayAlphaBetaResult,
-  belotHandPlayAlphaBetaValue,
   belotHandPlaySearchMaxUtility,
   createBelotHandPlaySearchContext,
 } from "./hand-play-search";
@@ -38,7 +37,7 @@ export type BelotCpuOptions = {
 
 export const defaultBelotCpuMaxSearchPlies = 14;
 const defaultMonteCarloSamples = 64;
-const trumpMinExpectedValueForVoluntaryCall = 30;
+const trumpMinExpectedValueForVoluntaryCall = 20;
 const singleVisibleTrumpCardExpectedValuePenalty = 10;
 const noVisibleTrumpCardExpectedValuePenalty = 20;
 const initialTrickHandCards = 10;
@@ -78,13 +77,15 @@ export type BelotCpuRootCardSampleStats = {
 type BelotCpuRootCardValueStats = {
   sampleCount: number;
   totalValue: number;
+  nonSchusterSampleCount: number;
+  nonSchusterTotalValue: number;
 };
 
 type BelotRootSampleSearchResult = {
   bestCardId: string;
   bestValue: number;
   searchedCardIds: string[];
-  values: Array<{ cardId: string; value: number }>;
+  values: Array<{ cardId: string; value: number; hasSchuster: boolean }>;
 };
 
 export function belotCpuMonteCarloSampleLimit(
@@ -459,11 +460,13 @@ function averageTrumpRolloutScore(
   const successes = results.filter((result) =>
     belotCpuTrumpCandidateSucceeded(result, initialValue),
   ).length;
+  const valueDeltas = results.map((result) => ({
+    value: result.value - initialValue,
+    hasSchuster: searchResultHasSchuster(result),
+  }));
 
   return {
-    expectedValue:
-      results.reduce((sum, result) => sum + result.value - initialValue, 0) /
-      results.length,
+    expectedValue: averageNonSchusterValue(valueDeltas),
     successRate: successes / results.length,
   };
 }
@@ -618,6 +621,9 @@ function chooseCardForTrick(
   });
   const rootCardStats = createRootCardSampleStats(searchCards);
   const rootCardValueStats = createRootCardValueStats(searchCards);
+  const excludeSchusterSamplesFromRootValue =
+    cpu.hand.length === initialTrickHandCards ||
+    cpu.hand.length === initialTrickHandCards - 1;
 
   for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
     const sample = samples[sampleIndex];
@@ -636,7 +642,12 @@ function chooseCardForTrick(
     );
 
     for (const result of sampleResult.values) {
-      updateRootCardValueStats(rootCardValueStats, result.cardId, result.value);
+      updateRootCardValueStats(
+        rootCardValueStats,
+        result.cardId,
+        result.value,
+        result.hasSchuster,
+      );
     }
 
     updateRootCardSampleStats(rootCardStats, sampleResult);
@@ -644,8 +655,14 @@ function chooseCardForTrick(
 
   return searchCards.slice().sort((left, right) => {
     const scoreDelta =
-      averageRootCardValue(rootCardValueStats.get(right.id)) -
-      averageRootCardValue(rootCardValueStats.get(left.id));
+      averageRootCardValue(
+        rootCardValueStats.get(right.id),
+        excludeSchusterSamplesFromRootValue,
+      ) -
+      averageRootCardValue(
+        rootCardValueStats.get(left.id),
+        excludeSchusterSamplesFromRootValue,
+      );
 
     if (scoreDelta !== 0) {
       return scoreDelta;
@@ -674,7 +691,8 @@ function searchRootCardsForSample(
   let bestCardId = rootCards[0]?.id;
   let bestValue = -belotHandPlaySearchMaxUtility;
   const searchedCardIds: string[] = [];
-  const values: Array<{ cardId: string; value: number }> = [];
+  const values: Array<{ cardId: string; value: number; hasSchuster: boolean }> =
+    [];
 
   if (!bestCardId) {
     throw new Error("CPU has no root cards to search");
@@ -690,7 +708,7 @@ function searchRootCardsForSample(
       playerId: cpuPlayerId,
       cardId: card.id,
     });
-    const value = belotHandPlayAlphaBetaValue(
+    const result = belotHandPlayAlphaBetaResult(
       next,
       cpuPlayerId,
       maxSearchPlies - 1,
@@ -698,9 +716,14 @@ function searchRootCardsForSample(
       belotHandPlaySearchMaxUtility,
       searchContext,
     );
+    const value = result.value;
 
     searchedCardIds.push(card.id);
-    values.push({ cardId: card.id, value });
+    values.push({
+      cardId: card.id,
+      value,
+      hasSchuster: searchResultHasSchuster(result),
+    });
 
     if (value > bestValue) {
       bestCardId = card.id;
@@ -2162,6 +2185,8 @@ function createRootCardValueStats(cards: Card[]) {
       {
         sampleCount: 0,
         totalValue: 0,
+        nonSchusterSampleCount: 0,
+        nonSchusterTotalValue: 0,
       },
     ]),
   );
@@ -2171,22 +2196,55 @@ function updateRootCardValueStats(
   stats: Map<string, BelotCpuRootCardValueStats>,
   cardId: string,
   value: number,
+  hasSchuster: boolean,
 ) {
   const current = stats.get(cardId) ?? {
     sampleCount: 0,
     totalValue: 0,
+    nonSchusterSampleCount: 0,
+    nonSchusterTotalValue: 0,
   };
 
   stats.set(cardId, {
     sampleCount: current.sampleCount + 1,
     totalValue: current.totalValue + value,
+    nonSchusterSampleCount:
+      current.nonSchusterSampleCount + (hasSchuster ? 0 : 1),
+    nonSchusterTotalValue:
+      current.nonSchusterTotalValue + (hasSchuster ? 0 : value),
   });
 }
 
-function averageRootCardValue(stats: BelotCpuRootCardValueStats | undefined) {
-  return stats && stats.sampleCount > 0
-    ? stats.totalValue / stats.sampleCount
-    : -belotHandPlaySearchMaxUtility;
+function averageRootCardValue(
+  stats: BelotCpuRootCardValueStats | undefined,
+  excludeSchusterSamples = false,
+) {
+  if (!stats || stats.sampleCount === 0) {
+    return -belotHandPlaySearchMaxUtility;
+  }
+
+  if (excludeSchusterSamples && stats.nonSchusterSampleCount > 0) {
+    return stats.nonSchusterTotalValue / stats.nonSchusterSampleCount;
+  }
+
+  return stats.totalValue / stats.sampleCount;
+}
+
+function averageNonSchusterValue(
+  values: Array<{ value: number; hasSchuster: boolean }>,
+) {
+  const nonSchusterValues = values.filter((result) => !result.hasSchuster);
+  const averagedValues =
+    nonSchusterValues.length > 0 ? nonSchusterValues : values;
+
+  return (
+    averagedValues.reduce((sum, result) => sum + result.value, 0) /
+    averagedValues.length
+  );
+}
+
+function searchResultHasSchuster(result: { schusterPlayerIds?: string[] }) {
+  return Boolean(result.schusterPlayerIds?.length);
 }
 
 function updateRootCardSampleStats(
