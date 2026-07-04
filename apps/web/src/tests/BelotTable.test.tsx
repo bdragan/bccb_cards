@@ -882,9 +882,9 @@ describe("BelotTable", () => {
         onRestart={vi.fn()}
         levelProgress={{
           level: "Silver",
-          points: 1,
+          points: 2,
           highestLevel: "Silver",
-          highestPoints: 1,
+          highestPoints: 2,
         }}
       />,
     );
@@ -900,17 +900,22 @@ describe("BelotTable", () => {
     expect(
       within(progress).getByTestId("cpu-level-progress-icon"),
     ).toHaveAttribute("data-level", "Silver");
-    expect(progress).not.toHaveAttribute("aria-valuemax");
-    expect(progress).not.toHaveAttribute("role", "progressbar");
+    expect(progress).toHaveAttribute("aria-valuemax", "4");
+    expect(progress).toHaveAttribute("aria-valuenow", "2");
+    expect(progress).toHaveAttribute("role", "progressbar");
     expect(
       progress.compareDocumentPosition(newGameButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0);
 
-    expect(progress.querySelector("[data-filled]")).toBeNull();
+    expect(
+      Array.from(progress.querySelectorAll("[data-filled]")).map((point) =>
+        point.getAttribute("data-filled"),
+      ),
+    ).toEqual(["true", "true", "false", "false"]);
   });
 
-  it("translates level names without showing non-Grandmaster rank points", () => {
+  it("translates level names while showing non-Grandmaster rank points", () => {
     setLocaleForTests("fr");
 
     render(
@@ -930,9 +935,9 @@ describe("BelotTable", () => {
         onRestart={vi.fn()}
         levelProgress={{
           level: "Silver",
-          points: 1,
+          points: 2,
           highestLevel: "Silver",
-          highestPoints: 1,
+          highestPoints: 2,
         }}
       />,
     );
@@ -940,8 +945,9 @@ describe("BelotTable", () => {
     const progress = screen.getByTestId("cpu-level-progress");
 
     expect(progress).toHaveTextContent("Votre rang actuel est : Argent");
-    expect(progress).not.toHaveTextContent("3");
-    expect(progress.querySelector("[data-filled]")).toBeNull();
+    expect(progress).toHaveAttribute("aria-valuemax", "4");
+    expect(progress).toHaveAttribute("aria-valuenow", "2");
+    expect(progress.querySelectorAll("[data-filled]")).toHaveLength(4);
   });
 
   it("shows Grandmaster progress as a number without dots", () => {

@@ -81,9 +81,7 @@ function elapsedSeconds(startedAt: number) {
 }
 
 function cpuLevelRank(progress: CpuLevelProgress) {
-  return isGrandmasterLevel(progress.level)
-    ? `${progress.level} ${progress.points}`
-    : progress.level;
+  return `${progress.level} ${progress.points}`;
 }
 
 function visibleCpuLevelRank(

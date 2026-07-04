@@ -7,13 +7,13 @@ import {
 } from "../progress/cpu-levels";
 
 describe("CPU level progress", () => {
-  it("does not expose point thresholds for ranks", () => {
-    expect(cpuLevelPointThreshold("Bronze")).toBeUndefined();
-    expect(cpuLevelPointThreshold("Silver")).toBeUndefined();
-    expect(cpuLevelPointThreshold("Gold")).toBeUndefined();
-    expect(cpuLevelPointThreshold("Platinum")).toBeUndefined();
-    expect(cpuLevelPointThreshold("Diamond")).toBeUndefined();
-    expect(cpuLevelPointThreshold("Master")).toBeUndefined();
+  it("exposes point thresholds for ranks below Grandmaster", () => {
+    expect(cpuLevelPointThreshold("Bronze")).toBe(3);
+    expect(cpuLevelPointThreshold("Silver")).toBe(4);
+    expect(cpuLevelPointThreshold("Gold")).toBe(5);
+    expect(cpuLevelPointThreshold("Platinum")).toBe(6);
+    expect(cpuLevelPointThreshold("Diamond")).toBe(7);
+    expect(cpuLevelPointThreshold("Master")).toBe(8);
     expect(cpuLevelPointThreshold("Grandmaster")).toBeUndefined();
   });
 
@@ -26,29 +26,35 @@ describe("CPU level progress", () => {
     });
   });
 
-  it("migrates old non-Grandmaster saved points to rank-only progress", () => {
+  it("caps saved non-Grandmaster points to the last point before promotion", () => {
     expect(normalizeCpuLevelProgress({ level: "Silver", points: 5 })).toEqual({
       level: "Silver",
-      points: 1,
+      points: 3,
       highestLevel: "Silver",
-      highestPoints: 1,
+      highestPoints: 3,
     });
     expect(normalizeCpuLevelProgress({ level: "Master", points: 12 })).toEqual({
       level: "Master",
-      points: 1,
+      points: 7,
       highestLevel: "Master",
-      highestPoints: 1,
+      highestPoints: 7,
     });
   });
 
-  it("promotes to the next rank after a win", () => {
+  it("adds points before promoting to the next rank after a win", () => {
     expect(applyCpuLevelResult({ level: "Bronze", points: 1 }, "win")).toEqual({
+      level: "Bronze",
+      points: 2,
+      highestLevel: "Bronze",
+      highestPoints: 2,
+    });
+    expect(applyCpuLevelResult({ level: "Bronze", points: 2 }, "win")).toEqual({
       level: "Silver",
       points: 1,
       highestLevel: "Silver",
       highestPoints: 1,
     });
-    expect(applyCpuLevelResult({ level: "Master", points: 1 }, "win")).toEqual({
+    expect(applyCpuLevelResult({ level: "Master", points: 7 }, "win")).toEqual({
       level: "Grandmaster",
       points: 1,
       highestLevel: "Grandmaster",
@@ -56,22 +62,30 @@ describe("CPU level progress", () => {
     });
   });
 
-  it("demotes to the previous rank after a loss", () => {
+  it("removes points before demoting to the previous rank after a loss", () => {
+    expect(applyCpuLevelResult({ level: "Silver", points: 2 }, "loss")).toEqual(
+      {
+        level: "Silver",
+        points: 1,
+        highestLevel: "Silver",
+        highestPoints: 2,
+      },
+    );
     expect(applyCpuLevelResult({ level: "Silver", points: 1 }, "loss")).toEqual(
       {
         level: "Bronze",
-        points: 1,
+        points: 2,
         highestLevel: "Silver",
         highestPoints: 1,
       },
     );
     expect(
-      applyCpuLevelResult({ level: "Grandmaster", points: 17 }, "loss"),
+      applyCpuLevelResult({ level: "Grandmaster", points: 1 }, "loss"),
     ).toEqual({
       level: "Master",
-      points: 1,
+      points: 7,
       highestLevel: "Grandmaster",
-      highestPoints: 17,
+      highestPoints: 1,
     });
   });
 
@@ -97,19 +111,46 @@ describe("CPU level progress", () => {
     });
   });
 
+  it("keeps Grandmaster losses as visible points until Grandmaster 1", () => {
+    expect(
+      applyCpuLevelResult({ level: "Grandmaster", points: 17 }, "loss"),
+    ).toEqual({
+      level: "Grandmaster",
+      points: 16,
+      highestLevel: "Grandmaster",
+      highestPoints: 17,
+    });
+  });
+
   it("preserves the saved highest rank through lower current ranks", () => {
     expect(
       normalizeCpuLevelProgress({
         level: "Gold",
-        points: 1,
+        points: 2,
         highestLevel: "Grandmaster",
         highestPoints: 6,
       }),
     ).toEqual({
       level: "Gold",
-      points: 1,
+      points: 2,
       highestLevel: "Grandmaster",
       highestPoints: 6,
+    });
+  });
+
+  it("preserves the highest saved points within the same rank", () => {
+    expect(
+      normalizeCpuLevelProgress({
+        level: "Gold",
+        points: 2,
+        highestLevel: "Gold",
+        highestPoints: 3,
+      }),
+    ).toEqual({
+      level: "Gold",
+      points: 2,
+      highestLevel: "Gold",
+      highestPoints: 3,
     });
   });
 });

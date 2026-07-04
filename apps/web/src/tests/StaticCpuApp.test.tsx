@@ -307,9 +307,9 @@ describe("StaticCpuApp", () => {
         "game_completed",
         expect.objectContaining({
           hand_count: 0,
-          player_current_rank: "Silver",
+          player_current_rank: "Silver 3",
           player_current_rank_level: "Silver",
-          player_current_rank_points: 1,
+          player_current_rank_points: 3,
           winner: "cpu",
         }),
       );
@@ -605,12 +605,12 @@ describe("StaticCpuApp", () => {
     );
 
     const rankButton = await screen.findByRole("button", {
-      name: "Your current rank is: Silver",
+      name: "Your current rank is: Bronze",
     });
-    expect(rankButton).not.toHaveTextContent("Silver");
+    expect(rankButton).not.toHaveTextContent("Bronze");
     expect(
       within(rankButton).getByTestId("player-current-rank-icon"),
-    ).toHaveAttribute("data-level", "Silver");
+    ).toHaveAttribute("data-level", "Bronze");
     expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "New game" }),
@@ -620,14 +620,14 @@ describe("StaticCpuApp", () => {
 
     expect(
       within(screen.getByTestId("player-current-rank-popover")).getByText(
-        "Your current rank is: Silver",
+        "Your current rank is: Bronze",
       ),
     ).toBeInTheDocument();
     const rankPopover = within(
       screen.getByTestId("player-current-rank-popover"),
     );
     expect(
-      rankPopover.getByText("Your highest rank: Silver"),
+      rankPopover.getByText("Your highest rank: Bronze"),
     ).toBeInTheDocument();
     expect(
       rankPopover.getByText("There are the following ranks in Belot 1v1:"),
@@ -655,10 +655,10 @@ describe("StaticCpuApp", () => {
       expect(
         JSON.parse(localStorage.getItem(cpuLevelProgressStorageKey) ?? "null"),
       ).toEqual({
-        level: "Silver",
-        points: 1,
-        highestLevel: "Silver",
-        highestPoints: 1,
+        level: "Bronze",
+        points: 2,
+        highestLevel: "Bronze",
+        highestPoints: 2,
       });
     });
 
@@ -759,10 +759,10 @@ describe("StaticCpuApp", () => {
       expect(
         JSON.parse(localStorage.getItem(cpuLevelProgressStorageKey) ?? "null"),
       ).toEqual({
-        level: "Silver",
-        points: 1,
-        highestLevel: "Silver",
-        highestPoints: 1,
+        level: "Bronze",
+        points: 2,
+        highestLevel: "Bronze",
+        highestPoints: 2,
       });
     });
     expect(screen.queryByTestId("belot-winner")).not.toBeInTheDocument();

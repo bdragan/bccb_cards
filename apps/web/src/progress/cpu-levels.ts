@@ -42,16 +42,27 @@ export function isGrandmasterLevel(level: CpuLevelName) {
   return level === "Grandmaster";
 }
 
-export function cpuLevelPointThreshold(_level: CpuLevelName) {
-  return undefined;
+export function cpuLevelPointThreshold(level: CpuLevelName) {
+  if (isGrandmasterLevel(level)) {
+    return undefined;
+  }
+
+  return 3 + levelIndex(level);
 }
 
 function normalizeLevelPoints(level: CpuLevelName, points: unknown) {
-  if (!isGrandmasterLevel(level)) {
-    return 1;
+  const normalizedPoints =
+    typeof points === "number" ? Math.max(1, Math.floor(points)) : 1;
+
+  if (isGrandmasterLevel(level)) {
+    return normalizedPoints;
   }
 
-  return typeof points === "number" ? Math.max(1, Math.floor(points)) : 1;
+  return Math.min(normalizedPoints, lastPointBeforePromotion(level));
+}
+
+function lastPointBeforePromotion(level: CpuLevelName) {
+  return (cpuLevelPointThreshold(level) ?? 1) - 1;
 }
 
 function compareCpuLevelProgress(
@@ -64,7 +75,7 @@ function compareCpuLevelProgress(
     return levelDifference;
   }
 
-  return isGrandmasterLevel(left.level) ? left.points - right.points : 0;
+  return left.points - right.points;
 }
 
 export function normalizeCpuLevelProgress(progress: unknown): CpuLevelProgress {
@@ -115,12 +126,26 @@ export function applyCpuLevelResult(
     if (isGrandmasterLevel(normalized.level)) {
       next = { level: normalized.level, points: normalized.points + 1 };
     } else {
-      next = { level: cpuLevelNames[currentIndex + 1], points: 1 };
+      const nextPoints = normalized.points + 1;
+      const threshold = cpuLevelPointThreshold(normalized.level);
+
+      if (threshold && nextPoints >= threshold) {
+        next = { level: cpuLevelNames[currentIndex + 1], points: 1 };
+      } else {
+        next = { level: normalized.level, points: nextPoints };
+      }
     }
+  } else if (normalized.points > 1) {
+    next = { level: normalized.level, points: normalized.points - 1 };
   } else if (normalized.level === "Bronze") {
     next = { level: "Bronze", points: 1 };
   } else {
-    next = { level: cpuLevelNames[currentIndex - 1], points: 1 };
+    const previousLevel = cpuLevelNames[currentIndex - 1];
+
+    next = {
+      level: previousLevel,
+      points: lastPointBeforePromotion(previousLevel),
+    };
   }
 
   return normalizeCpuLevelProgress({
