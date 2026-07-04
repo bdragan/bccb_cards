@@ -19,8 +19,8 @@ import {
 import { createDeck } from "@card-games/game-core";
 import type { Card } from "@card-games/shared";
 
-const participantDepths = [6, 8, 10, 12, 14] as const;
-const gamesPerMatchup = 10;
+const participantDepths = [10, 14] as const;
+const gamesPerMatchup = 100;
 const monteCarloSamples = 64;
 const maxGameActions = 10_000;
 
@@ -565,7 +565,7 @@ async function main() {
   const jobs = createJobs(declarationsEnabled);
   const workerCount = Math.min(
     jobs.length,
-    Math.max(1, availableParallelism() - 4),
+    Math.max(1, availableParallelism() - 6),
   );
   const results: TournamentGameResult[] = [];
   let outputWrite = Promise.resolve();
