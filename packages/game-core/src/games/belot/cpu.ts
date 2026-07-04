@@ -629,10 +629,7 @@ function chooseCardForTrick(
     ),
     rng,
   );
-  const searchCards = belotCpuSearchCards(legalCards, {
-    ...state,
-    unusedCards: [],
-  });
+  const searchCards = legalCards;
   const rootCardStats = createRootCardSampleStats(searchCards);
   const rootCardValueStats = createRootCardValueStats(searchCards);
   const excludeSchusterSamplesFromRootValue =
@@ -641,7 +638,6 @@ function chooseCardForTrick(
 
   for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
     const sample = samples[sampleIndex];
-    const sampleSearchCards = belotCpuSearchCards(searchCards, sample);
     const searchContext = createBelotHandPlaySearchContext(
       maxSearchPlies,
       belotCpuHandPlaySearchPolicy,
@@ -649,7 +645,7 @@ function chooseCardForTrick(
     const sampleResult = searchRootCardsForSample(
       sample,
       cpuPlayerId,
-      sampleSearchCards,
+      searchCards,
       rootCardStats,
       maxSearchPlies,
       searchContext,
