@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyCpuLevelResult,
+  cpuMaxSearchPliesForLevel,
   cpuLevelPointThreshold,
   normalizeCpuLevelProgress,
 } from "../progress/cpu-levels";
@@ -24,6 +25,17 @@ describe("CPU level progress", () => {
       highestLevel: "Bronze",
       highestPoints: 1,
     });
+  });
+
+  it("sets CPU max search plies from the current rank", () => {
+    expect(cpuMaxSearchPliesForLevel("Bronze", 14)).toBe(10);
+    expect(cpuMaxSearchPliesForLevel("Silver", 14)).toBe(10);
+    expect(cpuMaxSearchPliesForLevel("Gold", 14)).toBe(12);
+    expect(cpuMaxSearchPliesForLevel("Platinum", 14)).toBe(12);
+    expect(cpuMaxSearchPliesForLevel("Diamond", 14)).toBe(14);
+    expect(cpuMaxSearchPliesForLevel("Master", 14)).toBe(14);
+    expect(cpuMaxSearchPliesForLevel("Grandmaster", 14)).toBe(14);
+    expect(cpuMaxSearchPliesForLevel("Bronze", 3)).toBe(1);
   });
 
   it("caps saved non-Grandmaster points to the last point before promotion", () => {

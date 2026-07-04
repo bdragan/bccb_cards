@@ -160,6 +160,7 @@ export type Messages = {
   currentRank: (rank: string) => string;
   highestRank: (rank: string) => string;
   currentRanksIntro: string;
+  cpuDifficultyIncreases: string;
   cpuLevelNames: Record<CpuLevelName, string>;
   dealer: string;
   first: string;
@@ -303,6 +304,7 @@ export const messages: Record<Locale, Messages> = {
     currentRank: (rank) => `Tvoj trenutni rang je: ${rank}`,
     highestRank: (rank) => `Tvoj najviši rang je: ${rank}`,
     currentRanksIntro: "U igri Bela 1v1 postoje sledeći rangovi:",
+    cpuDifficultyIncreases: "AI težina raste sa rangom.",
     cpuLevelNames: {
       Bronze: "Bronza",
       Silver: "Srebro",
@@ -458,6 +460,7 @@ export const messages: Record<Locale, Messages> = {
     currentRank: (rank) => `Tvoj trenutačni rang je: ${rank}`,
     highestRank: (rank) => `Tvoj najviši rang je: ${rank}`,
     currentRanksIntro: "U igri Bela 1v1 postoje sljedeći rangovi:",
+    cpuDifficultyIncreases: "AI težina raste s rangom.",
     cpuLevelNames: {
       Bronze: "Bronca",
       Silver: "Srebro",
@@ -614,6 +617,7 @@ export const messages: Record<Locale, Messages> = {
     currentRank: (rank) => `Текущият ти ранг е: ${rank}`,
     highestRank: (rank) => `Най-високият ти ранг е: ${rank}`,
     currentRanksIntro: "В Белот 1v1 има следните рангове:",
+    cpuDifficultyIncreases: "Трудността на AI се увеличава с ранга.",
     cpuLevelNames: {
       Bronze: "Бронз",
       Silver: "Сребро",
@@ -760,6 +764,7 @@ export const messages: Record<Locale, Messages> = {
     currentRank: (rank) => `Your current rank is: ${rank}`,
     highestRank: (rank) => `Your highest rank: ${rank}`,
     currentRanksIntro: "There are the following ranks in Belot 1v1:",
+    cpuDifficultyIncreases: "AI difficulty increases with rank.",
     cpuLevelNames: {
       Bronze: "Bronze",
       Silver: "Silver",
@@ -908,6 +913,7 @@ export const messages: Record<Locale, Messages> = {
     currentRank: (rank) => `Votre rang actuel est : ${rank}`,
     highestRank: (rank) => `Votre meilleur rang est : ${rank}`,
     currentRanksIntro: "Il y a les rangs suivants dans Belote 1v1 :",
+    cpuDifficultyIncreases: "La difficulté de l'IA augmente avec le rang.",
     cpuLevelNames: {
       Bronze: "Bronze",
       Silver: "Argent",

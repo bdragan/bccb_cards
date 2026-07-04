@@ -33,6 +33,7 @@ import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { useI18n } from "../i18n";
 import {
   applyCpuLevelResult,
+  cpuMaxSearchPliesForLevel,
   readCpuLevelProgress,
   writeCpuLevelProgress,
 } from "../progress/cpu-levels";
@@ -228,7 +229,10 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
     }
 
     const cpuOptions: BelotCpuOptions = {
-      maxSearchPlies: defaultBelotCpuMaxSearchPlies,
+      maxSearchPlies: cpuMaxSearchPliesForLevel(
+        levelProgress.level,
+        defaultBelotCpuMaxSearchPlies,
+      ),
       monteCarloSamples: 64,
     };
 
@@ -264,7 +268,7 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
     }, offlineCpuActionDelay(offlineBelotState));
 
     return () => window.clearTimeout(timeout);
-  }, [messages.cpuWorkerUnavailable, offlineBelotState]);
+  }, [levelProgress.level, messages.cpuWorkerUnavailable, offlineBelotState]);
 
   useEffect(() => {
     if (

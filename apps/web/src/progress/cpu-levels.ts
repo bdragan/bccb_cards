@@ -50,6 +50,21 @@ export function cpuLevelPointThreshold(level: CpuLevelName) {
   return 3 + levelIndex(level);
 }
 
+export function cpuMaxSearchPliesForLevel(
+  level: CpuLevelName,
+  defaultMaxSearchPlies: number,
+) {
+  if (level === "Bronze" || level === "Silver") {
+    return Math.max(1, defaultMaxSearchPlies - 4);
+  }
+
+  if (level === "Gold" || level === "Platinum") {
+    return Math.max(1, defaultMaxSearchPlies - 2);
+  }
+
+  return defaultMaxSearchPlies;
+}
+
 function normalizeLevelPoints(level: CpuLevelName, points: unknown) {
   const normalizedPoints =
     typeof points === "number" ? Math.max(1, Math.floor(points)) : 1;

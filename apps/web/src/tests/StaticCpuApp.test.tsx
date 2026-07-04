@@ -239,6 +239,16 @@ describe("StaticCpuApp", () => {
     } satisfies BelotState;
   }
 
+  function getByExactTextContent(
+    scope: ReturnType<typeof within>,
+    textContent: string,
+  ) {
+    return scope.getByText(
+      (_content: string, element: Element | null) =>
+        element?.textContent === textContent,
+    );
+  }
+
   it("renders the CPU-only game without backend controls", async () => {
     const user = userEvent.setup();
 
@@ -514,6 +524,11 @@ describe("StaticCpuApp", () => {
 
       expect(cpuRequest.state?.phase).toBe("trick-play");
       expect(cpuRequest.state?.currentTurnPlayerId).toBe(cpuPlayerId);
+      expect(
+        (testWorkers[0]?.postMessage.mock.calls[0]?.[0] as {
+          options?: { maxSearchPlies?: number };
+        }).options?.maxSearchPlies,
+      ).toBe(10);
     } finally {
       vi.useRealTimers();
     }
@@ -618,17 +633,30 @@ describe("StaticCpuApp", () => {
 
     await userEvent.click(rankButton);
 
-    expect(
-      within(screen.getByTestId("player-current-rank-popover")).getByText(
-        "Your current rank is: Bronze",
-      ),
-    ).toBeInTheDocument();
     const rankPopover = within(
       screen.getByTestId("player-current-rank-popover"),
     );
+
     expect(
-      rankPopover.getByText("Your highest rank: Bronze"),
+      getByExactTextContent(rankPopover, "Your current rank is: Bronze"),
     ).toBeInTheDocument();
+    const currentRankSentence = getByExactTextContent(
+      rankPopover,
+      "Your current rank is: Bronze",
+    );
+    expect(within(currentRankSentence).getByText("Bronze").tagName).toBe(
+      "STRONG",
+    );
+    expect(
+      getByExactTextContent(rankPopover, "Your highest rank: Bronze"),
+    ).toBeInTheDocument();
+    const highestRankSentence = getByExactTextContent(
+      rankPopover,
+      "Your highest rank: Bronze",
+    );
+    expect(within(highestRankSentence).getByText("Bronze").tagName).toBe(
+      "STRONG",
+    );
     expect(
       rankPopover.getByText("There are the following ranks in Belot 1v1:"),
     ).toBeInTheDocument();
@@ -643,6 +671,9 @@ describe("StaticCpuApp", () => {
       "Master",
       "Grandmaster",
     ]);
+    expect(
+      rankPopover.getByText("AI difficulty increases with rank."),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("player-current-rank-popover")).toHaveTextContent(
       "Rules of Belot 1v1.",
     );
@@ -700,7 +731,7 @@ describe("StaticCpuApp", () => {
     );
 
     expect(
-      rankPopover.getByText("Your highest rank: Grandmaster 17"),
+      getByExactTextContent(rankPopover, "Your highest rank: Grandmaster 17"),
     ).toBeInTheDocument();
   });
 

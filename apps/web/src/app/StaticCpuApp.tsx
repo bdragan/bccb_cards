@@ -20,6 +20,7 @@ import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { belotRulesHref, type Messages, useI18n } from "../i18n";
 import {
   applyCpuLevelResult,
+  cpuMaxSearchPliesForLevel,
   cpuLevelNames,
   type CpuLevelProgress,
   isGrandmasterLevel,
@@ -95,6 +96,22 @@ function visibleCpuLevelRank(
     : levelName;
 }
 
+function RankSentence({ sentence, rank }: { sentence: string; rank: string }) {
+  const rankStart = sentence.lastIndexOf(rank);
+
+  if (rankStart < 0) {
+    return <>{sentence}</>;
+  }
+
+  return (
+    <>
+      {sentence.slice(0, rankStart)}
+      <strong className="font-semibold">{rank}</strong>
+      {sentence.slice(rankStart + rank.length)}
+    </>
+  );
+}
+
 function RankPopover({ levelProgress }: { levelProgress: CpuLevelProgress }) {
   const { locale, messages } = useI18n();
   const [open, setOpen] = useState(false);
@@ -160,9 +177,14 @@ function RankPopover({ levelProgress }: { levelProgress: CpuLevelProgress }) {
           className="pointer-events-auto absolute left-0 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-md border border-emerald-200/50 bg-[#f6fbf8] p-3 text-ink shadow-lg shadow-ink/20"
           data-testid="player-current-rank-popover"
         >
-          <p className="text-sm font-semibold">{label}</p>
+          <p className="text-sm">
+            <RankSentence sentence={label} rank={visibleRank} />
+          </p>
           <p className="mt-2 text-sm">
-            {messages.highestRank(visibleHighestRank)}
+            <RankSentence
+              sentence={messages.highestRank(visibleHighestRank)}
+              rank={visibleHighestRank}
+            />
           </p>
           <p className="mt-3 text-sm">{messages.currentRanksIntro}</p>
           <ol className="mt-2 space-y-1 text-sm">
@@ -176,6 +198,7 @@ function RankPopover({ levelProgress }: { levelProgress: CpuLevelProgress }) {
               </li>
             ))}
           </ol>
+          <p className="mt-3 text-sm">{messages.cpuDifficultyIncreases}</p>
           <p className="mt-3 text-sm">
             <a
               href={rulesHref}
@@ -635,7 +658,10 @@ export function StaticCpuApp() {
 
   useEffect(() => {
     const cpuOptions: BelotCpuOptions = {
-      maxSearchPlies: defaultBelotCpuMaxSearchPlies,
+      maxSearchPlies: cpuMaxSearchPliesForLevel(
+        levelProgress.level,
+        defaultBelotCpuMaxSearchPlies,
+      ),
       monteCarloSamples: 64,
     };
 
@@ -671,7 +697,7 @@ export function StaticCpuApp() {
     }, cpuActionDelay(belotState));
 
     return () => window.clearTimeout(timeout);
-  }, [belotState, messages.cpuWorkerUnavailable]);
+  }, [belotState, levelProgress.level, messages.cpuWorkerUnavailable]);
 
   const publicState = useMemo(
     () => getBelotPublicState(belotState, humanPlayerId),
