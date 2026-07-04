@@ -1,5 +1,11 @@
 import type { BelotPublicState, Card } from "@card-games/shared";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { BelotTable } from "../components/BelotTable";
@@ -108,6 +114,20 @@ function renderTable(
   );
 }
 
+function rectAtTop(top: number): DOMRect {
+  return {
+    x: 0,
+    y: top,
+    top,
+    bottom: top + 114,
+    left: 0,
+    right: 71,
+    width: 71,
+    height: 114,
+    toJSON: () => ({}),
+  };
+}
+
 describe("BelotTable", () => {
   it("does not replay a loaded completed trick animation when requested", () => {
     vi.useFakeTimers();
@@ -213,6 +233,95 @@ describe("BelotTable", () => {
       ["IX of Bells"],
       ["A of Hearts"],
     ]);
+  });
+
+  it("keeps third-row cards on their measured hand row when the middle row empties", () => {
+    const rowTwoSuits = new Set<Card["suit"]>(["bells"]);
+    const rowThreeSuits = new Set<Card["suit"]>(["hearts"]);
+    const rectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        const suit = this.dataset.handSuit as Card["suit"] | undefined;
+
+        if (!suit) {
+          return rectAtTop(0);
+        }
+
+        return rectAtTop(
+          rowThreeSuits.has(suit) ? 280 : rowTwoSuits.has(suit) ? 140 : 0,
+        );
+      });
+    const table = (state: BelotPublicState) => (
+      <BelotTable
+        state={state}
+        currentPlayerId="p1"
+        onTrumpDecision={vi.fn()}
+        onDeclare={vi.fn()}
+        onPlayCard={vi.fn()}
+        onNextHand={vi.fn()}
+        onRestart={vi.fn()}
+      />
+    );
+    const stateWithWrappedHand: BelotPublicState = {
+      ...baseState,
+      currentTrick: [],
+      completedTricks: [],
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("VII", "acorns"),
+                card("VIII", "acorns"),
+                card("IX", "bells"),
+                card("U", "hearts"),
+                card("O", "hearts"),
+              ],
+              handCount: 5,
+            }
+          : player,
+      ),
+    };
+
+    try {
+      const view = render(table(stateWithWrappedHand));
+      const cardToPlay = screen
+        .getAllByTestId("belot-hand-card")
+        .find((button) => within(button).queryByAltText("IX of Bells"))!;
+
+      expect(screen.queryByTestId("belot-hand-layout-row")).toBeNull();
+      fireEvent.click(cardToPlay);
+
+      view.rerender(
+        table({
+          ...stateWithWrappedHand,
+          players: stateWithWrappedHand.players.map((player) =>
+            player.playerId === "p1" && player.hand
+              ? {
+                  ...player,
+                  hand: player.hand.filter((card) => card.id !== "IX-bells"),
+                  handCount: 4,
+                }
+              : player,
+          ),
+        }),
+      );
+
+      const rows = screen.getAllByTestId("belot-hand-layout-row");
+      const labelsByRow = rows.map((row) =>
+        within(row)
+          .queryAllByTestId("belot-hand-card")
+          .map((button) => within(button).getByRole("img").getAttribute("alt")),
+      );
+
+      expect(labelsByRow).toEqual([
+        ["VII of Acorns", "VIII of Acorns"],
+        [],
+        ["O of Hearts", "U of Hearts"],
+      ]);
+    } finally {
+      rectSpy.mockRestore();
+    }
   });
 
   it("can render a non-interactive debug hand above the play area", () => {

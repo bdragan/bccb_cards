@@ -66,6 +66,11 @@ type BelotDebugHand = {
   pickupCardIds?: string[];
 };
 
+type MeasuredHandLayout = {
+  playerId?: string;
+  rows: Suit[][];
+};
+
 function compareCardsWithinSuit(left: Card, right: Card, trumpSuit?: Suit) {
   if (trumpSuit) {
     const pointComparison =
@@ -97,6 +102,100 @@ function groupCardsBySuit(cards: Card[]) {
       cards: cards.filter((card) => card.suit === suit),
     }))
     .filter((group) => group.cards.length > 0);
+}
+
+function isSubsequence<T>(sequence: T[], reference: T[]) {
+  let referenceIndex = 0;
+
+  for (const item of sequence) {
+    referenceIndex = reference.indexOf(item, referenceIndex);
+
+    if (referenceIndex === -1) {
+      return false;
+    }
+
+    referenceIndex += 1;
+  }
+
+  return true;
+}
+
+function layoutRowsForCurrentHand(
+  layout: MeasuredHandLayout | undefined,
+  playerId: string | undefined,
+  suitGroups: { suit: Suit; cards: Card[] }[],
+) {
+  if (!layout || layout.playerId !== playerId) {
+    return undefined;
+  }
+
+  const currentSuits = suitGroups.map((group) => group.suit);
+  const measuredSuits = layout.rows.flat();
+
+  if (!isSubsequence(currentSuits, measuredSuits)) {
+    return undefined;
+  }
+
+  const currentSuitSet = new Set(currentSuits);
+
+  return layout.rows.map((row) => row.filter((suit) => currentSuitSet.has(suit)));
+}
+
+function groupLayoutRows(
+  layoutRows: Suit[][],
+  suitGroups: { suit: Suit; cards: Card[] }[],
+) {
+  const groupsBySuit = new Map(suitGroups.map((group) => [group.suit, group]));
+
+  return layoutRows.map((row) =>
+    row.flatMap((suit) => {
+      const group = groupsBySuit.get(suit);
+
+      return group ? [group] : [];
+    }),
+  );
+}
+
+function measuredRowsFromHandSuitGroups(groupElements: HTMLElement[]) {
+  const measuredGroups = groupElements.flatMap((element) => {
+    const suit = element.dataset.handSuit;
+
+    if (!suit || !suitOrder.includes(suit as Suit)) {
+      return [];
+    }
+
+    const rect = element.getBoundingClientRect();
+
+    return Number.isFinite(rect.top)
+      ? [{ suit: suit as Suit, top: rect.top }]
+      : [];
+  });
+
+  if (measuredGroups.length < 2) {
+    return [];
+  }
+
+  const firstTop = measuredGroups[0]?.top ?? 0;
+
+  if (measuredGroups.every((group) => Math.abs(group.top - firstTop) < 2)) {
+    return [];
+  }
+
+  const rows: { top: number; suits: Suit[] }[] = [];
+
+  for (const group of measuredGroups) {
+    const row = rows.find(
+      (candidate) => Math.abs(candidate.top - group.top) < 2,
+    );
+
+    if (row) {
+      row.suits.push(group.suit);
+    } else {
+      rows.push({ top: group.top, suits: [group.suit] });
+    }
+  }
+
+  return rows.map((row) => row.suits);
 }
 
 function sortDeclarationCards(cards: Card[]) {
@@ -883,6 +982,24 @@ export function BelotTable({
     () => groupCardsBySuit(sortedCurrentHand),
     [sortedCurrentHand],
   );
+  const [measuredHandLayout, setMeasuredHandLayout] =
+    useState<MeasuredHandLayout>();
+  const currentHandLayoutRows = useMemo(
+    () =>
+      layoutRowsForCurrentHand(
+        measuredHandLayout,
+        currentPlayerId,
+        currentHandSuitGroups,
+      ),
+    [currentHandSuitGroups, currentPlayerId, measuredHandLayout],
+  );
+  const currentHandLayoutGroups = useMemo(
+    () =>
+      currentHandLayoutRows
+        ? groupLayoutRows(currentHandLayoutRows, currentHandSuitGroups)
+        : undefined,
+    [currentHandLayoutRows, currentHandSuitGroups],
+  );
   const pickupCardIds = useMemo(
     () => new Set(currentPlayer?.pickupCardIds ?? []),
     [currentPlayer?.pickupCardIds],
@@ -917,6 +1034,7 @@ export function BelotTable({
         : [],
     ),
   );
+  const handCardsRef = useRef<HTMLDivElement | null>(null);
   const playerPanelRefs = useRef<Record<string, HTMLElement | null>>({});
   const trickCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -1031,6 +1149,43 @@ export function BelotTable({
     state.phase === "trick-play"
       ? state.currentTurnPlayerId
       : state.trumpTurnPlayerId;
+
+  const measureCurrentHandLayout = useCallback(() => {
+    const handCardsElement = handCardsRef.current;
+
+    if (!handCardsElement) {
+      return undefined;
+    }
+
+    const measuredRows = measuredRowsFromHandSuitGroups(
+      Array.from(
+        handCardsElement.querySelectorAll<HTMLElement>("[data-hand-suit]"),
+      ),
+    );
+
+    if (measuredRows.length > 1) {
+      return { playerId: currentPlayerId, rows: measuredRows };
+    }
+
+    return undefined;
+  }, [currentPlayerId]);
+
+  useEffect(() => {
+    setMeasuredHandLayout((layout) => {
+      if (!layout || !currentHand.length) {
+        return currentHand.length ? layout : undefined;
+      }
+
+      if (
+        layoutRowsForCurrentHand(layout, currentPlayerId, currentHandSuitGroups)
+      ) {
+        return layout;
+      }
+
+      return undefined;
+    });
+  }, [currentHand.length, currentHandSuitGroups, currentPlayerId]);
+
   const collectTrickCards = useCallback(
     (trickNumber: number, winnerPlayerId: string, cards: BelotTrickPlay[]) => {
       const targetElement = playerPanelRefs.current[winnerPlayerId];
@@ -1200,6 +1355,66 @@ export function BelotTable({
       trumpSelectionPhases.includes(state.phase) ||
       Boolean(visibleTrick));
   const showWinnerPanel = Boolean(winnerPlayer && showHandResult);
+  const renderCurrentHandSuitGroup = (
+    group: { suit: Suit; cards: Card[] },
+    keyPrefix = "",
+  ) => (
+    <div
+      key={`${keyPrefix}${group.suit}`}
+      className="belot-hand-suit-group flex flex-wrap gap-2"
+      data-hand-suit={group.suit}
+      data-testid="belot-hand-suit-group"
+    >
+      {group.cards.map((card) => {
+        const playable = legalCardIds.has(card.id);
+        const pickedUp = pickupCardIds.has(card.id);
+        const bonusMarked = bonusPreview.cardIds.has(card.id);
+        const canPlay =
+          state.phase === "trick-play" &&
+          state.currentTurnPlayerId === currentPlayerId &&
+          playable;
+        const shadowed = Boolean(state.trumpSuit) && !canPlay;
+
+        return (
+          <button
+            key={card.id}
+            type="button"
+            className={`belot-hand-card relative rounded-md disabled:cursor-default ${
+              shadowed ? "opacity-70" : ""
+            }`}
+            data-hand-card-id={card.id}
+            data-testid="belot-hand-card"
+            disabled={!canPlay}
+            onClick={() => {
+              if (!currentHandLayoutRows) {
+                const measuredLayout = measureCurrentHandLayout();
+
+                if (measuredLayout) {
+                  setMeasuredHandLayout(measuredLayout);
+                }
+              }
+
+              onPlayCard(card.id);
+            }}
+          >
+            <TrumpMarkedCard
+              card={card}
+              trumpSuit={state.trumpSuit}
+              bonusMarked={bonusMarked}
+              reserveBonusMarker={showBonusPreview}
+            >
+              <PickupCardFrame pickedUp={pickedUp}>
+                <PlayingCard card={card} native />
+              </PickupCardFrame>
+            </TrumpMarkedCard>
+            {pickedUp ? (
+              <span className="sr-only">{messages.hiddenPickupCard}</span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
   const playerPanels = displayedPlayers.map((player) => {
     const declarations = declarationsByPlayer[player.playerId] ?? [];
     const declarationGroups = visibleDeclarationGroups(declarations);
@@ -1582,54 +1797,27 @@ export function BelotTable({
               : ""}
           </p>
           <div className="belot-hand-row flex flex-wrap items-start gap-x-4 gap-y-2">
-            <div className="belot-hand-cards flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2">
-              {currentHandSuitGroups.map((group) => (
-                <div
-                  key={group.suit}
-                  className="belot-hand-suit-group flex flex-wrap gap-2"
-                  data-testid="belot-hand-suit-group"
-                >
-                  {group.cards.map((card) => {
-                    const playable = legalCardIds.has(card.id);
-                    const pickedUp = pickupCardIds.has(card.id);
-                    const bonusMarked = bonusPreview.cardIds.has(card.id);
-                    const canPlay =
-                      state.phase === "trick-play" &&
-                      state.currentTurnPlayerId === currentPlayerId &&
-                      playable;
-                    const shadowed = Boolean(state.trumpSuit) && !canPlay;
-
-                    return (
-                      <button
-                        key={card.id}
-                        type="button"
-                        className={`belot-hand-card relative rounded-md disabled:cursor-default ${
-                          shadowed ? "opacity-70" : ""
-                        }`}
-                        data-testid="belot-hand-card"
-                        disabled={!canPlay}
-                        onClick={() => onPlayCard(card.id)}
-                      >
-                        <TrumpMarkedCard
-                          card={card}
-                          trumpSuit={state.trumpSuit}
-                          bonusMarked={bonusMarked}
-                          reserveBonusMarker={showBonusPreview}
-                        >
-                          <PickupCardFrame pickedUp={pickedUp}>
-                            <PlayingCard card={card} native />
-                          </PickupCardFrame>
-                        </TrumpMarkedCard>
-                        {pickedUp ? (
-                          <span className="sr-only">
-                            {messages.hiddenPickupCard}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
+            <div
+              ref={handCardsRef}
+              className={`belot-hand-cards flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-2 ${
+                currentHandLayoutRows ? "belot-hand-cards--locked" : ""
+              }`}
+            >
+              {currentHandLayoutGroups
+                ? currentHandLayoutGroups.map((rowGroups, rowIndex) => (
+                    <div
+                      key={rowIndex}
+                      className="belot-hand-layout-row flex flex-wrap items-start gap-x-4 gap-y-2"
+                      data-testid="belot-hand-layout-row"
+                    >
+                      {rowGroups.map((group) =>
+                        renderCurrentHandSuitGroup(group, `${rowIndex}-`),
+                      )}
+                    </div>
+                  ))
+                : currentHandSuitGroups.map((group) =>
+                    renderCurrentHandSuitGroup(group),
+                  )}
             </div>
           </div>
           {showBonusPreview ? (
