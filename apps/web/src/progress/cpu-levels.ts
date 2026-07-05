@@ -54,11 +54,11 @@ export function cpuMaxSearchPliesForLevel(
   level: CpuLevelName,
   defaultMaxSearchPlies: number,
 ) {
-  if (level === "Bronze" || level === "Silver") {
+  if (level === "Bronze" || level === "Silver" || level === "Gold") {
     return Math.max(1, defaultMaxSearchPlies - 4);
   }
 
-  if (level === "Gold" || level === "Platinum") {
+  if (level === "Platinum" || level === "Diamond") {
     return Math.max(1, defaultMaxSearchPlies - 2);
   }
 
