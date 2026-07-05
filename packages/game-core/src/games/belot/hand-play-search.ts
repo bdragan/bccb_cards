@@ -3,6 +3,7 @@ import type { Card } from "@card-games/shared";
 import {
   applyBelotAction,
   calculateBelotHandResult,
+  compareBelotCards,
   legalBelotCards,
 } from "./belot";
 import type { BelotState, BelotTrickPlay } from "./types";
@@ -408,12 +409,9 @@ function fastForwardDominantTrickLeader(
     return undefined;
   }
 
-  const leaderSuits = new Set(leader.hand.map((card) => card.suit));
-  const opponentCanTakeLead = opponent.hand.some(
-    (card) => card.suit === state.trumpSuit || leaderSuits.has(card.suit),
-  );
-
-  if (opponentCanTakeLead) {
+  if (
+    !leaderWinsEveryRemainingLead(leader.hand, opponent.hand, state.trumpSuit)
+  ) {
     return undefined;
   }
 
@@ -455,6 +453,88 @@ function fastForwardDominantTrickLeader(
   };
 
   return evaluateSearchLeaf(scoredState, maximizingPlayerId);
+}
+
+function leaderWinsEveryRemainingLead(
+  leaderCards: Card[],
+  opponentCards: Card[],
+  trumpSuit: NonNullable<BelotState["trumpSuit"]>,
+) {
+  const leaderTrumpCards = leaderCards.filter(
+    (card) => card.suit === trumpSuit,
+  );
+  const opponentTrumpCards = opponentCards.filter(
+    (card) => card.suit === trumpSuit,
+  );
+  const leaderOnlyHasTrump = leaderTrumpCards.length === leaderCards.length;
+
+  if (leaderOnlyHasTrump) {
+    if (opponentTrumpCards.length === 0) {
+      return true;
+    }
+
+    const weakestLeaderTrump = weakestBelotCard(leaderTrumpCards, trumpSuit);
+    const strongestOpponentTrump = strongestBelotCard(
+      opponentTrumpCards,
+      trumpSuit,
+    );
+
+    return (
+      Boolean(weakestLeaderTrump && strongestOpponentTrump) &&
+      compareBelotCards(weakestLeaderTrump, strongestOpponentTrump, trumpSuit) >
+        0
+    );
+  }
+
+  if (opponentTrumpCards.length > 0) {
+    return false;
+  }
+
+  for (const suit of new Set(leaderCards.map((card) => card.suit))) {
+    const opponentSuitCards = opponentCards.filter(
+      (card) => card.suit === suit,
+    );
+
+    if (opponentSuitCards.length === 0) {
+      continue;
+    }
+
+    const leaderSuitCards = leaderCards.filter((card) => card.suit === suit);
+    const weakestLeaderCard = weakestBelotCard(leaderSuitCards, trumpSuit);
+    const strongestOpponentCard = strongestBelotCard(
+      opponentSuitCards,
+      trumpSuit,
+    );
+
+    if (
+      !weakestLeaderCard ||
+      !strongestOpponentCard ||
+      compareBelotCards(weakestLeaderCard, strongestOpponentCard, trumpSuit) <=
+        0
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function weakestBelotCard(
+  cards: Card[],
+  trumpSuit: NonNullable<BelotState["trumpSuit"]>,
+) {
+  return cards
+    .slice()
+    .sort((left, right) => compareBelotCards(left, right, trumpSuit))[0];
+}
+
+function strongestBelotCard(
+  cards: Card[],
+  trumpSuit: NonNullable<BelotState["trumpSuit"]>,
+) {
+  return cards
+    .slice()
+    .sort((left, right) => compareBelotCards(right, left, trumpSuit))[0];
 }
 
 function evaluateSearchLeaf(

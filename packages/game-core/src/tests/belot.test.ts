@@ -1689,6 +1689,122 @@ describe("Belot", () => {
     });
   });
 
+  it("fast-forwards alpha-beta when a non-trump leader dominates every shared suit", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("A", "acorns"), card("X", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("K", "acorns"), card("O", "bells")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 0,
+      searchCards: () => {
+        throw new Error("dominant shared suits should bypass card search");
+      },
+      orderCards: () => {
+        throw new Error("dominant shared suits should bypass card ordering");
+      },
+      cheapSearchCard: (cards) => cards[0],
+    };
+
+    const result = belotHandPlayAlphaBetaResult(
+      state,
+      "p1",
+      2,
+      -belotHandPlaySearchMaxUtility,
+      belotHandPlaySearchMaxUtility,
+      createBelotHandPlaySearchContext(2, policy),
+    );
+
+    expect(result).toEqual({
+      value: 138,
+      callerFell: false,
+      hasSchuster: true,
+    });
+  });
+
+  it("fast-forwards alpha-beta when a trump-only leader dominates sampled opponent trumps", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("U", "hearts"), card("IX", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [card("A", "hearts"), card("X", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "hearts",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const policy: BelotHandPlaySearchPolicy = {
+      cheapOpeningSearchPlies: 0,
+      searchCards: () => {
+        throw new Error("dominant trumps should bypass card search");
+      },
+      orderCards: () => {
+        throw new Error("dominant trumps should bypass card ordering");
+      },
+      cheapSearchCard: (cards) => cards[0],
+    };
+
+    const result = belotHandPlayAlphaBetaResult(
+      state,
+      "p1",
+      2,
+      -belotHandPlaySearchMaxUtility,
+      belotHandPlaySearchMaxUtility,
+      createBelotHandPlaySearchContext(2, policy),
+    );
+
+    expect(result).toEqual({
+      value: 165,
+      callerFell: false,
+      hasSchuster: true,
+    });
+  });
+
   it("reuses alpha-beta values from the Belot hand-play transposition table", () => {
     let searchCardCalls = 0;
     const policy: BelotHandPlaySearchPolicy = {
