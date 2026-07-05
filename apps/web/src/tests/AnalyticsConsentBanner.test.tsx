@@ -6,10 +6,11 @@ import { AnalyticsConsentBanner } from "../components/AnalyticsConsentBanner";
 import { I18nProvider } from "../i18n";
 
 vi.mock("../analytics/posthog", () => ({
+  disableAnalytics: vi.fn(),
   initAnalytics: vi.fn(),
 }));
 
-const { initAnalytics } = await import("../analytics/posthog");
+const { disableAnalytics, initAnalytics } = await import("../analytics/posthog");
 
 function renderBanner() {
   return render(
@@ -22,6 +23,7 @@ function renderBanner() {
 describe("AnalyticsConsentBanner", () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.mocked(disableAnalytics).mockClear();
     vi.mocked(initAnalytics).mockClear();
   });
 
@@ -56,6 +58,7 @@ describe("AnalyticsConsentBanner", () => {
 
     await user.click(screen.getByRole("button", { name: "Reject" }));
 
+    expect(disableAnalytics).toHaveBeenCalledTimes(1);
     expect(initAnalytics).not.toHaveBeenCalled();
     expect(localStorage.getItem("card-games-analytics-consent-v1")).toBe(
       "rejected",

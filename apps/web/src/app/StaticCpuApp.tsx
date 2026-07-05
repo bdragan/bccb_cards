@@ -14,15 +14,14 @@ import { trackEvent } from "../analytics/posthog";
 import { BelotTable } from "../components/BelotTable";
 import { Button } from "../components/Button";
 import { CpuLevelIcon } from "../components/CpuLevelIcon";
-import { LanguageToggle } from "../components/LanguageToggle";
 import { TopMenu } from "../components/TopMenu";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
 import { belotRulesHref, type Messages, useI18n } from "../i18n";
 import {
   applyCpuLevelResult,
-  cpuMaxSearchPliesForLevel,
   cpuLevelNames,
   type CpuLevelProgress,
+  cpuMaxSearchPliesForLevel,
   isGrandmasterLevel,
   readCpuLevelProgress,
   writeCpuLevelProgress,
@@ -769,7 +768,6 @@ export function StaticCpuApp() {
       align="split"
       leading={<RankPopover levelProgress={levelProgress} />}
     >
-      <LanguageToggle />
       <Button
         type="button"
         onClick={() =>

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyCpuLevelResult,
-  cpuMaxSearchPliesForLevel,
   cpuLevelPointThreshold,
+  cpuMaxSearchPliesForLevel,
   normalizeCpuLevelProgress,
 } from "../progress/cpu-levels";
 

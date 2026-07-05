@@ -108,6 +108,10 @@ export type Messages = {
   analyticsConsentBody: string;
   analyticsConsentAllow: string;
   analyticsConsentDecline: string;
+  analyticsConsentAccepted: string;
+  analyticsConsentRejected: string;
+  analyticsConsentUnset: string;
+  privacySettings: string;
   email: string;
   password: string;
   displayName: string;
@@ -227,6 +231,10 @@ export const messages: Record<Locale, Messages> = {
       "Koristimo neophodno čuvanje u pregledaču da aplikacija radi. Uz tvoju dozvolu koristimo dodatnu analitiku da poboljšamo igru.",
     analyticsConsentAllow: "Prihvati",
     analyticsConsentDecline: "Odbij",
+    analyticsConsentAccepted: "Analitika je uključena",
+    analyticsConsentRejected: "Analitika je isključena",
+    analyticsConsentUnset: "Nije izabrano",
+    privacySettings: "Podešavanja privatnosti",
     email: "Email",
     password: "Lozinka",
     displayName: "Ime za prikaz",
@@ -383,6 +391,10 @@ export const messages: Record<Locale, Messages> = {
       "Koristimo nužnu pohranu u pregledniku kako bi aplikacija radila. Uz tvoju dozvolu koristimo dodatnu analitiku za poboljšanje igre.",
     analyticsConsentAllow: "Prihvati",
     analyticsConsentDecline: "Odbij",
+    analyticsConsentAccepted: "Analitika je uključena",
+    analyticsConsentRejected: "Analitika je isključena",
+    analyticsConsentUnset: "Nije odabrano",
+    privacySettings: "Postavke privatnosti",
     email: "Email",
     password: "Lozinka",
     displayName: "Ime za prikaz",
@@ -540,6 +552,10 @@ export const messages: Record<Locale, Messages> = {
       "Използваме задължително съхранение в браузъра, за да работи приложението. С твое разрешение използваме допълнителна аналитика, за да подобряваме играта.",
     analyticsConsentAllow: "Приемам",
     analyticsConsentDecline: "Отказвам",
+    analyticsConsentAccepted: "Аналитиката е включена",
+    analyticsConsentRejected: "Аналитиката е изключена",
+    analyticsConsentUnset: "Няма избор",
+    privacySettings: "Настройки за поверителност",
     email: "Email",
     password: "Парола",
     displayName: "Име за показване",
@@ -695,6 +711,10 @@ export const messages: Record<Locale, Messages> = {
       "We use necessary browser storage to make the app work. With your permission, we use optional analytics to improve the game.",
     analyticsConsentAllow: "Accept",
     analyticsConsentDecline: "Reject",
+    analyticsConsentAccepted: "Analytics accepted",
+    analyticsConsentRejected: "Analytics rejected",
+    analyticsConsentUnset: "No choice selected",
+    privacySettings: "Privacy settings",
     email: "Email",
     password: "Password",
     displayName: "Display name",
@@ -844,6 +864,10 @@ export const messages: Record<Locale, Messages> = {
       "Nous utilisons le stockage nécessaire du navigateur pour faire fonctionner l'application. Avec votre accord, nous utilisons une analytique optionnelle pour améliorer le jeu.",
     analyticsConsentAllow: "Accepter",
     analyticsConsentDecline: "Refuser",
+    analyticsConsentAccepted: "Analytique acceptée",
+    analyticsConsentRejected: "Analytique refusée",
+    analyticsConsentUnset: "Aucun choix sélectionné",
+    privacySettings: "Paramètres de confidentialité",
     email: "Email",
     password: "Mot de passe",
     displayName: "Nom affiché",

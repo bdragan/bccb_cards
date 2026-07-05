@@ -2,6 +2,8 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "../i18n";
+import { LanguageToggle } from "./LanguageToggle";
+import { PrivacySettings } from "./PrivacySettings";
 
 export function TopMenu({
   align = "center",
@@ -112,8 +114,17 @@ export function TopMenu({
                   ) : null}
                 </div>
               ) : null}
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                {children}
+              <div className="flex flex-col gap-3">
+                <LanguageToggle />
+                <PrivacySettings />
+                {children ? (
+                  <>
+                    <div className="h-px w-full bg-slate-200" />
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                      {children}
+                    </div>
+                  </>
+                ) : null}
               </div>
             </div>
           ) : null}

@@ -7,6 +7,7 @@ type AnalyticsProperties = Record<
 type AnalyticsEventName = "first_hand_completed" | "game_completed";
 
 let initialized = false;
+let analyticsAllowed = false;
 let initialAcquisitionProperties: AnalyticsProperties | undefined;
 
 const removableTrackingParams = [
@@ -66,6 +67,8 @@ function cleanupTrackingParams() {
 }
 
 export function initAnalytics() {
+  analyticsAllowed = true;
+
   if (initialized) {
     return;
   }
@@ -89,11 +92,15 @@ export function initAnalytics() {
   cleanupTrackingParams();
 }
 
+export function disableAnalytics() {
+  analyticsAllowed = false;
+}
+
 export function trackEvent(
   eventName: AnalyticsEventName,
   properties: AnalyticsProperties = {},
 ) {
-  if (!initialized) {
+  if (!initialized || !analyticsAllowed) {
     return;
   }
 

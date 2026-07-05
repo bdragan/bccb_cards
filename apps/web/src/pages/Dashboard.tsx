@@ -26,7 +26,6 @@ import {
 import { api } from "../api/client";
 import { BelotTable } from "../components/BelotTable";
 import { Button } from "../components/Button";
-import { LanguageToggle } from "../components/LanguageToggle";
 import { Lobby } from "../components/Lobby";
 import { TopMenu } from "../components/TopMenu";
 import { BelotAssetsGate } from "../game/BelotAssetsGate";
@@ -416,7 +415,6 @@ export function Dashboard({ onLogin }: { onLogin?: () => void }) {
         title={messages.appTitle}
         subtitle={user?.displayName ?? messages.offlineYou}
       >
-        <LanguageToggle />
         {offlineBelotState ? (
           <Button type="button" onClick={() => setOfflineBelotState(undefined)}>
             {messages.leaveMatch}

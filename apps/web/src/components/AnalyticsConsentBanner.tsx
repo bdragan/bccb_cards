@@ -1,28 +1,9 @@
 import { useState } from "react";
 
+import { applyAnalyticsConsent, readStoredConsent } from "../analytics/consent";
 import { initAnalytics } from "../analytics/posthog";
 import { useI18n } from "../i18n";
 import { Button } from "./Button";
-
-const analyticsConsentStorageKey = "card-games-analytics-consent-v1";
-
-type AnalyticsConsent = "accepted" | "rejected";
-
-function readStoredConsent(): AnalyticsConsent | undefined {
-  if (typeof localStorage === "undefined") {
-    return undefined;
-  }
-
-  const stored = localStorage.getItem(analyticsConsentStorageKey);
-
-  return stored === "accepted" || stored === "rejected" ? stored : undefined;
-}
-
-function storeConsent(consent: AnalyticsConsent) {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(analyticsConsentStorageKey, consent);
-  }
-}
 
 export function AnalyticsConsentBanner() {
   const { messages } = useI18n();
@@ -65,8 +46,7 @@ export function AnalyticsConsentBanner() {
             type="button"
             variant="selected"
             onClick={() => {
-              storeConsent("accepted");
-              initAnalytics();
+              applyAnalyticsConsent("accepted");
               setVisible(false);
             }}
           >
@@ -77,7 +57,7 @@ export function AnalyticsConsentBanner() {
             type="button"
             variant="primary"
             onClick={() => {
-              storeConsent("rejected");
+              applyAnalyticsConsent("rejected");
               setVisible(false);
             }}
           >

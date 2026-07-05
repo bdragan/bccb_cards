@@ -25,8 +25,12 @@ import { I18nProvider, setLocaleForTests } from "../i18n";
 import { cpuLevelProgressStorageKey } from "../progress/cpu-levels";
 
 vi.mock("../analytics/posthog", () => ({
+  disableAnalytics: vi.fn(),
+  initAnalytics: vi.fn(),
   trackEvent: vi.fn(),
 }));
+
+const { disableAnalytics, initAnalytics } = await import("../analytics/posthog");
 
 const humanPlayerId = "offline-human";
 const cpuPlayerId = "offline-cpu";
@@ -50,6 +54,8 @@ describe("StaticCpuApp", () => {
     setLocaleForTests("en");
     vi.stubGlobal("Worker", TestWorker);
     vi.spyOn(Math, "random").mockReturnValue(0.75);
+    vi.mocked(disableAnalytics).mockClear();
+    vi.mocked(initAnalytics).mockClear();
     vi.mocked(trackEvent).mockClear();
   });
 
@@ -57,6 +63,7 @@ describe("StaticCpuApp", () => {
     localStorage.removeItem(staticCpuStorageKey);
     localStorage.removeItem(staticCpuFirstHandCompletedStorageKey);
     localStorage.removeItem(cpuLevelProgressStorageKey);
+    localStorage.removeItem("card-games-analytics-consent-v1");
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -279,8 +286,39 @@ describe("StaticCpuApp", () => {
       screen.getByRole("button", { name: "Switch language to Srpski" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("button", { name: "Privacy settings" }),
+    ).toBeInTheDocument();
+    expect(
       screen.queryByRole("button", { name: "Login" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("changes privacy settings from the menu", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <I18nProvider>
+        <StaticCpuApp />
+      </I18nProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("button", { name: "Privacy settings" }));
+    await user.click(screen.getByRole("button", { name: "Accept" }));
+
+    expect(initAnalytics).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("card-games-analytics-consent-v1")).toBe(
+      "accepted",
+    );
+    expect(screen.getByText("Analytics accepted")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reject" }));
+
+    expect(disableAnalytics).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("card-games-analytics-consent-v1")).toBe(
+      "rejected",
+    );
+    expect(screen.getByText("Analytics rejected")).toBeInTheDocument();
   });
 
   it("confirms resigning in the trick area and shows the CPU as winner there", async () => {
