@@ -1268,6 +1268,150 @@ describe("Belot", () => {
     ).toEqual(["A-acorns", "X-bells", "K-leaves", "U-hearts", "IX-hearts"]);
   });
 
+  it("orders tied root winning responses by highest point value", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("X", "hearts"), card("A", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "leaves",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("K", "hearts") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const stats = new Map(
+      state.players[0].hand.map((handCard) => [
+        handCard.id,
+        {
+          sampleCount: 4,
+          successCount: 1,
+          totalWinningValue: 40,
+        },
+      ]),
+    );
+
+    expect(
+      belotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["A-hearts", "X-hearts"]);
+  });
+
+  it("orders tied root losing responses by lowest point value", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("O", "hearts"), card("X", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "leaves",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("A", "hearts") }],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+    const stats = new Map(
+      state.players[0].hand.map((handCard) => [
+        handCard.id,
+        {
+          sampleCount: 4,
+          successCount: 1,
+          totalWinningValue: 40,
+        },
+      ]),
+    );
+
+    expect(
+      belotCpuOrderRootCardsForSearch(state.players[0].hand, state, stats).map(
+        (searchCard) => searchCard.id,
+      ),
+    ).toEqual(["O-hearts", "X-hearts"]);
+  });
+
+  it("chooses the lower-point card when tied root responses are losing", () => {
+    const state: BelotState = {
+      ...createBelotInitialState(players),
+      phase: "trick-play",
+      players: [
+        {
+          ...players[0],
+          ready: true,
+          hand: [card("O", "hearts"), card("X", "hearts")],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+        {
+          ...players[1],
+          ready: true,
+          hand: [],
+          hiddenCards: [],
+          wonCards: [],
+          tricksWon: 0,
+          totalScore: 0,
+        },
+      ],
+      trumpSuit: "leaves",
+      callerPlayerId: "p1",
+      currentTurnPlayerId: "p1",
+      currentTrick: [{ playerId: "p2", card: card("A", "hearts") }],
+      completedTricks: [],
+      declarationsByPlayer: { p1: [], p2: [] },
+      publicCardsByPlayer: { p1: [], p2: [] },
+    };
+
+    expect(
+      chooseBelotCpuAction(state, "p1", {
+        monteCarloSamples: 1,
+        maxSearchPlies: 2,
+        rng: () => 0.5,
+      }),
+    ).toEqual({
+      type: "play-card",
+      playerId: "p1",
+      cardId: "O-hearts",
+    });
+  });
+
   it("uses regular CPU Monte Carlo samples when selecting trump", () => {
     expect(belotCpuTrumpMonteCarloSamples()).toBe(64);
     expect(belotCpuTrumpMonteCarloSamples({ monteCarloSamples: 10 })).toBe(10);

@@ -678,6 +678,12 @@ function chooseCardForTrick(
       return scoreDelta;
     }
 
+    const tiedResponseDelta = compareTiedRootResponseCards(left, right, state);
+
+    if (tiedResponseDelta !== 0) {
+      return tiedResponseDelta;
+    }
+
     const heuristicDelta =
       cardSearchOrderingScore(right, state, true) -
       cardSearchOrderingScore(left, state, true);
@@ -2131,6 +2137,12 @@ export function belotCpuOrderRootCardsForSearch(
       return leadingCardDelta;
     }
 
+    const tiedResponseDelta = compareTiedRootResponseCards(left, right, state);
+
+    if (tiedResponseDelta !== 0) {
+      return tiedResponseDelta;
+    }
+
     const heuristicDelta =
       cardSearchOrderingScore(right, state, true) -
       cardSearchOrderingScore(left, state, true);
@@ -2173,6 +2185,33 @@ function compareLeadingRootCards(left: Card, right: Card, state: BelotState) {
   }
 
   return 0;
+}
+
+function compareTiedRootResponseCards(
+  left: Card,
+  right: Card,
+  state: BelotState,
+) {
+  if (!state.trumpSuit || state.currentTrick.length === 0) {
+    return 0;
+  }
+
+  const leftWins = wouldCurrentlyWin(left, state.currentTrick, state.trumpSuit);
+  const rightWins = wouldCurrentlyWin(
+    right,
+    state.currentTrick,
+    state.trumpSuit,
+  );
+
+  if (leftWins !== rightWins) {
+    return 0;
+  }
+
+  return leftWins
+    ? belotCardPoints(right, state.trumpSuit) -
+        belotCardPoints(left, state.trumpSuit)
+    : belotCardPoints(left, state.trumpSuit) -
+        belotCardPoints(right, state.trumpSuit);
 }
 
 function createRootCardSampleStats(cards: Card[]) {
