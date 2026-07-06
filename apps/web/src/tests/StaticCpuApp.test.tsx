@@ -339,6 +339,8 @@ describe("StaticCpuApp", () => {
 
     const currentTrick = screen.getByTestId("belot-current-trick");
     expect(within(currentTrick).getByText("Resign game?")).toBeInTheDocument();
+    expect(currentTrick).toHaveClass("bg-red-300", "text-ink");
+    expect(currentTrick).not.toHaveClass("bg-white/10");
 
     await user.click(within(currentTrick).getByRole("button", { name: "Yes" }));
 

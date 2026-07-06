@@ -1364,6 +1364,9 @@ export function BelotTable({
     state.winnerPlayerId === currentPlayerId
       ? winnerPanelWinClass
       : winnerPanelLossClass;
+  const trickAreaClass = resignConfirmation
+    ? winnerPanelLossClass
+    : "bg-white/10";
   const showFinishedWinnerInTrickArea = Boolean(
     winnerPlayer &&
     state.phase === "finished" &&
@@ -1668,7 +1671,7 @@ export function BelotTable({
 
       {showTrickArea ? (
         <div
-          className="mt-4 rounded-md bg-white/10 p-3"
+          className={`mt-4 rounded-md p-3 ${trickAreaClass}`}
           data-testid="belot-current-trick"
         >
           {resignConfirmation ? (
