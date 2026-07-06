@@ -358,6 +358,61 @@ describe("BelotTable", () => {
     ).toHaveLength(0);
   });
 
+  it("sorts the debug CPU hand by hypothetical trump strength during trump selection", () => {
+    render(
+      <BelotTable
+        state={{
+          ...baseState,
+          phase: "trump-round-one",
+          trumpSuit: undefined,
+          callerPlayerId: undefined,
+          trumpTurnPlayerId: "p1",
+          currentTurnPlayerId: undefined,
+          currentTrick: [],
+          completedTricks: [],
+          declarationsByPlayer: {},
+          publicCardsByPlayer: { p1: [], p2: [] },
+        }}
+        currentPlayerId="p1"
+        onTrumpDecision={vi.fn()}
+        onDeclare={vi.fn()}
+        onPlayCard={vi.fn()}
+        onNextHand={vi.fn()}
+        onRestart={vi.fn()}
+        debugHand={{
+          label: "AI hand",
+          cards: [
+            card("U", "acorns"),
+            card("IX", "acorns"),
+            card("A", "acorns"),
+            card("K", "acorns"),
+            card("X", "acorns"),
+            card("VII", "acorns"),
+            card("IX", "bells"),
+            card("U", "bells"),
+          ],
+        }}
+      />,
+    );
+
+    const debugHand = screen.getByTestId("belot-debug-cpu-hand");
+
+    expect(
+      within(debugHand)
+        .getAllByTestId("belot-debug-cpu-hand-card")
+        .map((item) => within(item).getByRole("img").getAttribute("alt")),
+    ).toEqual([
+      "VII of Acorns",
+      "K of Acorns",
+      "X of Acorns",
+      "A of Acorns",
+      "IX of Acorns",
+      "U of Acorns",
+      "IX of Bells",
+      "U of Bells",
+    ]);
+  });
+
   it("sorts hand suit groups by Belot point value after trump is selected", () => {
     renderTable({
       ...baseState,
@@ -394,6 +449,60 @@ describe("BelotTable", () => {
     ).toEqual([
       ["VII of Acorns", "A of Acorns", "IX of Acorns", "U of Acorns"],
       ["U of Hearts", "O of Hearts", "K of Hearts", "X of Hearts"],
+    ]);
+  });
+
+  it("sorts every suit group by hypothetical trump strength during trump selection", () => {
+    renderTable({
+      ...baseState,
+      phase: "trump-round-two",
+      trumpSuit: undefined,
+      callerPlayerId: undefined,
+      trumpTurnPlayerId: "p1",
+      currentTurnPlayerId: undefined,
+      currentTrick: [],
+      completedTricks: [],
+      declarationsByPlayer: {},
+      publicCardsByPlayer: { p1: [], p2: [] },
+      upcard: card("K", "leaves"),
+      players: baseState.players.map((player) =>
+        player.playerId === "p1"
+          ? {
+              ...player,
+              hand: [
+                card("U", "acorns"),
+                card("IX", "acorns"),
+                card("A", "acorns"),
+                card("K", "acorns"),
+                card("X", "acorns"),
+                card("VII", "acorns"),
+                card("IX", "bells"),
+                card("U", "bells"),
+              ],
+              handCount: 8,
+            }
+          : player,
+      ),
+    });
+
+    const suitGroups = screen.getAllByTestId("belot-hand-suit-group");
+
+    expect(
+      suitGroups.map((group) =>
+        within(group)
+          .getAllByTestId("belot-hand-card")
+          .map((button) => within(button).getByRole("img").getAttribute("alt")),
+      ),
+    ).toEqual([
+      [
+        "VII of Acorns",
+        "K of Acorns",
+        "X of Acorns",
+        "A of Acorns",
+        "IX of Acorns",
+        "U of Acorns",
+      ],
+      ["IX of Bells", "U of Bells"],
     ]);
   });
 

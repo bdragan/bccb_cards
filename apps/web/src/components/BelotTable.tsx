@@ -95,6 +95,27 @@ function sortCards(cards: Card[], trumpSuit?: Suit) {
   });
 }
 
+function sortCardsByHypotheticalTrumpStrength(cards: Card[]) {
+  return [...cards].sort((left, right) => {
+    const suitComparison =
+      suitOrder.indexOf(left.suit) - suitOrder.indexOf(right.suit);
+
+    return suitComparison === 0
+      ? compareCardsWithinSuit(left, right, left.suit)
+      : suitComparison;
+  });
+}
+
+function sortVisibleHandCards(
+  cards: Card[],
+  phase: BelotPublicState["phase"],
+  trumpSuit?: Suit,
+) {
+  return trumpSelectionPhases.includes(phase) && !trumpSuit
+    ? sortCardsByHypotheticalTrumpStrength(cards)
+    : sortCards(cards, trumpSuit);
+}
+
 function groupCardsBySuit(cards: Card[]) {
   return suitOrder
     .map((suit) => ({
@@ -788,14 +809,16 @@ function ResultCardRow({
 
 function DebugHandPanel({
   debugHand,
-  trumpSuit,
+  state,
 }: {
   debugHand: BelotDebugHand;
-  trumpSuit?: Suit;
+  state: BelotPublicState;
 }) {
   const { messages } = useI18n();
   const pickupCardIds = new Set(debugHand.pickupCardIds ?? []);
-  const suitGroups = groupCardsBySuit(sortCards(debugHand.cards, trumpSuit));
+  const suitGroups = groupCardsBySuit(
+    sortVisibleHandCards(debugHand.cards, state.phase, state.trumpSuit),
+  );
 
   return (
     <section
@@ -821,7 +844,7 @@ function DebugHandPanel({
                     className="relative shrink-0 rounded-md"
                     data-testid="belot-debug-cpu-hand-card"
                   >
-                    <TrumpMarkedCard card={card} trumpSuit={trumpSuit}>
+                    <TrumpMarkedCard card={card} trumpSuit={state.trumpSuit}>
                       <PickupCardFrame pickedUp={pickedUp}>
                         <PlayingCard card={card} compact />
                       </PickupCardFrame>
@@ -975,8 +998,8 @@ export function BelotTable({
     [currentPlayer?.hand],
   );
   const sortedCurrentHand = useMemo(
-    () => sortCards(currentHand, state.trumpSuit),
-    [currentHand, state.trumpSuit],
+    () => sortVisibleHandCards(currentHand, state.phase, state.trumpSuit),
+    [currentHand, state.phase, state.trumpSuit],
   );
   const currentHandSuitGroups = useMemo(
     () => groupCardsBySuit(sortedCurrentHand),
@@ -1588,7 +1611,7 @@ export function BelotTable({
       </div>
 
       {debugHand ? (
-        <DebugHandPanel debugHand={debugHand} trumpSuit={state.trumpSuit} />
+        <DebugHandPanel debugHand={debugHand} state={state} />
       ) : null}
 
       {state.trumpTurnPlayerId === currentPlayerId ? (
