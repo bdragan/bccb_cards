@@ -345,7 +345,7 @@ describe("StaticCpuApp", () => {
     await user.click(within(currentTrick).getByRole("button", { name: "Yes" }));
 
     expect(
-      await within(currentTrick).findByText("You lost: 0 - 0"),
+      await within(currentTrick).findByText("Game result: 0 - 0"),
     ).toBeInTheDocument();
     expect(
       within(currentTrick).getByRole("button", { name: "New game" }),
@@ -383,7 +383,7 @@ describe("StaticCpuApp", () => {
       }),
     );
 
-    expect(screen.queryByText("You lost: 0 - 0")).not.toBeInTheDocument();
+    expect(screen.queryByText("Game result: 0 - 0")).not.toBeInTheDocument();
     expect(screen.queryByText("Resign game?")).not.toBeInTheDocument();
     expect(
       await screen.findByRole("button", { name: "Pass" }),

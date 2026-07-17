@@ -200,8 +200,7 @@ export type Messages = {
   bothPlayersPassedTwice: string;
   playerMustChooseTrumpOnMus: (playerName: string) => string;
   youMustChooseTrumpOnMus: string;
-  youWon: (result: string) => string;
-  youLost: (result: string) => string;
+  gameResult: (result: string) => string;
   startingCards: string;
   remainingCards: string;
   yourHand: string;
@@ -362,8 +361,7 @@ export const messages: Record<Locale, Messages> = {
     playerMustChooseTrumpOnMus: (playerName) =>
       `${playerName} je na musu i mora izabrati adut.`,
     youMustChooseTrumpOnMus: "Ti si na musu i moraš izabrati adut.",
-    youWon: (result) => `Pobedio si: ${result}`,
-    youLost: (result) => `Izgubio si: ${result}`,
+    gameResult: (result) => `Rezultat partije: ${result}`,
     startingCards: "Početne karte",
     remainingCards: "Van igre",
     yourHand: "Tvoje karte",
@@ -524,8 +522,7 @@ export const messages: Record<Locale, Messages> = {
     playerMustChooseTrumpOnMus: (playerName) =>
       `${playerName} je na musu i mora izabrati adut.`,
     youMustChooseTrumpOnMus: "Ti si na musu i moraš izabrati adut.",
-    youWon: (result) => `Pobijedio si: ${result}`,
-    youLost: (result) => `Izgubio si: ${result}`,
+    gameResult: (result) => `Rezultat partije: ${result}`,
     startingCards: "Početne karte",
     remainingCards: "Van igre",
     yourHand: "Tvoje karte",
@@ -684,8 +681,7 @@ export const messages: Record<Locale, Messages> = {
     playerMustChooseTrumpOnMus: (playerName) =>
       `${playerName} е на мус и трябва да избере коз.`,
     youMustChooseTrumpOnMus: "Ти си на мус и трябва да избереш коз.",
-    youWon: (result) => `Ти спечели: ${result}`,
-    youLost: (result) => `Ти загуби: ${result}`,
+    gameResult: (result) => `Краен резултат: ${result}`,
     startingCards: "Начални карти",
     remainingCards: "Извън игра",
     yourHand: "Твоите карти",
@@ -838,8 +834,7 @@ export const messages: Record<Locale, Messages> = {
     playerMustChooseTrumpOnMus: (playerName) =>
       `${playerName} is on mus and must choose trump.`,
     youMustChooseTrumpOnMus: "You are on mus and must choose trump.",
-    youWon: (result) => `You won: ${result}`,
-    youLost: (result) => `You lost: ${result}`,
+    gameResult: (result) => `Game result: ${result}`,
     startingCards: "Starting cards",
     remainingCards: "Remaining",
     yourHand: "Your hand",
@@ -993,8 +988,7 @@ export const messages: Record<Locale, Messages> = {
     playerMustChooseTrumpOnMus: (playerName) =>
       `${playerName} est au mus et doit choisir l'atout.`,
     youMustChooseTrumpOnMus: "Vous êtes au mus et devez choisir l'atout.",
-    youWon: (result) => `Vous avez gagné : ${result}`,
-    youLost: (result) => `Vous avez perdu : ${result}`,
+    gameResult: (result) => `Résultat de la partie : ${result}`,
     startingCards: "Cartes de départ",
     remainingCards: "Restantes",
     yourHand: "Votre main",
