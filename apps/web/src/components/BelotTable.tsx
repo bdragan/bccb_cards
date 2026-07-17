@@ -868,13 +868,15 @@ function DebugHandPanel({
 }
 
 function WinnerPanel({
-  playerName,
+  won,
+  result,
   className,
   compact = false,
   levelProgress,
   onRestart,
 }: {
-  playerName: string;
+  won: boolean;
+  result: string;
   className: string;
   compact?: boolean;
   levelProgress?: CpuLevelProgress;
@@ -887,7 +889,9 @@ function WinnerPanel({
       className={`${compact ? "" : "mt-4"} rounded-md p-3 text-center ${className}`}
       data-testid="belot-winner"
     >
-      <p className="text-lg font-bold">{messages.winner(playerName)}</p>
+      <p className="text-lg font-bold">
+        {won ? messages.youWon(result) : messages.youLost(result)}
+      </p>
       {levelProgress ? <LevelProgress progress={levelProgress} /> : null}
       <div className="mt-3">
         <Button onClick={onRestart}>{messages.nextGame}</Button>
@@ -1364,6 +1368,10 @@ export function BelotTable({
     state.winnerPlayerId === currentPlayerId
       ? winnerPanelWinClass
       : winnerPanelLossClass;
+  const currentPlayerWon = state.winnerPlayerId === currentPlayerId;
+  const finalResult = `${resultCurrentPlayer?.totalScore ?? 0} - ${
+    resultOpponentPlayer?.totalScore ?? 0
+  }`;
   const trickAreaClass = resignConfirmation
     ? winnerPanelLossClass
     : "bg-white/10";
@@ -1688,7 +1696,8 @@ export function BelotTable({
             </div>
           ) : showFinishedWinnerInTrickArea && winnerPlayer ? (
             <WinnerPanel
-              playerName={winnerPlayer.displayName}
+              won={currentPlayerWon}
+              result={finalResult}
               className={winnerPanelClass}
               compact
               levelProgress={levelProgress}
@@ -1762,7 +1771,8 @@ export function BelotTable({
         <>
           {showWinnerPanel && winnerPlayer ? (
             <WinnerPanel
-              playerName={winnerPlayer.displayName}
+              won={currentPlayerWon}
+              result={finalResult}
               className={winnerPanelClass}
               levelProgress={levelProgress}
               onRestart={onRestart}

@@ -968,8 +968,8 @@ describe("BelotTable", () => {
             currentTrick: [],
             players: baseState.players.map((player) =>
               player.playerId === "p1"
-                ? { ...player, hand: [], handCount: 0 }
-                : { ...player, handCount: 0 },
+                ? { ...player, hand: [], handCount: 0, totalScore: 480 }
+                : { ...player, handCount: 0, totalScore: 520 },
             ),
             lastHandResult: {
               callerPlayerId: "p1",
@@ -1003,7 +1003,7 @@ describe("BelotTable", () => {
       });
 
       const winner = screen.getByTestId("belot-winner");
-      const winnerText = within(winner).getByText("Winner: Bob");
+      const winnerText = within(winner).getByText("You lost: 480 - 520");
       const handResult = screen.getByTestId("belot-hand-result");
       const startingCards = screen.getByTestId("belot-starting-cards");
       const scores = within(handResult).getAllByTestId("belot-result-score");
@@ -1050,8 +1050,8 @@ describe("BelotTable", () => {
         currentTrick: [],
         players: baseState.players.map((player) =>
           player.playerId === "p1"
-            ? { ...player, hand: [], handCount: 0 }
-            : { ...player, handCount: 0 },
+            ? { ...player, hand: [], handCount: 0, totalScore: 520 }
+            : { ...player, handCount: 0, totalScore: 480 },
         ),
         lastHandResult: {
           callerPlayerId: "p1",
@@ -1077,6 +1077,7 @@ describe("BelotTable", () => {
         "text-ink",
       );
       expect(screen.getByTestId("belot-winner")).not.toHaveClass("bg-red-300");
+      expect(screen.getByText("You won: 520 - 480")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
